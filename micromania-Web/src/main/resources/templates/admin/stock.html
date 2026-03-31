@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <th:block th:replace="~{fragments/layout :: head('Gestion du stock')}"/>
+</head>
+<body>
+<th:block th:replace="~{fragments/layout :: navbar}"/>
+
+<main>
+  <div class="container">
+    <div class="section-label">// ADMINISTRATION</div>
+    <div class="section-title">Gestion du stock</div>
+
+    <th:block th:replace="~{fragments/layout :: alerts}"/>
+
+    <!-- FILTRES -->
+    <form th:action="@{/admin/stock}" method="get" style="margin-bottom:1.5rem;display:flex;gap:0.75rem">
+      <select class="form-control form-control-select" name="magasinId" onchange="this.form.submit()" style="max-width:250px">
+        <option value="">Tous les magasins</option>
+        <option th:each="m : ${magasins}"
+                th:value="${m.id}"
+                th:text="${m.nom}"
+                th:selected="${m.id == magasinId}"></option>
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+    </form>
+
+    <!-- TABLE STOCK -->
+    <div class="card">
+      <div class="card-header">// NIVEAUX DE STOCK</div>
+      <div class="card-body" style="padding:0">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Produit</th>
+                <th>Magasin</th>
+                <th>Quantité</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="s : ${stocks}">
+                <td th:text="${s.produit}"></td>
+                <td th:text="${s.magasin}"></td>
+                <td>
+                  <span th:if="${s.quantite == 0}"  class="stock-zero" th:text="${s.quantite}"></span>
+                  <span th:if="${s.quantite > 0 and s.quantite <= 5}" class="stock-low" th:text="${s.quantite}"></span>
+                  <span th:if="${s.quantite > 5}"   class="stock-ok"  th:text="${s.quantite}"></span>
+                </td>
+                <td>
+                  <form th:action="@{/admin/stock/update}" method="post"
+                        style="display:inline-flex;align-items:center;gap:0.5rem">
+                    <input type="hidden" name="stockId"   th:value="${s.id}"/>
+                    <input class="form-control" type="number" name="quantite"
+                           th:value="${s.quantite}" min="0"
+                           style="width:80px;padding:0.3rem 0.5rem"/>
+                    <button type="submit" class="btn btn-primary btn-sm">Modifier</button>
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                  </form>
+                </td>
+              </tr>
+              <tr th:if="${stocks == null or stocks.isEmpty()}">
+                <td colspan="4" style="text-align:center;color:var(--text-dim);padding:2rem">
+                  Aucun stock trouvé
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+</body>
+</html>

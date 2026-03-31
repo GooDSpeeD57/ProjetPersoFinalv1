@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <th:block th:replace="~{fragments/layout :: head('Mon Compte')}"/>
+</head>
+<body>
+<th:block th:replace="~{fragments/layout :: navbar}"/>
+
+<main>
+  <div class="container">
+    <div class="section-label">// MON ESPACE</div>
+    <div class="section-title">Mon Compte</div>
+
+    <th:block th:replace="~{fragments/layout :: alerts}"/>
+
+    <div class="profil-grid">
+      <div>
+        <div class="card card-accent-top" style="text-align:center;padding:2rem">
+          <div class="profil-avatar" th:text="${client != null ? #strings.toUpperCase(#strings.substring(client.pseudo(),0,1)) : 'U'}">U</div>
+          <div style="font-family:var(--font-head);font-size:1.1rem;margin-bottom:0.3rem" th:text="${client != null ? client.pseudo() : null}">Pseudo</div>
+          <div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:1rem" th:text="${client != null ? client.email() : null}">email</div>
+
+          <div th:switch="${client != null ? client.typeFidelite() : null}">
+            <span th:case="'ULTIMATE'" class="fidelite-badge fidelite-ultimate">⚡ ULTIMATE</span>
+            <span th:case="'PREMIUM'" class="fidelite-badge fidelite-premium">★ PREMIUM</span>
+            <span th:case="*" class="fidelite-badge fidelite-normal">◆ NORMAL</span>
+          </div>
+
+          <div class="card" style="padding:1rem;margin:1rem 0;text-align:center">
+            <div style="font-family:var(--font-head);font-size:0.6rem;letter-spacing:2px;color:var(--text-dim);margin-bottom:0.3rem">POINTS FIDÉLITÉ</div>
+            <div class="points-big" th:text="${points != null ? points.soldePoints() : 0}">0</div>
+            <div style="font-size:0.8rem;color:var(--text-dim);margin-top:0.3rem"
+                 th:if="${points != null and points.totalAchatsAnnuel() != null}"
+                 th:text="${#numbers.formatDecimal(points.totalAchatsAnnuel(),1,2) + ' € cette année'}"></div>
+          </div>
+
+          <form th:action="@{/compte/supprimer}" method="post" style="margin-top:0.5rem">
+            <button type="submit" class="btn btn-danger btn-sm btn-full" onclick="return confirm('Confirmer la suppression de votre compte ?')">Supprimer mon compte</button>
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+          </form>
+        </div>
+      </div>
+
+      <div>
+        <div class="card card-accent-top">
+          <div class="card-header">// INFORMATIONS PERSONNELLES</div>
+          <div class="card-body">
+            <div class="info-row"><span class="label">Nom complet</span><span th:text="${client != null ? client.prenom() + ' ' + client.nom() : '—'}"></span></div>
+            <div class="info-row"><span class="label">Email</span><span th:text="${client != null && client.email() != null ? client.email() : '—'}"></span></div>
+            <div class="info-row"><span class="label">Téléphone</span><span th:text="${client != null && client.telephone() != null ? client.telephone() : '—'}"></span></div>
+            <div class="info-row"><span class="label">Date de naissance</span><span th:text="${client != null && client.dateNaissance() != null ? client.dateNaissance() : '—'}"></span></div>
+            <div class="info-row"><span class="label">N° Carte fidélité</span><span style="font-family:var(--font-head);font-size:0.8rem;color:var(--accent)" th:text="${client != null && client.numeroCarteFidelite() != null ? client.numeroCarteFidelite() : '—'}"></span></div>
+            <div class="info-row"><span class="label">Email vérifié</span><span th:text="${client != null && client.emailVerifie() ? '✅ Oui' : '❌ Non'}"></span></div>
+            <div class="info-row"><span class="label">Téléphone vérifié</span><span th:text="${client != null && client.telephoneVerifie() ? '✅ Oui' : '❌ Non'}"></span></div>
+            <div class="info-row"><span class="label">Compte actif</span><span th:text="${client != null && client.compteActive() ? '✅ Oui' : '⏳ En attente'}"></span></div>
+            <div class="info-row"><span class="label">Dernière connexion</span><span th:text="${client != null && client.dateDerniereConnexion() != null ? client.dateDerniereConnexion() : '—'}"></span></div>
+            <div class="info-row"><span class="label">Membre depuis</span><span th:text="${client != null && client.dateCreation() != null ? client.dateCreation() : '—'}"></span></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-header">// MES FACTURES</div>
+          <div class="card-body">
+            <div th:if="${factures == null or factures.isEmpty()}" style="color:var(--text-dim);font-size:0.85rem">Aucune facture.</div>
+            <div class="table-wrapper" th:unless="${factures == null or factures.isEmpty()}">
+              <table>
+                <thead>
+                <tr><th>Référence</th><th>Date</th><th>Magasin</th><th>Total</th><th>Statut</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="f : ${factures}">
+                  <td style="font-family:var(--font-head);font-size:0.8rem;color:var(--accent)" th:text="${f.referenceFacture()}"></td>
+                  <td th:text="${f.dateFacture() != null ? f.dateFacture() : '—'}"></td>
+                  <td th:text="${f.magasin() != null ? f.magasin() : '—'}"></td>
+                  <td style="color:var(--accent);font-family:var(--font-head)" th:text="${f.montantFinal() != null ? #numbers.formatDecimal(f.montantFinal(),1,2) + ' €' : '—'}"></td>
+                  <td th:text="${f.statutFacture() != null ? f.statutFacture() : '—'}"></td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:1.5rem" th:if="${adresses != null and !adresses.isEmpty()}">
+          <div class="card-header">// MES ADRESSES</div>
+          <div class="card-body">
+            <div th:each="a : ${adresses}" style="padding:0.75rem 0;border-bottom:1px solid var(--border)">
+              <div style="font-family:var(--font-head);font-size:0.7rem;color:var(--text-dim)" th:text="${a.typeAdresse()}"></div>
+              <div th:text="${a.rue()}"></div>
+              <div th:if="${a.complement() != null and !a.complement().isBlank()}" th:text="${a.complement()}"></div>
+              <div th:text="${a.codePostal() + ' ' + a.ville()}"></div>
+              <div th:text="${a.pays()}"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+</body>
+</html>

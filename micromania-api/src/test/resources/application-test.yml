@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/micromania_test?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Europe/Paris&allowPublicKeyRetrieval=true
+    username: root
+    password: Root
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema-test.sql

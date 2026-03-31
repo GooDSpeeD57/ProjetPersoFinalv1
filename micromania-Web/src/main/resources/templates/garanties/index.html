@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <th:block th:replace="~{fragments/layout :: head('Garanties')}"/>
+</head>
+<body>
+<th:block th:replace="~{fragments/layout :: navbar}"/>
+
+<main>
+  <div class="container">
+    <div class="section-label">// GESTION</div>
+    <div class="section-title">Garanties</div>
+
+    <th:block th:replace="~{fragments/layout :: alerts}"/>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start;margin-bottom:2rem">
+
+      <!-- FORMULAIRE : Enregistrer garantie -->
+      <div class="card card-accent-top">
+        <div class="card-header">// ENREGISTRER UNE GARANTIE</div>
+        <div class="card-body">
+          <form th:action="@{/garanties/enregistrer}" method="post" th:object="${garantieForm}">
+
+            <div class="form-group">
+              <label class="form-label">N° de série</label>
+              <input class="form-control" type="text" name="numeroSerie"
+                     th:field="*{numeroSerie}"
+                     th:classappend="${#fields.hasErrors('numeroSerie')} ? 'is-invalid'"
+                     placeholder="SN-XXXX-XXXX" required/>
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('numeroSerie')}"
+                   th:errors="*{numeroSerie}"></div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Produit</label>
+              <select class="form-control form-control-select" name="produitId" th:field="*{produitId}" required>
+                <option value="">Sélectionner un produit</option>
+                <option th:each="p : ${produits}"
+                        th:value="${p.id}"
+                        th:text="${p.nom}"></option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Facture</label>
+              <input class="form-control" type="number" name="factureId"
+                     th:field="*{factureId}"
+                     placeholder="ID de la facture" required/>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Durée (mois)</label>
+              <select class="form-control form-control-select" name="dureeMois" th:field="*{dureeMois}" required>
+                <option value="12">12 mois</option>
+                <option value="24">24 mois</option>
+                <option value="36">36 mois</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full">
+              Enregistrer la garantie
+            </button>
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+          </form>
+        </div>
+      </div>
+
+      <!-- FORMULAIRE : Vérifier garantie -->
+      <div class="card card-accent-top">
+        <div class="card-header">// VÉRIFIER UNE GARANTIE</div>
+        <div class="card-body">
+          <form th:action="@{/garanties/verifier}" method="get">
+            <div class="form-group">
+              <label class="form-label">N° de série</label>
+              <input class="form-control" type="text" name="numeroSerie"
+                     th:value="${numeroSerieRecherche}"
+                     placeholder="SN-XXXX-XXXX" required/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ID Produit</label>
+              <input class="form-control" type="number" name="produitId"
+                     th:value="${produitIdRecherche}"
+                     placeholder="ID du produit" required/>
+            </div>
+            <button type="submit" class="btn btn-secondary btn-full">
+              🔍 Vérifier
+            </button>
+          </form>
+
+          <!-- RÉSULTAT VÉRIFICATION -->
+          <div th:if="${garantieResultat != null}" style="margin-top:1.5rem">
+            <div style="font-family:var(--font-head);font-size:0.6rem;letter-spacing:2px;
+                        color:var(--text-dim);margin-bottom:0.75rem">RÉSULTAT</div>
+            <div class="info-row">
+              <span class="label">Produit</span>
+              <span th:text="${garantieResultat.produit}"></span>
+            </div>
+            <div class="info-row">
+              <span class="label">N° série</span>
+              <span style="font-family:var(--font-head);font-size:0.8rem"
+                    th:text="${garantieResultat.numeroSerie}"></span>
+            </div>
+            <div class="info-row">
+              <span class="label">Valide jusqu'au</span>
+              <span th:text="${garantieResultat.dateFin}"></span>
+            </div>
+            <div class="info-row">
+              <span class="label">Statut</span>
+              <span th:if="${!garantieResultat.estEtendue}" class="garantie-valide">✅ VALIDE</span>
+              <span th:if="${garantieResultat.estEtendue}"  class="garantie-etendue">⚡ ÉTENDUE</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Client</span>
+              <span th:text="${garantieResultat.client ?: '—'}"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLE GARANTIES -->
+    <div class="card">
+      <div class="card-header">// LISTE DES GARANTIES</div>
+      <div class="card-body" style="padding:0">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>N° Série</th>
+                <th>Produit</th>
+                <th>Client</th>
+                <th>Début</th>
+                <th>Fin</th>
+                <th>Statut</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="g : ${garanties}">
+                <td style="font-family:var(--font-head);font-size:0.8rem;color:var(--accent)"
+                    th:text="${g.numeroSerie}"></td>
+                <td th:text="${g.produit}"></td>
+                <td th:text="${g.client ?: g.clientEmail ?: '—'}"></td>
+                <td th:text="${g.dateDebut}"></td>
+                <td th:text="${g.dateFin}"></td>
+                <td>
+                  <span th:if="${!g.estEtendue}" class="garantie-valide">VALIDE</span>
+                  <span th:if="${g.estEtendue}"  class="garantie-etendue">ÉTENDUE</span>
+                </td>
+                <td>
+                  <form th:action="@{/garanties/etendre}" method="post"
+                        style="display:inline-flex;align-items:center;gap:0.5rem">
+                    <input type="hidden" name="garantieId" th:value="${g.id}"/>
+                    <select class="form-control form-control-select" name="typeGarantieId"
+                            style="width:160px;padding:0.3rem 0.5rem">
+                      <option th:each="t : ${typesGarantie}"
+                              th:value="${t.id}"
+                              th:text="${t.code}"></option>
+                    </select>
+                    <button type="submit" class="btn btn-warning btn-sm">Étendre</button>
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                  </form>
+                </td>
+              </tr>
+              <tr th:if="${garanties == null or garanties.isEmpty()}">
+                <td colspan="7" style="text-align:center;color:var(--text-dim);padding:2rem">
+                  Aucune garantie enregistrée
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+</body>
+</html>

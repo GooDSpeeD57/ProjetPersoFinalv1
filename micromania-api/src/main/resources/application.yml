@@ -1,0 +1,119 @@
+spring:
+  application:
+    name: micromania-api
+
+  profiles:
+    active: dev
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/Micromania?useSSL=false&serverTimezone=Europe/Paris&allowPublicKeyRetrieval=true}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:Root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate          # validate en prod — schema géré par schema.sql
+    show-sql: false
+    open-in-view: false           # désactivé — pas de session JPA dans les controllers
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+        default_batch_fetch_size: 16
+
+  sql:
+    init:
+      mode: never                 # schema.sql géré manuellement
+
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: non_null
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:micromania-super-secret-key-minimum-32-chars-please-change-in-prod}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}         # 24h
+    refresh-expiration-ms: ${JWT_REFRESH_MS:604800000}   # 7j
+
+server:
+  port: 8080
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html
+    min-response-size: 1024
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    fr.micromania: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/Micromania?useSSL=false&serverTimezone=Europe/Paris&allowPublicKeyRetrieval=true
+    username: root
+    password: Root
+
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+app:
+  jwt:
+    secret: dev-secret-key-micromania-minimum-32-chars-dev-only
+    expiration-ms: 86400000
+
+logging:
+  level:
+    fr.micromania: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 50
+
+  jpa:
+    show-sql: false
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: ${JWT_EXPIRATION_MS:3600000}   # 1h en prod
+
+logging:
+  level:
+    fr.micromania: WARN
+    root: ERROR

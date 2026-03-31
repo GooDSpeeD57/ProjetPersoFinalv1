@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<nav th:fragment="navbar" class="navbar">
+
+  <a class="navbar-brand" th:href="@{/}">MICRO<span>MANIA</span></a>
+
+  <ul class="navbar-nav">
+    <li><a class="nav-link" th:href="@{/}">Accueil</a></li>
+    <li><a class="nav-link" th:href="@{/catalogue}">Catalogue</a></li>
+    <li><a class="nav-link" th:href="@{/panier}">
+      Panier
+      <span th:if="${session.cartCount != null and session.cartCount > 0}"
+            style="color:var(--accent2)"
+            th:text="'(' + ${session.cartCount} + ')'" ></span>
+    </a></li>
+    <li sec:authorize="isAuthenticated()">
+      <a class="nav-link" th:href="@{/compte}">Mon Compte</a>
+    </li>
+  </ul>
+
+  <div class="navbar-right">
+    <div sec:authorize="isAuthenticated()" class="nav-user">
+      <span th:text="${session.userPseudo ?: #authentication.name}"></span>
+      <span class="nav-badge" th:if="${session.userTypeFidelite == 'ULTIMATE'}">ULTIMATE</span>
+      <span class="nav-badge" th:if="${session.userTypeFidelite == 'PREMIUM'}"
+            style="border-color:var(--accent3);color:var(--accent3)">PREMIUM</span>
+    </div>
+    <a sec:authorize="isAnonymous()" class="btn btn-primary btn-sm" th:href="@{/auth/login}">Connexion</a>
+    <form sec:authorize="isAuthenticated()" th:action="@{/auth/logout}" method="post" style="margin:0">
+      <button type="submit" class="btn btn-secondary btn-sm">Déconnexion</button>
+    </form>
+  </div>
+</nav>
+
+<th:block th:fragment="head(title)">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title th:text="${title} + ' — MICROMANIA'">MICROMANIA</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</th:block>
+
+<th:block th:fragment="scripts">
+  <script th:src="@{/js/main.js}"></script>
+</th:block>
+
+<footer th:fragment="footer">
+  <p>© 2025 MICROMANIA — Tous droits réservés</p>
+</footer>
+
+<th:block th:fragment="alerts">
+  <div th:if="${successMessage}" class="alert alert-success alert-auto-hide"
+       th:text="${successMessage}"></div>
+  <div th:if="${errorMessage}"   class="alert alert-error alert-auto-hide"
+       th:text="${errorMessage}"></div>
+  <div th:if="${infoMessage}"    class="alert alert-info alert-auto-hide"
+       th:text="${infoMessage}"></div>
+</th:block>
+
+</html>

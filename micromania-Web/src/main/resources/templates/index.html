@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <th:block th:replace="~{fragments/layout :: head('Accueil')}"/>
+</head>
+<body>
+
+<th:block th:replace="~{fragments/layout :: navbar}"/>
+
+<main>
+  <div class="hero">
+    <div class="hero-tag">⚡ Bienvenue chez</div>
+    <h1 class="hero-title">MICRO<span class="hero-title-accent">MANIA</span></h1>
+    <p class="hero-sub">Les meilleurs jeux vidéo, consoles et accessoires gaming. Fidélité récompensée.</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" th:href="@{/catalogue}">🎮 Voir le catalogue</a>
+      <a sec:authorize="isAnonymous()" class="btn btn-secondary" th:href="@{/auth/inscription}">Créer un compte</a>
+      <a sec:authorize="isAuthenticated()" class="btn btn-secondary" th:href="@{/compte}">Mon espace</a>
+    </div>
+  </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+</body>
+</html>

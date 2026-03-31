@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: boutique-web
+
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+    encoding: UTF-8
+
+  security:
+    user:
+      name: disabled
+      password: disabled
+
+server:
+  port: 8081   # L'API tourne sur 8080, le front sur 8081
+
+# URL de l'API Spring Boot
+api:
+  base-url: http://localhost:8080/api/v1

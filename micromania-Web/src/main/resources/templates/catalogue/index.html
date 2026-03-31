@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <th:block th:replace="~{fragments/layout :: head('Catalogue')}"/>
+</head>
+<body>
+<th:block th:replace="~{fragments/layout :: navbar}"/>
+
+<main>
+  <div class="container">
+    <div class="section-label">// STOCK DISPONIBLE</div>
+    <div class="section-title">Catalogue</div>
+
+    <form id="filter-form" th:action="@{/catalogue}" method="get">
+      <div class="filters-bar">
+        <input class="form-control" type="text" name="q"
+               th:value="${q}" placeholder="Rechercher un jeu, une console..."/>
+        <select class="form-control form-control-select" name="categorie" onchange="autoSubmitFilter()">
+          <option value="">Toutes catégories</option>
+          <option th:each="c : ${categories}"
+                  th:value="${c.id()}"
+                  th:text="${c.nom()}"
+                  th:selected="${categorie != null and categorie == c.id()}"></option>
+        </select>
+        <select class="form-control form-control-select" name="niveau" onchange="autoSubmitFilter()">
+          <option value="">Tous les niveaux</option>
+          <option value="NORMAL" th:selected="${niveau == 'NORMAL'}">Normal</option>
+          <option value="PREMIUM" th:selected="${niveau == 'PREMIUM'}">Premium</option>
+          <option value="ULTIMATE" th:selected="${niveau == 'ULTIMATE'}">Ultimate</option>
+        </select>
+        <button type="submit" class="btn btn-primary">🔍 Filtrer</button>
+        <a th:href="@{/catalogue}" class="btn btn-secondary">Réinitialiser</a>
+      </div>
+    </form>
+
+    <div class="products-grid" th:if="${produits != null and produits.content() != null and !produits.content().isEmpty()}">
+      <div class="product-card" th:each="p : ${produits.content()}">
+        <div class="product-img">
+          <img th:if="${p.imageUrl() != null}"
+               th:src="${p.imageUrl()}"
+               th:alt="${p.imageAlt() != null ? p.imageAlt() : p.nom()}"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+          <span th:if="${p.imageUrl() == null}">🎮</span>
+          <span th:if="${p.misEnAvant()}" class="product-badge badge-premium">MISE EN AVANT</span>
+        </div>
+        <div class="product-body">
+          <div class="product-platform" th:text="${p.categorie()}"></div>
+          <div class="product-name" th:text="${p.nom()}"></div>
+          <div class="product-price">
+            <span th:text="${p.prixMinimal() != null ? #numbers.formatDecimal(p.prixMinimal(),1,2) + ' €' : 'N/A'}"></span>
+          </div>
+          <div class="product-actions">
+            <a class="btn btn-sm btn-secondary" th:href="@{/catalogue/{id}(id=${p.id()})}">Détail</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div th:if="${produits == null or produits.content() == null or produits.content().isEmpty()}"
+         style="text-align:center;padding:4rem;color:var(--text-dim)">
+      <div style="font-family:var(--font-head);letter-spacing:3px">Aucun produit trouvé</div>
+    </div>
+
+    <div class="pagination" th:if="${produits != null and produits.totalPages() > 1}">
+      <a class="page-link" th:classappend="${produits.first()} ? 'disabled'"
+         th:href="@{/catalogue(page=${produits.number() - 1}, q=${q}, categorie=${categorie}, niveau=${niveau})}">◀</a>
+      <th:block th:each="i : ${#numbers.sequence(0, produits.totalPages() - 1)}">
+        <a class="page-link" th:classappend="${i == produits.number()} ? 'active'"
+           th:href="@{/catalogue(page=${i}, q=${q}, categorie=${categorie}, niveau=${niveau})}"
+           th:text="${i + 1}"></a>
+      </th:block>
+      <a class="page-link" th:classappend="${produits.last()} ? 'disabled'"
+         th:href="@{/catalogue(page=${produits.number() + 1}, q=${q}, categorie=${categorie}, niveau=${niveau})}">▶</a>
+    </div>
+  </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+</body>
+</html>
