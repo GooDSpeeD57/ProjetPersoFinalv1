@@ -15,22 +15,21 @@ import java.util.List;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.WARN)
 public interface CatalogMapper {
 
-    // ── Produit ──────────────────────────────────────────────
     @Mapping(target = "categorie", source = "categorie")
     @Mapping(target = "variants",  source = "variants")
     @Mapping(target = "images",    source = "images")
     ProduitResponse toProduitResponse(Produit produit);
 
     @Mapping(target = "categorie",   source = "categorie.nom")
-    @Mapping(target = "imageUrl",    ignore = true)   // résolu dans le service (image principale)
+    @Mapping(target = "imageUrl",    ignore = true)
     @Mapping(target = "imageAlt",    ignore = true)
-    @Mapping(target = "prixMinimal", ignore = true)   // résolu dans le service
-    @Mapping(target = "disponible",  ignore = true)   // résolu via stock
+    @Mapping(target = "prixNeuf", ignore = true)
+    @Mapping(target = "prixOccasion", ignore = true)
+    @Mapping(target = "disponible",  ignore = true)
     ProduitSummary toProduitSummary(Produit produit);
 
     List<ProduitSummary> toProduitSummaryList(List<Produit> produits);
 
-    // ── Catégorie ─────────────────────────────────────────────
     @Mapping(target = "typeCategorie", source = "typeCategorie.code")
     CategorieResponse toCategorieResponse(Categorie categorie);
 
@@ -42,7 +41,7 @@ public interface CatalogMapper {
     @Mapping(target = "formatProduit", source = "formatProduit.code")
     @Mapping(target = "statutProduit", source = "statutProduit.code")
     @Mapping(target = "tauxTva",       source = "tauxTva")
-    @Mapping(target = "prixWeb",       ignore = true)     // résolu dans le service
+    @Mapping(target = "prixWeb",       ignore = true)
     @Mapping(target = "prixMagasin",   ignore = true)
     ProduitVariantResponse toVariantResponse(ProduitVariant variant);
 
@@ -57,17 +56,29 @@ public interface CatalogMapper {
 
     PlatformeDto toPlatformeDto(Plateforme plateforme);
 
+    default BigDecimal prixParStatut(List<ProduitVariant> variants, String statut) {
+        if (variants == null) return null;
+
+        return variants.stream()
+                .filter(ProduitVariant::isActif)
+                .filter(v -> v.getStatutProduit() != null
+                        && statut.equalsIgnoreCase(v.getStatutProduit().getCode()))
+                .flatMap(v -> v.getPrix() != null ? v.getPrix().stream() : java.util.stream.Stream.empty())
+                .filter(ProduitPrix::isActif)
+                .filter(p -> p.getCanalVente() != null
+                        && "WEB".equalsIgnoreCase(p.getCanalVente().getCode()))
+                .map(ProduitPrix::getPrix)
+                .min(BigDecimal::compareTo)
+                .orElse(null);
+    }
+
+    default BigDecimal prixNeuf(List<ProduitVariant> variants) {
+        return prixParStatut(variants, "NEUF");
+    }
+
+    default BigDecimal prixOccasion(List<ProduitVariant> variants) {
+        return prixParStatut(variants, "OCCASION");
+    }
     @Mapping(target = "taux", source = "taux")
     TauxTvaDto toTauxTvaDto(TauxTva tauxTva);
-
-    default BigDecimal prixMinimal(List<ProduitVariant> variants) {
-        if (variants == null) return null;
-        return variants.stream()
-            .flatMap(v -> v.getPrix() != null
-                ? v.getPrix().stream().filter(p -> p.isActif())
-                : java.util.stream.Stream.empty())
-            .map(ProduitPrix::getPrix)
-            .min(BigDecimal::compareTo)
-            .orElse(null);
-    }
 }

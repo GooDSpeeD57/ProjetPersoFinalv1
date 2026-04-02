@@ -1,5 +1,6 @@
 package fr.micromania.dto.client;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -19,5 +20,9 @@ public record ClientResponse(
         boolean telephoneVerifie,
         boolean compteActive,
         LocalDateTime dateDerniereConnexion,
-        LocalDateTime dateCreation
+        LocalDateTime dateCreation,
+        LocalDate ultimateDateDebut,
+        LocalDate ultimateDateFin,
+        boolean ultimateActif,
+        BigDecimal prixAbonnementUltimate
 ) {}

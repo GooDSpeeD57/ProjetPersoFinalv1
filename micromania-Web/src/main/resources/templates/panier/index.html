@@ -62,10 +62,8 @@
           <div class="summary-row"><span>Articles</span><span th:text="${#numbers.formatDecimal(apiPanier.sousTotal(),1,2) + ' €'}"></span></div>
           <div class="summary-row"><span>Remise</span><span th:text="${#numbers.formatDecimal(apiPanier.remise(),1,2) + ' €'}"></span></div>
           <div class="summary-row total"><span>Total</span><span th:text="${#numbers.formatDecimal(apiPanier.total(),1,2) + ' €'}"></span></div>
-          <form th:action="@{/panier/valider}" method="post" style="margin-top:1rem">
-            <button type="submit" class="btn btn-primary btn-full">Valider la commande</button>
-            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-          </form>
+          <a class="btn btn-primary btn-full" th:href="@{/panier/checkout}" style="margin-top:1rem">Passer au checkout</a>
+          <div style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-dim)">Paiement fictif, facturation réelle côté projet.</div>
         </div>
       </div>
     </div>

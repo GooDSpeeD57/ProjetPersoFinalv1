@@ -18,7 +18,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 class HomeController {
     @GetMapping("/")
-    String home() { return "index"; }
+    String home() {
+        return "index";
+    }
 }
 
 @Controller
@@ -29,11 +31,15 @@ class AuthController {
     private final ApiService api;
 
     @GetMapping("/login")
-    String loginPage() { return "auth/login"; }
+    String loginPage() {
+        return "auth/login";
+    }
 
     @GetMapping("/inscription")
     String inscriptionPage(Model model) {
-        model.addAttribute("inscriptionForm", new InscriptionForm());
+        if (!model.containsAttribute("inscriptionForm")) {
+            model.addAttribute("inscriptionForm", new InscriptionForm());
+        }
         return "auth/inscription";
     }
 
@@ -44,7 +50,9 @@ class AuthController {
                        RedirectAttributes redirect,
                        Model model) {
 
-        if (result.hasErrors()) return "auth/inscription";
+        if (result.hasErrors()) {
+            return "auth/inscription";
+        }
 
         try {
             ApiAuthResponse resp = api.inscription(
@@ -57,14 +65,20 @@ class AuthController {
                     form.getMotDePasse(),
                     Boolean.TRUE.equals(form.getRgpdConsent())
             );
-            if (resp != null && resp.accessToken() != null) {
+
+            if (resp != null && resp.accessToken() != null && !resp.accessToken().isBlank()) {
                 session.setAttribute("jwt", resp.accessToken());
                 session.setAttribute("userEmail", resp.email());
                 session.setAttribute("userPseudo", resp.pseudo());
                 session.setAttribute("userTypeFidelite", resp.typeFidelite());
+
+                redirect.addFlashAttribute("successMessage", "Compte créé avec succès ! Bienvenue 🎮");
+                return "redirect:/catalogue";
             }
-            redirect.addFlashAttribute("successMessage", "Compte créé avec succès ! Bienvenue 🎮");
-            return "redirect:/catalogue";
+
+            redirect.addFlashAttribute("successMessage", "Compte créé avec succès. Vous pouvez maintenant vous connecter.");
+            return "redirect:/auth/login";
+
         } catch (RuntimeException e) {
             model.addAttribute("errorMessage", e.getMessage());
             return "auth/inscription";

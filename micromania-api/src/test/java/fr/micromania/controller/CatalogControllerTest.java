@@ -49,7 +49,7 @@ class CatalogControllerTest {
         produitSummary = new ProduitSummary(
                 1L, "Spider-Man PS5", "spider-man-ps5",
                 "Jeux Video", "/img/spider.jpg", "Spider-Man",
-                new BigDecimal("69.99"), true, false, 16
+                new BigDecimal("69.99"), null, true, false, 16
         );
 
         doAnswer(invocation -> {
@@ -70,7 +70,8 @@ class CatalogControllerTest {
         mockMvc.perform(get("/api/v1/produits"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].nom").value("Spider-Man PS5"))
-                .andExpect(jsonPath("$.content[0].prixMinimal").value(69.99));
+                .andExpect(jsonPath("$.content[0].prixNeuf").value(69.99))
+                .andExpect(jsonPath("$.content[0].prixOccasion").doesNotExist());
     }
 
     @Test

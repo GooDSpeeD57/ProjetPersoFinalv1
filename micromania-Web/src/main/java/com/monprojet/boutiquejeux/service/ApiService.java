@@ -5,9 +5,14 @@ import com.monprojet.boutiquejeux.dto.api.catalog.ApiCategorie;
 import com.monprojet.boutiquejeux.dto.api.catalog.ApiProduitDetail;
 import com.monprojet.boutiquejeux.dto.api.catalog.ApiProduitSummary;
 import com.monprojet.boutiquejeux.dto.api.client.ApiAdresse;
+import com.monprojet.boutiquejeux.dto.api.client.ApiBonAchat;
 import com.monprojet.boutiquejeux.dto.api.client.ApiClient;
+import com.monprojet.boutiquejeux.dto.api.client.ApiFideliteDetail;
+import com.monprojet.boutiquejeux.dto.api.client.ApiHistoriquePoints;
 import com.monprojet.boutiquejeux.dto.api.client.ApiPoints;
 import com.monprojet.boutiquejeux.dto.api.common.ApiPage;
+import com.monprojet.boutiquejeux.dto.api.facture.ApiCheckoutPanierRequest;
+import com.monprojet.boutiquejeux.dto.api.facture.ApiFactureDetail;
 import com.monprojet.boutiquejeux.dto.api.facture.ApiFactureSummary;
 import com.monprojet.boutiquejeux.dto.api.panier.ApiPanier;
 import tools.jackson.core.type.TypeReference;
@@ -110,10 +115,14 @@ public class ApiService {
     }
 
     public ApiAuthResponse loginClient(String email, String motDePasse) {
+        return loginClient(email, motDePasse, false);
+    }
+
+    public ApiAuthResponse loginClient(String email, String motDePasse, boolean rememberMe) {
         try {
             return restClient.post().uri("/auth/login/client")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of("email", email, "motDePasse", motDePasse))
+                    .body(Map.of("email", email, "motDePasse", motDePasse, "rememberMe", rememberMe))
                     .retrieve()
                     .body(ApiAuthResponse.class);
         } catch (RestClientResponseException e) {
@@ -122,12 +131,35 @@ public class ApiService {
         }
     }
 
-    public void logout(String jwtToken) {
+    public ApiAuthResponse loginClientWithRememberMe(String rememberMeToken) {
         try {
-            restClient.post().uri("/auth/logout")
-                    .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
+            return restClient.post().uri("/auth/remember-me/client")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("rememberMeToken", rememberMeToken))
                     .retrieve()
-                    .toBodilessEntity();
+                    .body(ApiAuthResponse.class);
+        } catch (RestClientResponseException e) {
+            log.warn("loginClientWithRememberMe error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException(extractMessage(e));
+        }
+    }
+
+    public void logout(String jwtToken) {
+        logout(jwtToken, null);
+    }
+
+    public void logout(String jwtToken, String rememberMeToken) {
+        try {
+            RestClient.RequestBodySpec request = restClient.post().uri("/auth/logout");
+
+            if (jwtToken != null && !jwtToken.isBlank()) {
+                request.header(HttpHeaders.AUTHORIZATION, bearer(jwtToken));
+            }
+            if (rememberMeToken != null && !rememberMeToken.isBlank()) {
+                request.header("X-Remember-Me-Token", rememberMeToken);
+            }
+
+            request.retrieve().toBodilessEntity();
         } catch (RestClientResponseException e) {
             log.warn("logout error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
         }
@@ -157,6 +189,44 @@ public class ApiService {
         }
     }
 
+    public ApiFideliteDetail getClientFidelite(String jwtToken) {
+        try {
+            return restClient.get().uri("/clients/me/fidelite")
+                    .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
+                    .retrieve()
+                    .body(ApiFideliteDetail.class);
+        } catch (RestClientResponseException e) {
+            log.error("getClientFidelite error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return null;
+        }
+    }
+
+    public List<ApiBonAchat> getClientBonsAchat(String jwtToken) {
+        try {
+            List<ApiBonAchat> bons = restClient.get().uri("/clients/me/bons-achat")
+                    .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {});
+            return bons != null ? bons : List.of();
+        } catch (RestClientResponseException e) {
+            log.error("getClientBonsAchat error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return List.of();
+        }
+    }
+
+    public List<ApiHistoriquePoints> getClientHistoriquePoints(String jwtToken) {
+        try {
+            List<ApiHistoriquePoints> historique = restClient.get().uri("/clients/me/historique-points")
+                    .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {});
+            return historique != null ? historique : List.of();
+        } catch (RestClientResponseException e) {
+            log.error("getClientHistoriquePoints error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return List.of();
+        }
+    }
+
     public ApiPage<ApiFactureSummary> getClientFactures(String jwtToken) {
         try {
             return restClient.get().uri("/factures/me?page=0&size=20")
@@ -166,6 +236,19 @@ public class ApiService {
         } catch (RestClientResponseException e) {
             log.error("getClientFactures error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
             return emptyPage();
+        }
+    }
+
+
+    public ApiClient subscribeUltimate(String jwtToken) {
+        try {
+            return restClient.post().uri("/clients/me/ultimate/subscribe")
+                    .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
+                    .retrieve()
+                    .body(ApiClient.class);
+        } catch (RestClientResponseException e) {
+            log.error("subscribeUltimate error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException(extractMessage(e));
         }
     }
 
@@ -280,6 +363,36 @@ public class ApiService {
         } catch (Exception ignored) {
         }
         return body;
+    }
+
+    public ApiFactureDetail getClientFacture(String jwtToken, Long idFacture) {
+        try {
+            return restClient.get()
+                    .uri("/factures/me/{idFacture}", idFacture)
+                    .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
+                    .retrieve()
+                    .body(ApiFactureDetail.class);
+        } catch (RestClientResponseException e) {
+            log.error("getClientFacture error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw e;
+        }
+    }
+
+    public ApiFactureDetail checkoutPanier(String jwtToken,
+                                           Long idAdresse,
+                                           Long idBonAchat,
+                                           String modePaiementCode) {
+        try {
+            return restClient.post()
+                    .uri("/factures/me/checkout")
+                    .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
+                    .body(new ApiCheckoutPanierRequest(idAdresse, idBonAchat, modePaiementCode))
+                    .retrieve()
+                    .body(ApiFactureDetail.class);
+        } catch (RestClientResponseException e) {
+            log.error("checkoutPanier error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw e;
+        }
     }
 
     private <T> ApiPage<T> emptyPage() {

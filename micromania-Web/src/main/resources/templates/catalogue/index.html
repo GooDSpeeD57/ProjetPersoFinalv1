@@ -47,7 +47,17 @@
           <div class="product-platform" th:text="${p.categorie()}"></div>
           <div class="product-name" th:text="${p.nom()}"></div>
           <div class="product-price">
-            <span th:text="${p.prixMinimal() != null ? #numbers.formatDecimal(p.prixMinimal(),1,2) + ' €' : 'N/A'}"></span>
+            <div th:if="${p.prixNeuf() != null}">
+              Neuf :
+              <span th:text="${#numbers.formatDecimal(p.prixNeuf(),1,2) + ' €'}"></span>
+            </div>
+            <div th:if="${p.prixOccasion() != null}">
+              Occasion :
+              <span th:text="${#numbers.formatDecimal(p.prixOccasion(),1,2) + ' €'}"></span>
+            </div>
+            <div th:if="${p.prixNeuf() == null and p.prixOccasion() == null}">
+              N/A
+            </div>
           </div>
           <div class="product-actions">
             <a class="btn btn-sm btn-secondary" th:href="@{/catalogue/{id}(id=${p.id()})}">Détail</a>

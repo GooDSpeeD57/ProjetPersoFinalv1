@@ -1,7 +1,13 @@
 package com.monprojet.boutiquejeux.config;
 
+import com.monprojet.boutiquejeux.dto.CartItem;
 import com.monprojet.boutiquejeux.dto.api.auth.ApiAuthResponse;
+import com.monprojet.boutiquejeux.dto.api.panier.ApiPanier;
 import com.monprojet.boutiquejeux.service.ApiService;
+import com.monprojet.boutiquejeux.service.RememberMeCookieService;
+import com.monprojet.boutiquejeux.service.WebClientSessionService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,24 +28,34 @@ import java.util.List;
 public class ApiUserDetailsService implements UserDetailsService {
 
     private final ApiService apiService;
+    private final WebClientSessionService webClientSessionService;
+    private final RememberMeCookieService rememberMeCookieService;
     static final ThreadLocal<String> CURRENT_PASSWORD = new ThreadLocal<>();
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         String motDePasse = CURRENT_PASSWORD.get();
         try {
-            ApiAuthResponse resp = apiService.loginClient(email, motDePasse);
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            HttpServletRequest request = attrs != null ? attrs.getRequest() : null;
+            HttpServletResponse response = attrs != null ? attrs.getResponse() : null;
+            boolean rememberMe = request != null && "on".equalsIgnoreCase(request.getParameter("remember-me"));
+
+            ApiAuthResponse resp = apiService.loginClient(email, motDePasse, rememberMe);
             if (resp == null || resp.accessToken() == null) {
                 throw new UsernameNotFoundException("Réponse API invalide");
             }
 
-            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attrs != null) {
                 HttpSession session = attrs.getRequest().getSession();
-                session.setAttribute("jwt", resp.accessToken());
-                session.setAttribute("userEmail", resp.email());
-                session.setAttribute("userPseudo", resp.pseudo());
-                session.setAttribute("userTypeFidelite", resp.typeFidelite());
+                mergeSessionCartToApi(session, resp.accessToken());
+                webClientSessionService.populateClientSession(session, resp);
+
+                if (rememberMe && resp.rememberMeToken() != null && !resp.rememberMeToken().isBlank()) {
+                    rememberMeCookieService.writeRememberMeCookie(response, resp.rememberMeToken());
+                } else {
+                    rememberMeCookieService.clearRememberMeCookie(response);
+                }
             }
 
             return User.builder()
@@ -53,5 +69,43 @@ public class ApiUserDetailsService implements UserDetailsService {
         } finally {
             CURRENT_PASSWORD.remove();
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void mergeSessionCartToApi(HttpSession session, String jwt) {
+        Object cartObj = session.getAttribute("cart");
+        if (!(cartObj instanceof List<?> list) || list.isEmpty()) {
+            return;
+        }
+
+        ApiPanier panierApi;
+        try {
+            panierApi = apiService.getPanier(jwt);
+        } catch (RuntimeException e) {
+            log.warn("Impossible de récupérer le panier API avant fusion : {}", e.getMessage());
+            return;
+        }
+
+        for (Object obj : list) {
+            if (!(obj instanceof CartItem item)) continue;
+            if (item.getVariantId() == null) continue;
+
+            boolean dejaPresent = panierApi != null
+                    && panierApi.lignes() != null
+                    && panierApi.lignes().stream()
+                    .anyMatch(l -> l.idVariant().equals(item.getVariantId()));
+
+            if (dejaPresent) {
+                continue;
+            }
+
+            try {
+                apiService.addLignePanier(jwt, item.getVariantId(), item.getQuantite());
+            } catch (RuntimeException e) {
+                log.warn("Fusion panier ignorée pour variant {} : {}", item.getVariantId(), e.getMessage());
+            }
+        }
+
+        session.removeAttribute("cart");
     }
 }

@@ -1,6 +1,12 @@
 package com.monprojet.boutiquejeux.dto;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -25,13 +31,14 @@ public class InscriptionForm {
     private String email;
 
     @NotBlank
-    @Size(min = 8)
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&\\-_]).{8,}$",
-            message = "Min 8 cars, 1 maj, 1 min, 1 chiffre, 1 spécial")
+    @Size(min = 8, max = 128)
     private String motDePasse;
 
     @NotBlank
-    @Pattern(regexp = "^(\\+33|0)[1-9](\\d{2}){4}$", message = "Format invalide (ex: 0612345678)")
+    @Pattern(
+        regexp = "^(?:0[67]\\d{8}|\\+33[67]\\d{8})$",
+        message = "Numéro mobile invalide : 06, 07, +336 ou +337"
+    )
     private String telephone;
 
     @NotNull

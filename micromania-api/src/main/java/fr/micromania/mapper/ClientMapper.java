@@ -17,6 +17,10 @@ public interface ClientMapper {
     @Mapping(target = "avatar",             source = "avatar")
     @Mapping(target = "telephoneVerifie",   source = "telephoneVerifie")
     @Mapping(target = "dateDerniereConnexion", source = "dateDerniereConnexion")
+    @Mapping(target = "ultimateDateDebut", ignore = true)
+    @Mapping(target = "ultimateDateFin", ignore = true)
+    @Mapping(target = "ultimateActif", ignore = true)
+    @Mapping(target = "prixAbonnementUltimate", ignore = true)
     ClientResponse toResponse(Client client);
 
     default ClientResponse toResponse(Client client, PointsFidelite points) {
@@ -28,20 +32,18 @@ public interface ClientMapper {
                 points != null ? points.getSoldePoints() : 0,
                 base.avatar(), base.emailVerifie(), base.telephoneVerifie(),
                 base.compteActive(), base.dateDerniereConnexion(),
-                base.dateCreation()
+                base.dateCreation(),
+                null, null, false, null
         );
     }
 
-    /** Entity → Summary (liste, recherche) */
     @Mapping(target = "typeFidelite", source = "typeFidelite.code")
     ClientSummary toSummary(Client client);
 
     List<ClientSummary> toSummaryList(List<Client> clients);
 
-    /** Avatar */
     AvatarDto toAvatarDto(Avatar avatar);
 
-    /** Adresse */
     @Mapping(target = "typeAdresse", source = "typeAdresse.code")
     AdresseResponse toAdresseResponse(Adresse adresse);
 

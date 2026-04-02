@@ -6,9 +6,11 @@ public interface AuthService {
 
     AuthResponse loginClient(LoginRequest request, String ip, String userAgent);
 
+    AuthResponse loginClientWithRememberMe(String rememberMeToken, String ip, String userAgent);
+
     AuthResponse loginEmploye(LoginRequest request, String ip, String userAgent);
 
-    void logout(String token);
+    void logout(String token, String rememberMeToken);
 
     void demanderResetPassword(String email);
 
@@ -16,6 +18,5 @@ public interface AuthService {
 
     void changerMotDePasse(Long idClient, ChangePasswordRequest request);
 
-    /** Rafraîchit un token JWT encore valide */
     AuthResponse refresh(String bearerToken);
 }

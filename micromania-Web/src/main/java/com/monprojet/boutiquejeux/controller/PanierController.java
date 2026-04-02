@@ -2,6 +2,9 @@ package com.monprojet.boutiquejeux.controller;
 
 import com.monprojet.boutiquejeux.dto.CartItem;
 import com.monprojet.boutiquejeux.dto.api.catalog.ApiProduitDetail;
+import com.monprojet.boutiquejeux.dto.api.client.ApiAdresse;
+import com.monprojet.boutiquejeux.dto.api.client.ApiBonAchat;
+import com.monprojet.boutiquejeux.dto.api.facture.ApiFactureDetail;
 import com.monprojet.boutiquejeux.dto.api.panier.ApiPanier;
 import com.monprojet.boutiquejeux.service.ApiService;
 import jakarta.servlet.http.HttpSession;
@@ -9,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,6 +20,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Controller
@@ -45,42 +50,109 @@ public class PanierController {
         return "panier/index";
     }
 
+    @GetMapping("/checkout")
+    String checkout(HttpSession session, Model model, RedirectAttributes redirect) {
+        String jwt = (String) session.getAttribute("jwt");
+        if (jwt == null) {
+            redirect.addFlashAttribute("errorMessage", "Connectez-vous pour finaliser votre commande");
+            return "redirect:/auth/login";
+        }
+
+        ApiPanier panier = api.getPanier(jwt);
+        if (panier == null || panier.lignes() == null || panier.lignes().isEmpty()) {
+            redirect.addFlashAttribute("errorMessage", "Votre panier est vide");
+            return "redirect:/panier";
+        }
+
+        List<ApiAdresse> adresses = new ArrayList<>(api.getClientAdresses(jwt));
+        adresses.sort(Comparator.comparing(ApiAdresse::estDefaut).reversed());
+
+        List<ApiBonAchat> bonsDisponibles = api.getClientBonsAchat(jwt).stream()
+            .filter(bon -> !bon.utilise())
+            .toList();
+
+        model.addAttribute("apiPanier", panier);
+        model.addAttribute("adresses", adresses);
+        model.addAttribute("bonsDisponibles", bonsDisponibles);
+        model.addAttribute("defaultAdresseId", adresses.stream().filter(ApiAdresse::estDefaut).map(ApiAdresse::id).findFirst().orElse(null));
+        model.addAttribute("modePaiementCode", "CB");
+        return "panier/checkout";
+    }
+
+    @GetMapping("/confirmation/{idFacture}")
+    String confirmation(@PathVariable Long idFacture, HttpSession session, Model model, RedirectAttributes redirect) {
+        String jwt = (String) session.getAttribute("jwt");
+        if (jwt == null) {
+            return "redirect:/auth/login";
+        }
+        try {
+            ApiFactureDetail facture = api.getClientFacture(jwt, idFacture);
+            model.addAttribute("facture", facture);
+            return "panier/confirmation";
+        } catch (RuntimeException e) {
+            redirect.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/compte";
+        }
+    }
+
     @PostMapping("/ajouter")
     String ajouter(@RequestParam Long produitId,
                    @RequestParam String produitNom,
+                   @RequestParam(required = false) Long idVariant,
                    @RequestParam(required = false) BigDecimal prix,
                    HttpSession session,
                    RedirectAttributes redirect) {
 
         String jwt = (String) session.getAttribute("jwt");
-        if (jwt != null) {
+
+        Long variantId = idVariant;
+        if (variantId == null) {
             try {
                 ApiProduitDetail produit = api.getProduitDetail(produitId);
                 if (produit == null || produit.variants() == null || produit.variants().isEmpty()) {
                     redirect.addFlashAttribute("errorMessage", "Aucune variante disponible pour ce produit");
                     return "redirect:/catalogue/" + produitId;
                 }
-                Long idVariant = produit.variants().getFirst().id();
-                ApiPanier panier = api.addLignePanier(jwt, idVariant, 1);
-                session.setAttribute("cartCount", extractCartCountApi(panier));
-                redirect.addFlashAttribute("successMessage", produitNom + " ajouté au panier");
-                return "redirect:/panier";
+                variantId = produit.variants().getFirst().id();
             } catch (RuntimeException e) {
-                redirect.addFlashAttribute("errorMessage", e.getMessage());
+                redirect.addFlashAttribute("errorMessage", "Impossible de déterminer la variante du produit");
                 return "redirect:/catalogue/" + produitId;
             }
         }
 
+        final Long resolvedVariantId = variantId;
+
+        if (jwt != null) {
+            try {
+                ApiPanier panier = api.addLignePanier(jwt, resolvedVariantId, 1);
+                session.setAttribute("cartCount", extractCartCountApi(panier));
+                redirect.addFlashAttribute("successMessage", produitNom + " ajouté au panier");
+                return "redirect:/panier";
+            } catch (RuntimeException e) {
+                if (isUnauthorized(e)) {
+                    clearWebAuthSession(session);
+                } else {
+                    redirect.addFlashAttribute("errorMessage", e.getMessage());
+                    return "redirect:/catalogue/" + produitId;
+                }
+            }
+        }
+
         List<CartItem> panier = getCart(session);
+
         CartItem existing = panier.stream()
-                .filter(i -> i.getProduitId().equals(produitId))
-                .findFirst().orElse(null);
+                .filter(i -> resolvedVariantId.equals(i.getVariantId()))
+                .findFirst()
+                .orElse(null);
+
         BigDecimal prixSafe = prix != null ? prix : BigDecimal.ZERO;
+
         if (existing != null) {
             existing.setQuantite(existing.getQuantite() + 1);
         } else {
-            panier.add(new CartItem(produitId, produitNom, prixSafe, 1));
+            panier.add(new CartItem(produitId, resolvedVariantId, produitNom, prixSafe, 1));
         }
+
         saveCart(session, panier);
         redirect.addFlashAttribute("successMessage", produitNom + " ajouté au panier");
         return "redirect:/panier";
@@ -109,9 +181,13 @@ public class PanierController {
         }
 
         List<CartItem> panier = getCart(session);
-        panier.stream().filter(i -> i.getProduitId().equals(produitId)).findFirst().ifPresent(i -> {
-            if (quantite <= 0) panier.remove(i); else i.setQuantite(quantite);
-        });
+        panier.stream().filter(i -> i.getVariantId() != null
+                        ? i.getVariantId().equals(produitId)
+                        : i.getProduitId().equals(produitId))
+                .findFirst()
+                .ifPresent(i -> {
+                    if (quantite <= 0) panier.remove(i); else i.setQuantite(quantite);
+                });
         saveCart(session, panier);
         return "redirect:/panier";
     }
@@ -132,7 +208,9 @@ public class PanierController {
             return "redirect:/panier";
         }
         List<CartItem> panier = getCart(session);
-        panier.removeIf(i -> i.getProduitId().equals(produitId));
+        panier.removeIf(i -> i.getVariantId() != null
+                ? i.getVariantId().equals(produitId)
+                : i.getProduitId().equals(produitId));
         saveCart(session, panier);
         return "redirect:/panier";
     }
@@ -154,14 +232,25 @@ public class PanierController {
     }
 
     @PostMapping("/valider")
-    String valider(HttpSession session, RedirectAttributes redirect) {
+    String valider(@RequestParam(required = false) Long idAdresse,
+                   @RequestParam(required = false) Long idBonAchat,
+                   @RequestParam(defaultValue = "CB") String modePaiementCode,
+                   HttpSession session,
+                   RedirectAttributes redirect) {
         String jwt = (String) session.getAttribute("jwt");
         if (jwt == null) {
             redirect.addFlashAttribute("errorMessage", "Connectez-vous pour finaliser votre commande");
             return "redirect:/auth/login";
         }
-        redirect.addFlashAttribute("infoMessage", "Le checkout n'est pas encore branché sur votre API actuelle.");
-        return "redirect:/compte";
+        try {
+            ApiFactureDetail facture = api.checkoutPanier(jwt, idAdresse, idBonAchat, modePaiementCode);
+            session.setAttribute("cartCount", 0);
+            redirect.addFlashAttribute("successMessage", "Commande validée — facture " + facture.referenceFacture());
+            return "redirect:/panier/confirmation/" + facture.id();
+        } catch (RuntimeException e) {
+            redirect.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/panier/checkout";
+        }
     }
 
     private int extractCartCountApi(ApiPanier panier) {
@@ -179,5 +268,22 @@ public class PanierController {
     private void saveCart(HttpSession session, List<CartItem> panier) {
         session.setAttribute("cart", panier);
         session.setAttribute("cartCount", panier.stream().mapToInt(CartItem::getQuantite).sum());
+    }
+
+    private boolean isUnauthorized(RuntimeException e) {
+        String message = e.getMessage();
+        return message != null && (
+                message.contains("401")
+                        || message.contains("Non authentifié")
+                        || message.contains("Unauthorized")
+        );
+    }
+
+    private void clearWebAuthSession(HttpSession session) {
+        session.removeAttribute("jwt");
+        session.removeAttribute("userEmail");
+        session.removeAttribute("userPseudo");
+        session.removeAttribute("userTypeFidelite");
+        session.removeAttribute("cartCount");
     }
 }

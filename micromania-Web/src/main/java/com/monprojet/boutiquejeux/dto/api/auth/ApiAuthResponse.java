@@ -6,5 +6,6 @@ public record ApiAuthResponse(
         Long expiresIn,
         String pseudo,
         String email,
-        String typeFidelite
+        String typeFidelite,
+        String rememberMeToken
 ) {}

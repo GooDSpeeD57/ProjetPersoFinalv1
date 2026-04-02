@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <th:block th:replace="~{fragments/layout :: head('Checkout')}"/>
+</head>
+<body>
+<th:block th:replace="~{fragments/layout :: navbar}"/>
+
+<main>
+  <div class="container">
+    <div class="section-label">// CHECKOUT</div>
+    <div class="section-title">Finaliser ma commande</div>
+
+    <th:block th:replace="~{fragments/layout :: alerts}"/>
+
+    <form th:if="${apiPanier != null and apiPanier.lignes() != null and !#lists.isEmpty(apiPanier.lignes())}"
+          th:action="@{/panier/valider}" method="post" class="checkout-layout">
+
+      <div class="checkout-main">
+        <div class="card card-accent-top">
+          <div class="card-header">// LIVRAISON</div>
+          <div class="card-body">
+            <div class="checkout-help">Checkout fictif pour affiner le site : aucune transaction bancaire réelle n'est effectuée.</div>
+
+            <div th:if="${adresses == null or adresses.isEmpty()}" class="dashboard-empty">
+              Aucune adresse enregistrée. La facture sera générée avec vos informations client uniquement.
+            </div>
+
+            <div class="checkout-option-list" th:unless="${adresses == null or adresses.isEmpty()}">
+              <label class="checkout-option" th:each="adresse : ${adresses}">
+                <input type="radio" name="idAdresse" th:value="${adresse.id()}" th:checked="${defaultAdresseId != null and defaultAdresseId.equals(adresse.id())}"/>
+                <div class="checkout-option-content">
+                  <div class="checkout-option-title">
+                    <span th:text="${adresse.typeAdresse()}">LIVRAISON</span>
+                    <span class="dashboard-pill" th:if="${adresse.estDefaut()}">Défaut</span>
+                  </div>
+                  <div class="checkout-option-text" th:text="${adresse.rue()}">Rue</div>
+                  <div class="checkout-option-text" th:if="${adresse.complement() != null and !adresse.complement().isBlank()}" th:text="${adresse.complement()}">Complément</div>
+                  <div class="checkout-option-text" th:text="${adresse.codePostal() + ' ' + adresse.ville()}">Code postal ville</div>
+                  <div class="checkout-option-text" th:text="${adresse.pays()}">France</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-header">// PAIEMENT</div>
+          <div class="card-body">
+            <div class="checkout-option-list checkout-option-list-compact">
+              <label class="checkout-option checkout-option-inline">
+                <input type="radio" name="modePaiementCode" value="CB" checked/>
+                <div class="checkout-option-content">
+                  <div class="checkout-option-title">Carte bancaire</div>
+                  <div class="checkout-option-text">Mode fictif recommandé pour le test.</div>
+                </div>
+              </label>
+              <label class="checkout-option checkout-option-inline">
+                <input type="radio" name="modePaiementCode" value="PAYPAL"/>
+                <div class="checkout-option-content">
+                  <div class="checkout-option-title">PayPal</div>
+                  <div class="checkout-option-text">Simulation d'un paiement PayPal.</div>
+                </div>
+              </label>
+              <label class="checkout-option checkout-option-inline">
+                <input type="radio" name="modePaiementCode" value="APPLE_PAY"/>
+                <div class="checkout-option-content">
+                  <div class="checkout-option-title">Apple Pay</div>
+                  <div class="checkout-option-text">Simulation de wallet mobile.</div>
+                </div>
+              </label>
+              <label class="checkout-option checkout-option-inline">
+                <input type="radio" name="modePaiementCode" value="GOOGLE_PAY"/>
+                <div class="checkout-option-content">
+                  <div class="checkout-option-title">Google Pay</div>
+                  <div class="checkout-option-text">Simulation de wallet Android.</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-header">// BON D'ACHAT</div>
+          <div class="card-body">
+            <div class="checkout-option-list checkout-option-list-compact">
+              <label class="checkout-option checkout-option-inline">
+                <input type="radio" name="idBonAchat" value="" checked/>
+                <div class="checkout-option-content">
+                  <div class="checkout-option-title">Ne pas utiliser de bon</div>
+                  <div class="checkout-option-text">Conserver mes bons pour plus tard.</div>
+                </div>
+              </label>
+              <label class="checkout-option checkout-option-inline" th:each="bon : ${bonsDisponibles}">
+                <input type="radio" name="idBonAchat" th:value="${bon.id()}"/>
+                <div class="checkout-option-content">
+                  <div class="checkout-option-title">
+                    <span th:text="${bon.codeBon()}">BON-XXXX</span>
+                    <span class="dashboard-pill" th:text="${#numbers.formatDecimal(bon.valeur(),1,2) + ' €'}">10.00 €</span>
+                  </div>
+                  <div class="checkout-option-text" th:text="${bon.pointsUtilises() + ' points consommés'}">2000 points</div>
+                </div>
+              </label>
+            </div>
+            <div th:if="${bonsDisponibles == null or bonsDisponibles.isEmpty()}" class="dashboard-empty" style="margin-top:1rem">
+              Aucun bon disponible pour le moment.
+            </div>
+          </div>
+        </div>
+
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+      </div>
+
+      <aside class="cart-summary card-accent-top checkout-summary">
+        <div style="font-family:var(--font-head);font-size:0.7rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">
+          Récapitulatif facture
+        </div>
+
+        <div class="checkout-product-list">
+          <div class="checkout-product-row" th:each="item : ${apiPanier.lignes()}">
+            <div>
+              <div class="checkout-product-name" th:text="${item.nomCommercial()}">Produit</div>
+              <div class="checkout-product-meta" th:text="${item.quantite() + ' × ' + #numbers.formatDecimal(item.prixUnitaire(),1,2) + ' €'}">1 × 10.00 €</div>
+            </div>
+            <div class="cart-item-price" th:text="${#numbers.formatDecimal(item.montantLigne(),1,2) + ' €'}">10.00 €</div>
+          </div>
+        </div>
+
+        <div class="summary-row"><span>Sous-total</span><span th:text="${#numbers.formatDecimal(apiPanier.sousTotal(),1,2) + ' €'}">0.00 €</span></div>
+        <div class="summary-row"><span>Remise panier</span><span th:text="${#numbers.formatDecimal(apiPanier.remise(),1,2) + ' €'}">0.00 €</span></div>
+        <div class="summary-row"><span>Livraison</span><span style="color:var(--success)">Offerte</span></div>
+        <div class="summary-row total"><span>Total estimé</span><span th:text="${#numbers.formatDecimal(apiPanier.total(),1,2) + ' €'}">0.00 €</span></div>
+
+        <button type="submit" class="btn btn-primary btn-full" style="margin-top:1rem">Confirmer la commande</button>
+        <a class="btn btn-secondary btn-full" th:href="@{/panier}" style="margin-top:0.75rem">Retour au panier</a>
+      </aside>
+    </form>
+
+    <div th:unless="${apiPanier != null and apiPanier.lignes() != null and !#lists.isEmpty(apiPanier.lignes())}" class="dashboard-empty">
+      Votre panier est vide.
+    </div>
+  </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+</body>
+</html>

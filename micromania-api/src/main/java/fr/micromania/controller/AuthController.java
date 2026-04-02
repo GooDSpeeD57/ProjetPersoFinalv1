@@ -19,7 +19,6 @@ public class AuthController {
     private final AuthService   authService;
     private final ClientService clientService;
 
-    /** Inscription client public */
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(
             @Valid @RequestBody RegisterRequest request,
@@ -27,14 +26,13 @@ public class AuthController {
 
         clientService.creerDepuisInscription(request);
         AuthResponse response = authService.loginClient(
-            new LoginRequest(request.email(), request.motDePasse()),
+            new LoginRequest(request.email(), request.motDePasse(), false),
             http.getRemoteAddr(),
             http.getHeader("User-Agent")
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /** Login client */
     @PostMapping("/login/client")
     public ResponseEntity<AuthResponse> loginClient(
             @Valid @RequestBody LoginRequest request,
@@ -44,7 +42,15 @@ public class AuthController {
             request, http.getRemoteAddr(), http.getHeader("User-Agent")));
     }
 
-    /** Login employé (back-office) */
+    @PostMapping("/remember-me/client")
+    public ResponseEntity<AuthResponse> loginClientWithRememberMe(
+            @Valid @RequestBody RememberMeLoginRequest request,
+            HttpServletRequest http) {
+
+        return ResponseEntity.ok(authService.loginClientWithRememberMe(
+            request.rememberMeToken(), http.getRemoteAddr(), http.getHeader("User-Agent")));
+    }
+
     @PostMapping("/login/employe")
     public ResponseEntity<AuthResponse> loginEmploye(
             @Valid @RequestBody LoginRequest request,
@@ -54,16 +60,15 @@ public class AuthController {
             request, http.getRemoteAddr(), http.getHeader("User-Agent")));
     }
 
-    /** Logout (invalide le token côté client) */
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
-            @RequestHeader("Authorization") String authorization) {
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestHeader(value = "X-Remember-Me-Token", required = false) String rememberMeToken) {
 
-        authService.logout(authorization);
+        authService.logout(authorization, rememberMeToken);
         return ResponseEntity.noContent().build();
     }
 
-    /** Refresh token */
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(
             @RequestHeader("Authorization") String authorization) {
@@ -71,21 +76,18 @@ public class AuthController {
         return ResponseEntity.ok(authService.refresh(authorization));
     }
 
-    /** Vérification email */
     @GetMapping("/verify-email")
     public ResponseEntity<Void> verifyEmail(@RequestParam String token) {
         clientService.verifierEmail(token);
         return ResponseEntity.noContent().build();
     }
 
-    /** Demande de reset mot de passe */
     @PostMapping("/forgot-password")
     public ResponseEntity<Void> forgotPassword(@RequestParam String email) {
         authService.demanderResetPassword(email);
-        return ResponseEntity.noContent().build(); // Toujours 204 pour ne pas révéler l'existence du compte
+        return ResponseEntity.noContent().build();
     }
 
-    /** Reset mot de passe avec token */
     @PostMapping("/reset-password")
     public ResponseEntity<Void> resetPassword(
             @Valid @RequestBody ResetPasswordRequest request) {
@@ -94,7 +96,6 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
-    /** Changement de mot de passe (utilisateur connecté) */
     @PutMapping("/change-password")
     public ResponseEntity<Void> changePassword(
             @AuthenticationPrincipal Long idClient,

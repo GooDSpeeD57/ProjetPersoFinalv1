@@ -444,3 +444,349 @@ footer {
   .container { padding: 1rem; }
   .hero { padding: 3rem 1rem; }
 }
+
+/* ── DASHBOARD COMPTE ── */
+.dashboard-layout {
+  grid-template-columns: 320px 1fr;
+  align-items: start;
+}
+
+.dashboard-sidebar {
+  position: sticky;
+  top: 90px;
+}
+
+.dashboard-content {
+  min-width: 0;
+}
+
+.dashboard-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.dashboard-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.dashboard-nav a {
+  display: block;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  text-decoration: none;
+  color: var(--text);
+  transition: 0.2s ease;
+}
+
+.dashboard-nav a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0,212,255,0.05);
+}
+
+.dashboard-note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  font-size: 0.88rem;
+  color: var(--text-dim);
+}
+
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.dashboard-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dashboard-progress-card {
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+  padding: 1rem;
+}
+
+.dashboard-progress-head,
+.dashboard-progress-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.82rem;
+}
+
+.dashboard-progress-head {
+  font-family: var(--font-head);
+  letter-spacing: 1px;
+  margin-bottom: 0.65rem;
+}
+
+.dashboard-progress-foot {
+  color: var(--text-dim);
+  margin-top: 0.65rem;
+}
+
+.dashboard-progress-track {
+  height: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  overflow: hidden;
+}
+
+.dashboard-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent3));
+}
+
+.dashboard-subtitle {
+  font-family: var(--font-head);
+  font-size: 0.68rem;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  margin-bottom: 0.9rem;
+  text-transform: uppercase;
+}
+
+.dashboard-bon-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.dashboard-bon-list,
+.dashboard-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.dashboard-bon-item,
+.dashboard-history-item {
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+  padding: 1rem;
+}
+
+.dashboard-bon-row,
+.dashboard-history-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dashboard-bon-code,
+.dashboard-history-title {
+  font-family: var(--font-head);
+  font-size: 0.78rem;
+  letter-spacing: 1px;
+}
+
+.dashboard-bon-meta,
+.dashboard-history-meta {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.45rem;
+}
+
+.dashboard-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--font-head);
+  font-size: 0.7rem;
+}
+
+.dashboard-pill-muted {
+  border-color: var(--border);
+  color: var(--text-dim);
+}
+
+.dashboard-history-points {
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+}
+
+.dashboard-history-positive { color: var(--success); }
+.dashboard-history-negative { color: var(--accent2); }
+.dashboard-history-neutral  { color: var(--accent); }
+
+.dashboard-empty {
+  border: 1px dashed var(--border);
+  padding: 1rem;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+@media(max-width:900px){
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-sidebar {
+    position: static;
+  }
+
+  .dashboard-stats,
+  .dashboard-bon-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-progress-head,
+  .dashboard-progress-foot,
+  .dashboard-bon-row,
+  .dashboard-bon-meta,
+  .dashboard-history-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ── CHECKOUT / FACTURATION ── */
+.checkout-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 2rem;
+  align-items: start;
+}
+
+.checkout-main {
+  min-width: 0;
+}
+
+.checkout-help {
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px dashed var(--border);
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  background: rgba(255,255,255,0.02);
+}
+
+.checkout-option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.checkout-option-list-compact {
+  gap: 0.75rem;
+}
+
+.checkout-option {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+  padding: 1rem;
+  cursor: pointer;
+}
+
+.checkout-option:hover {
+  border-color: var(--accent);
+}
+
+.checkout-option input {
+  margin-top: 0.15rem;
+}
+
+.checkout-option-inline {
+  align-items: center;
+}
+
+.checkout-option-content {
+  flex: 1;
+}
+
+.checkout-option-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  font-family: var(--font-head);
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  margin-bottom: 0.35rem;
+}
+
+.checkout-option-text {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.checkout-product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.checkout-product-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(30,45,61,0.5);
+}
+
+.checkout-product-name {
+  font-weight: 600;
+}
+
+.checkout-product-meta {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.checkout-success {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.checkout-success-title {
+  font-family: var(--font-head);
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.checkout-success-text {
+  color: var(--text-dim);
+  font-size: 0.95rem;
+}
+
+.checkout-success-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+@media(max-width:900px){
+  .checkout-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .checkout-summary {
+    position: static;
+  }
+
+  .checkout-option-title,
+  .checkout-product-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

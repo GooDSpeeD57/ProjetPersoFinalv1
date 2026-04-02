@@ -41,6 +41,8 @@ app:
     secret: ${JWT_SECRET:micromania-super-secret-key-minimum-32-chars-please-change-in-prod}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}         # 24h
     refresh-expiration-ms: ${JWT_REFRESH_MS:604800000}   # 7j
+  remember-me:
+    validity-days: ${REMEMBER_ME_VALIDITY_DAYS:30}
 
 server:
   port: 8080

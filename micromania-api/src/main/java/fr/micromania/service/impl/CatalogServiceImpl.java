@@ -55,13 +55,13 @@ public class CatalogServiceImpl implements CatalogService {
                 String imageAlt = produit.getImages().stream()
                     .filter(ProduitImage::isPrincipale).findFirst()
                     .map(ProduitImage::getAlt).orElse(null);
-                // Prix minimal tous canaux
-                var prixMin = catalogMapper.prixMinimal(produit.getVariants());
+                var prixNeuf = catalogMapper.prixNeuf(produit.getVariants());
+                var prixOccasion = catalogMapper.prixOccasion(produit.getVariants());
                 return new ProduitSummary(
-                    base.id(), base.nom(), base.slug(), base.categorie(),
-                    imageUrl, imageAlt, prixMin,
-                    produit.getVariants().stream().anyMatch(v -> v.isActif()),
-                    base.misEnAvant(), base.pegi()
+                        base.id(), base.nom(), base.slug(), base.categorie(),
+                        imageUrl, imageAlt, prixNeuf, prixOccasion,
+                        produit.getVariants().stream().anyMatch(ProduitVariant::isActif),
+                        base.misEnAvant(), base.pegi()
                 );
             });
     }

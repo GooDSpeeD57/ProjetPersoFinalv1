@@ -35,7 +35,18 @@ public class FactureController {
             @AuthenticationPrincipal Long idClient,
             @PathVariable Long id) {
 
-        return ResponseEntity.ok(factureService.getById(id));
+        return ResponseEntity.ok(factureService.getByIdForClient(idClient, id));
+    }
+
+
+    @PostMapping("/me/checkout")
+    @PreAuthorize("hasRole('CLIENT')")
+    public ResponseEntity<FactureResponse> checkoutPanier(
+            @AuthenticationPrincipal Long idClient,
+            @Valid @RequestBody CheckoutPanierRequest request) {
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(factureService.checkoutPanierClient(idClient, request));
     }
 
     // ── Back-office ────────────────────────────────────────────

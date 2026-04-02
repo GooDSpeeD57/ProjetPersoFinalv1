@@ -29,8 +29,10 @@
         <div class="section-label" th:text="${produit.categorie() != null && produit.categorie().description() != null ? produit.categorie().description() : 'CATALOGUE'}"></div>
         <h1 style="font-family:var(--font-head);font-size:1.6rem;margin-bottom:1rem" th:text="${produit.nom()}"></h1>
 
-        <div style="font-family:var(--font-head);font-size:2rem;color:var(--accent);margin-bottom:1rem"
-             th:text="${produit.variants() != null and !#lists.isEmpty(produit.variants()) and produit.variants().get(0).prixWeb() != null ? #numbers.formatDecimal(produit.variants().get(0).prixWeb(),1,2) + ' €' : 'N/A'}"></div>
+        <div id="prixAffiche"
+             style="font-family:var(--font-head);font-size:2rem;color:var(--accent);margin-bottom:1rem"
+             th:text="${produit.variants() != null and !#lists.isEmpty(produit.variants()) and produit.variants().get(0).prixWeb() != null ? #numbers.formatDecimal(produit.variants().get(0).prixWeb(),1,2) + ' €' : 'N/A'}">
+        </div>
 
         <p style="color:var(--text-dim);line-height:1.7;margin-bottom:1.5rem" th:text="${produit.description() != null ? produit.description() : 'Aucune description disponible.'}"></p>
 
@@ -47,10 +49,31 @@
           <span th:text="${produit.niveauAccesMin()}"></span>
         </div>
 
-        <form th:if="${produit.variants() != null and !#lists.isEmpty(produit.variants())}" th:action="@{/panier/ajouter}" method="post" style="margin-top:1.5rem">
+        <form th:if="${produit.variants() != null and !#lists.isEmpty(produit.variants())}"
+              th:action="@{/panier/ajouter}"
+              method="post"
+              style="margin-top:1.5rem">
+
           <input type="hidden" name="produitId" th:value="${produit.id()}"/>
           <input type="hidden" name="produitNom" th:value="${produit.nom()}"/>
-          <input type="hidden" name="prix" th:value="${produit.variants().get(0).prixWeb()}"/>
+
+          <label for="idVariant" style="display:block;margin-bottom:0.5rem;font-weight:600">Version</label>
+
+          <select id="idVariant" name="idVariant" style="margin-bottom:1rem;padding:0.6rem;width:100%">
+            <option th:each="variant : ${produit.variants()}"
+                    th:value="${variant.id()}"
+                    th:data-prix="${variant.prixWeb()}"
+                    th:text="${(variant.plateforme() != null ? variant.plateforme().libelle() : 'Standard')
+                              + ' - '
+                              + (variant.statutProduit() != null ? variant.statutProduit() : 'N/A')
+                              + ' - '
+                              + (variant.prixWeb() != null ? #numbers.formatDecimal(variant.prixWeb(),1,2) + ' €' : 'N/A')}">
+            </option>
+          </select>
+
+          <input type="hidden" name="prix" id="prixHidden"
+                 th:value="${produit.variants().get(0).prixWeb()}"/>
+
           <button type="submit" class="btn btn-primary">🛒 Ajouter au panier</button>
           <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
         </form>
@@ -61,5 +84,31 @@
 
 <th:block th:replace="~{fragments/layout :: footer}"/>
 <th:block th:replace="~{fragments/layout :: scripts}"/>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const select = document.getElementById("idVariant");
+    const prixHidden = document.getElementById("prixHidden");
+    const prixAffiche = document.getElementById("prixAffiche");
+
+    if (!select) return;
+
+    function syncVariant() {
+      const option = select.options[select.selectedIndex];
+      const prix = option ? option.getAttribute("data-prix") : null;
+
+      if (prixHidden) {
+        prixHidden.value = prix || "";
+      }
+
+      if (prixAffiche) {
+        prixAffiche.textContent = prix ? (Number(prix).toFixed(2) + " €") : "N/A";
+      }
+    }
+
+    syncVariant();
+    select.addEventListener("change", syncVariant);
+  });
+</script>
 </body>
 </html>

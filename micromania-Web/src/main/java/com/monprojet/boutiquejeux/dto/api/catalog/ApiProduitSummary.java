@@ -9,7 +9,8 @@ public record ApiProduitSummary(
         String categorie,
         String imageUrl,
         String imageAlt,
-        BigDecimal prixMinimal,
+        BigDecimal prixNeuf,
+        BigDecimal prixOccasion,
         boolean disponible,
         boolean misEnAvant,
         Integer pegi

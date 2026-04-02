@@ -8,5 +8,11 @@ public record LoginRequest(
     String email,
 
     @NotBlank
-    String motDePasse
-) {}
+    String motDePasse,
+
+    Boolean rememberMe
+) {
+    public boolean rememberMeEnabled() {
+        return Boolean.TRUE.equals(rememberMe);
+    }
+}

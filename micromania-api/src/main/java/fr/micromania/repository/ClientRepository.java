@@ -25,6 +25,8 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
 
     boolean existsByTelephoneAndDeletedFalse(String telephone);
 
+    boolean existsByNumeroCarteFidelite(String numeroCarteFidelite);
+
     Optional<Client> findByTokenVerificationEmail(String token);
 
     Optional<Client> findByNumeroCarteFidelite(String numeroCarteFidelite);

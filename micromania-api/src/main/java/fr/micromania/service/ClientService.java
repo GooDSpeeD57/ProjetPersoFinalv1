@@ -31,4 +31,6 @@ public interface ClientService {
     void softDelete(Long id);
 
     PointsFideliteResponse getPointsFidelite(Long idClient);
+
+    ClientResponse souscrireUltimate(Long idClient);
 }

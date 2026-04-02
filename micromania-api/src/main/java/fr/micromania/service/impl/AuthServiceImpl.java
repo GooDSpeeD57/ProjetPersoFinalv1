@@ -3,10 +3,15 @@ package fr.micromania.service.impl;
 import fr.micromania.dto.auth.*;
 import fr.micromania.entity.Client;
 import fr.micromania.entity.Employe;
+import fr.micromania.entity.RememberMeToken;
 import fr.micromania.entity.ResetPasswordToken;
-import fr.micromania.repository.*;
+import fr.micromania.repository.ClientRepository;
+import fr.micromania.repository.EmployeRepository;
+import fr.micromania.repository.RememberMeTokenRepository;
+import fr.micromania.repository.ResetPasswordTokenRepository;
 import fr.micromania.service.AuthService;
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
 
@@ -28,10 +35,16 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class AuthServiceImpl implements AuthService {
 
-    private final ClientRepository           clientRepository;
-    private final EmployeRepository          employeRepository;
+    private static final String USER_TYPE_CLIENT = "CLIENT";
+    private static final String USER_TYPE_EMPLOYE = "EMPLOYE";
+
+    private final ClientRepository clientRepository;
+    private final EmployeRepository employeRepository;
     private final ResetPasswordTokenRepository resetTokenRepository;
-    private final PasswordEncoder            passwordEncoder;
+    private final RememberMeTokenRepository rememberMeTokenRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${app.jwt.secret}")
     private String jwtSecret;
@@ -42,16 +55,21 @@ public class AuthServiceImpl implements AuthService {
     @Value("${app.jwt.refresh-expiration-ms:604800000}")
     private long refreshExpirationMs;
 
+    @Value("${app.remember-me.validity-days:30}")
+    private long rememberMeValidityDays;
+
     @Override
     @Transactional
     public AuthResponse loginClient(LoginRequest request, String ip, String userAgent) {
+        cleanupRememberMeTokens();
+
         Client client = clientRepository.findByEmailAndDeletedFalse(request.email())
             .orElseThrow(() -> new BadCredentialsException("Identifiants invalides"));
 
-        verifierBlocage("CLIENT", request.email());
+        verifierBlocage(USER_TYPE_CLIENT, request.email());
 
         if (!passwordEncoder.matches(request.motDePasse(), client.getMotDePasse())) {
-            enregistrerEchec("CLIENT", client.getId(), request.email(), ip, "MOT_DE_PASSE_INCORRECT");
+            enregistrerEchec(USER_TYPE_CLIENT, client.getId(), request.email(), ip, "MOT_DE_PASSE_INCORRECT");
             throw new BadCredentialsException("Identifiants invalides");
         }
         if (!client.isCompteActive()) {
@@ -61,15 +79,68 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalStateException("Email non vérifié");
         }
 
-        enregistrerSucces("CLIENT", client.getId(), request.email(), ip, userAgent);
-        String token = genererToken(client.getId(), client.getEmail(), "CLIENT",
-                                    client.getTypeFidelite().getCode());
-        log.info("Login client : email={} ip={}", client.getEmail(), ip);
+        enregistrerSucces(USER_TYPE_CLIENT, client.getId(), request.email(), ip, userAgent);
         client.setDateDerniereConnexion(LocalDateTime.now());
         clientRepository.save(client);
-        return new AuthResponse(token, jwtExpirationMs / 1000,
+
+        String jwtToken = genererToken(client.getId(), client.getEmail(), USER_TYPE_CLIENT,
+                                       client.getTypeFidelite().getCode());
+        String rememberMeToken = request != null && request.rememberMeEnabled()
+            ? creerRememberMeToken(client.getEmail(), USER_TYPE_CLIENT)
+            : null;
+
+        log.info("Login client : email={} ip={} rememberMe={}", client.getEmail(), ip,
+            request != null && request.rememberMeEnabled());
+
+        return new AuthResponse(jwtToken, jwtExpirationMs / 1000,
                                 client.getPseudo(), client.getEmail(),
-                                client.getTypeFidelite().getCode());
+                                client.getTypeFidelite().getCode(), rememberMeToken);
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse loginClientWithRememberMe(String rememberMeToken, String ip, String userAgent) {
+        cleanupRememberMeTokens();
+
+        ParsedRememberMeToken parsedToken = parseRememberMeToken(rememberMeToken);
+        RememberMeToken persistedToken = rememberMeTokenRepository.findBySerieAndUserType(parsedToken.serie(), USER_TYPE_CLIENT)
+            .orElseThrow(() -> new BadCredentialsException("Remember me invalide"));
+
+        if (isRememberMeExpired(persistedToken)) {
+            rememberMeTokenRepository.delete(persistedToken);
+            throw new BadCredentialsException("Remember me expiré");
+        }
+
+        if (!persistedToken.getTokenValue().equals(parsedToken.tokenValue())) {
+            rememberMeTokenRepository.delete(persistedToken);
+            throw new BadCredentialsException("Remember me invalide");
+        }
+
+        Client client = clientRepository.findByEmailAndDeletedFalse(persistedToken.getUsername())
+            .orElseThrow(() -> new BadCredentialsException("Compte introuvable"));
+
+        if (!client.isCompteActive() || !client.isEmailVerifie()) {
+            rememberMeTokenRepository.delete(persistedToken);
+            throw new IllegalStateException("Compte non disponible pour le remember me");
+        }
+
+        persistedToken.setTokenValue(generateOpaqueToken());
+        persistedToken.setDateDerniere(LocalDateTime.now());
+        rememberMeTokenRepository.save(persistedToken);
+
+        client.setDateDerniereConnexion(LocalDateTime.now());
+        clientRepository.save(client);
+
+        enregistrerSucces(USER_TYPE_CLIENT, client.getId(), client.getEmail(), ip, userAgent);
+
+        String jwtToken = genererToken(client.getId(), client.getEmail(), USER_TYPE_CLIENT,
+                                       client.getTypeFidelite().getCode());
+        String renewedRememberMeToken = buildRememberMeCookieValue(persistedToken.getSerie(), persistedToken.getTokenValue());
+
+        log.info("Remember me client : email={} ip={}", client.getEmail(), ip);
+
+        return new AuthResponse(jwtToken, jwtExpirationMs / 1000,
+            client.getPseudo(), client.getEmail(), client.getTypeFidelite().getCode(), renewedRememberMeToken);
     }
 
     @Override
@@ -78,18 +149,18 @@ public class AuthServiceImpl implements AuthService {
         Employe employe = employeRepository.findByEmailAndDeletedFalse(request.email())
             .orElseThrow(() -> new BadCredentialsException("Identifiants invalides"));
 
-        verifierBlocage("EMPLOYE", request.email());
+        verifierBlocage(USER_TYPE_EMPLOYE, request.email());
 
         if (!passwordEncoder.matches(request.motDePasse(), employe.getMotDePasse())) {
-            enregistrerEchec("EMPLOYE", employe.getId(), request.email(), ip, "MOT_DE_PASSE_INCORRECT");
+            enregistrerEchec(USER_TYPE_EMPLOYE, employe.getId(), request.email(), ip, "MOT_DE_PASSE_INCORRECT");
             throw new BadCredentialsException("Identifiants invalides");
         }
         if (!employe.isActif()) {
             throw new IllegalStateException("Compte employé désactivé");
         }
 
-        enregistrerSucces("EMPLOYE", employe.getId(), request.email(), ip, userAgent);
-        String token = genererToken(employe.getId(), employe.getEmail(), "EMPLOYE",
+        enregistrerSucces(USER_TYPE_EMPLOYE, employe.getId(), request.email(), ip, userAgent);
+        String token = genererToken(employe.getId(), employe.getEmail(), USER_TYPE_EMPLOYE,
                                     employe.getRole().getCode());
         log.info("Login employé : email={} role={}", employe.getEmail(), employe.getRole().getCode());
         return new AuthResponse(token, jwtExpirationMs / 1000,
@@ -100,8 +171,16 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void logout(String token) {
-        log.info("Logout demandé — token invalidé côté client");
+    public void logout(String token, String rememberMeToken) {
+        if (rememberMeToken != null && !rememberMeToken.isBlank()) {
+            try {
+                ParsedRememberMeToken parsedToken = parseRememberMeToken(rememberMeToken);
+                rememberMeTokenRepository.deleteBySerie(parsedToken.serie());
+            } catch (RuntimeException e) {
+                log.warn("Logout remember me ignoré : {}", e.getMessage());
+            }
+        }
+        log.info("Logout demandé — token JWT invalidé côté client");
     }
 
     @Override
@@ -165,7 +244,7 @@ public class AuthServiceImpl implements AuthService {
 
         String newToken = genererToken(userId, email, userType, role);
 
-        if ("CLIENT".equals(userType)) {
+        if (USER_TYPE_CLIENT.equals(userType)) {
             Client client = clientRepository.findByIdAndDeletedFalse(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Client introuvable : " + userId));
             return new AuthResponse(newToken, jwtExpirationMs / 1000,
@@ -216,6 +295,56 @@ public class AuthServiceImpl implements AuthService {
     private void enregistrerSucces(String userType, Long userId, String email, String ip, String userAgent) {
         log.info("Connexion réussie {} email={} ip={}", userType, email, ip);
     }
+
+    private String creerRememberMeToken(String username, String userType) {
+        rememberMeTokenRepository.deleteByUsernameAndUserType(username, userType);
+
+        String serie = generateOpaqueToken();
+        String tokenValue = generateOpaqueToken();
+
+        RememberMeToken rememberMeToken = RememberMeToken.builder()
+            .serie(serie)
+            .tokenValue(tokenValue)
+            .dateDerniere(LocalDateTime.now())
+            .username(username)
+            .userType(userType)
+            .build();
+
+        rememberMeTokenRepository.save(rememberMeToken);
+        return buildRememberMeCookieValue(serie, tokenValue);
+    }
+
+    private String generateOpaqueToken() {
+        byte[] randomBytes = new byte[24];
+        secureRandom.nextBytes(randomBytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+    }
+
+    private String buildRememberMeCookieValue(String serie, String tokenValue) {
+        return serie + ":" + tokenValue;
+    }
+
+    private ParsedRememberMeToken parseRememberMeToken(String rawToken) {
+        if (rawToken == null || rawToken.isBlank() || !rawToken.contains(":")) {
+            throw new IllegalArgumentException("Remember me mal formé");
+        }
+
+        String[] parts = rawToken.split(":", 2);
+        if (parts.length != 2 || parts[0].isBlank() || parts[1].isBlank()) {
+            throw new IllegalArgumentException("Remember me mal formé");
+        }
+        return new ParsedRememberMeToken(parts[0], parts[1]);
+    }
+
+    private boolean isRememberMeExpired(RememberMeToken rememberMeToken) {
+        return rememberMeToken.getDateDerniere().isBefore(LocalDateTime.now().minusDays(rememberMeValidityDays));
+    }
+
+    private void cleanupRememberMeTokens() {
+        rememberMeTokenRepository.deleteOlderThan(LocalDateTime.now().minusDays(rememberMeValidityDays));
+    }
+
+    private record ParsedRememberMeToken(String serie, String tokenValue) {}
 
     public static class BadCredentialsException extends RuntimeException {
         public BadCredentialsException(String msg) { super(msg); }

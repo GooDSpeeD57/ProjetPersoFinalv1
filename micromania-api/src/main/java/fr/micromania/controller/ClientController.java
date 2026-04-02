@@ -3,6 +3,7 @@ package fr.micromania.controller;
 import fr.micromania.dto.client.*;
 import fr.micromania.service.AdresseService;
 import fr.micromania.service.ClientService;
+import fr.micromania.service.FideliteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +24,7 @@ public class ClientController {
 
     private final ClientService  clientService;
     private final AdresseService adresseService;
+    private final FideliteService fideliteService;
 
     // ── Back-office (MANAGER / ADMIN) ─────────────────────────
 
@@ -85,6 +87,38 @@ public class ClientController {
             @AuthenticationPrincipal Long idClient) {
 
         return ResponseEntity.ok(clientService.getPointsFidelite(idClient));
+    }
+
+    @GetMapping("/me/fidelite")
+    @PreAuthorize("hasRole('CLIENT')")
+    public ResponseEntity<FideliteDetailResponse> getFidelite(
+            @AuthenticationPrincipal Long idClient) {
+
+        return ResponseEntity.ok(fideliteService.getDetail(idClient));
+    }
+
+    @GetMapping("/me/bons-achat")
+    @PreAuthorize("hasRole('CLIENT')")
+    public ResponseEntity<List<BonAchatResponse>> getBonsAchat(
+            @AuthenticationPrincipal Long idClient) {
+
+        return ResponseEntity.ok(fideliteService.getBonsAchat(idClient));
+    }
+
+    @GetMapping("/me/historique-points")
+    @PreAuthorize("hasRole('CLIENT')")
+    public ResponseEntity<List<HistoriquePointsResponse>> getHistoriquePoints(
+            @AuthenticationPrincipal Long idClient) {
+
+        return ResponseEntity.ok(fideliteService.getHistorique(idClient));
+    }
+
+    @PostMapping("/me/ultimate/subscribe")
+    @PreAuthorize("hasRole('CLIENT')")
+    public ResponseEntity<ClientResponse> souscrireUltimate(
+            @AuthenticationPrincipal Long idClient) {
+
+        return ResponseEntity.ok(clientService.souscrireUltimate(idClient));
     }
 
     // ── Adresses ───────────────────────────────────────────────

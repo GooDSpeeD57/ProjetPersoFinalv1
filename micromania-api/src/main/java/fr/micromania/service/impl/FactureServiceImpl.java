@@ -1,14 +1,27 @@
 package fr.micromania.service.impl;
 
 import fr.micromania.dto.facture.*;
+import fr.micromania.entity.Adresse;
+import fr.micromania.entity.Client;
+import fr.micromania.entity.Magasin;
 import fr.micromania.entity.catalog.ProduitVariant;
 import fr.micromania.entity.commande.*;
 import fr.micromania.entity.referentiel.*;
-import fr.micromania.entity.stock.StockMagasin;
 import fr.micromania.mapper.FactureMapper;
-import fr.micromania.repository.*;
+import fr.micromania.repository.AdresseRepository;
+import fr.micromania.repository.BonAchatRepository;
+import fr.micromania.repository.CommandeRepository;
+import fr.micromania.repository.ContexteVenteRepository;
+import fr.micromania.repository.FactureRepository;
+import fr.micromania.repository.MagasinRepository;
+import fr.micromania.repository.ModePaiementRepository;
+import fr.micromania.repository.PanierRepository;
+import fr.micromania.repository.ProduitVariantRepository;
+import fr.micromania.repository.StatutFactureRepository;
 import fr.micromania.repository.StockMagasinRepository;
 import fr.micromania.service.FactureService;
+import fr.micromania.service.FideliteService;
+import fr.micromania.service.FideliteUpgradeService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -28,14 +42,23 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class FactureServiceImpl implements FactureService {
 
-    private final FactureRepository         factureRepository;
-    private final CommandeRepository        commandeRepository;
-    private final ProduitVariantRepository  variantRepository;
-    private final StockMagasinRepository    stockMagasinRepository;
-    private final PointsFideliteRepository  pointsRepository;
-    private final FactureMapper             factureMapper;
+    private static final BigDecimal VALEUR_BON_10 = new BigDecimal("10.00");
+    private static final BigDecimal VALEUR_BON_20 = new BigDecimal("20.00");
 
-    // ── Génération depuis commande ────────────────────────────
+    private final FactureRepository factureRepository;
+    private final CommandeRepository commandeRepository;
+    private final ProduitVariantRepository variantRepository;
+    private final StockMagasinRepository stockMagasinRepository;
+    private final BonAchatRepository bonAchatRepository;
+    private final PanierRepository panierRepository;
+    private final AdresseRepository adresseRepository;
+    private final MagasinRepository magasinRepository;
+    private final ModePaiementRepository modePaiementRepository;
+    private final ContexteVenteRepository contexteVenteRepository;
+    private final StatutFactureRepository statutFactureRepository;
+    private final FactureMapper factureMapper;
+    private final FideliteUpgradeService fideliteUpgradeService;
+    private final FideliteService fideliteService;
 
     @Override
     @Transactional
@@ -48,7 +71,7 @@ public class FactureServiceImpl implements FactureService {
         }
 
         Facture facture = Facture.builder()
-            .referenceFacture("FAC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+            .referenceFacture(genererReferenceFacture())
             .commande(commande)
             .client(commande.getClient())
             .modePaiement(commande.getModePaiement())
@@ -59,51 +82,54 @@ public class FactureServiceImpl implements FactureService {
             .montantFinal(BigDecimal.ZERO)
             .build();
 
-        // Résolution statut et contexte
-        StatutFacture statut = new StatutFacture();
-        statut.setCode("EMISE");
-        facture.setStatutFacture(statut);
+        facture.setStatutFacture(chargerStatutFacture("EMISE"));
+        facture.setContexteVente(chargerContexteVente("EN_LIGNE"));
 
-        ContexteVente contexte = new ContexteVente();
-        contexte.setCode("EN_LIGNE");
-        facture.setContexteVente(contexte);
-
-        // Résolution magasin
         if (commande.getMagasinRetrait() != null) {
             facture.setMagasin(commande.getMagasinRetrait());
         } else if (commande.getEntrepotExpedition() != null) {
-            fr.micromania.entity.Magasin mg = new fr.micromania.entity.Magasin();
-            mg.setId(1L); // magasin principal par défaut — à résoudre selon ta config
-            facture.setMagasin(mg);
+            facture.setMagasin(resoudreMagasinPourCheckout(null));
         }
 
-        // Conversion lignes commande → lignes facture
         for (LigneCommande lc : commande.getLignes()) {
-            LigneFacture lf = construireLigneFacture(facture, lc.getVariant(),
-                lc.getQuantite(), lc.getPrixUnitaire(), lc);
+            LigneFacture lf = construireLigneFacture(
+                facture,
+                lc.getVariant(),
+                lc.getQuantite(),
+                lc.getPrixUnitaire(),
+                lc
+            );
             facture.getLignes().add(lf);
         }
 
+        BonAchat bonAchat = null;
+        if (commande.getBonAchat() != null && commande.getBonAchat().getId() != null) {
+            bonAchat = chargerBonAchatDisponible(commande.getClient().getId(), commande.getBonAchat().getId());
+        }
+
         recalculerTotauxFacture(facture);
+        if (bonAchat != null) {
+            appliquerBonAchat(facture, bonAchat);
+        }
+
         facture = factureRepository.save(facture);
+        if (bonAchat != null) {
+            marquerBonAchatCommeUtilise(bonAchat, facture);
+        }
 
-        // Attribuer les points de fidélité
-        attribuerPoints(commande.getClient().getId(), facture.getMontantHtTotal(), idCommande);
-
-        // Décrémenter le stock
+        fideliteService.traiterFideliteApresFacture(facture);
+        fideliteUpgradeService.appliquerUpgradeAutomatique(commande.getClient().getId());
         decrementerStock(facture);
 
         log.info("Facture générée : ref={} commande={}", facture.getReferenceFacture(), idCommande);
         return factureMapper.toResponse(facture);
     }
 
-    // ── Vente directe magasin ─────────────────────────────────
-
     @Override
     @Transactional
     public FactureResponse creerVenteMagasin(CreateFactureVenteRequest request) {
         Facture facture = Facture.builder()
-            .referenceFacture("FAC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+            .referenceFacture(genererReferenceFacture())
             .nomClient(request.nomClient())
             .emailClient(request.emailClient())
             .telephoneClient(request.telephoneClient())
@@ -114,57 +140,76 @@ public class FactureServiceImpl implements FactureService {
             .montantFinal(BigDecimal.ZERO)
             .build();
 
-        // Résolutions par ID
-        fr.micromania.entity.Magasin magasin = new fr.micromania.entity.Magasin();
+        if (request.idClient() != null) {
+            Client client = new Client();
+            client.setId(request.idClient());
+            facture.setClient(client);
+        }
+
+        Magasin magasin = new Magasin();
         magasin.setId(request.idMagasin());
         facture.setMagasin(magasin);
 
-        ModePaiement mp = new ModePaiement();
-        mp.setId(request.idModePaiement());
-        facture.setModePaiement(mp);
+        ModePaiement modePaiement = new ModePaiement();
+        modePaiement.setId(request.idModePaiement());
+        facture.setModePaiement(modePaiement);
 
-        StatutFacture statut = new StatutFacture();
-        statut.setCode("EMISE");
-        facture.setStatutFacture(statut);
+        facture.setStatutFacture(chargerStatutFacture("EMISE"));
 
         ContexteVente contexte = new ContexteVente();
         contexte.setId(request.idContexteVente());
         facture.setContexteVente(contexte);
 
-        if (request.idClient() != null) {
-            fr.micromania.entity.Client client = new fr.micromania.entity.Client();
-            client.setId(request.idClient());
-            facture.setClient(client);
-        }
         if (request.idEmploye() != null) {
             fr.micromania.entity.Employe emp = new fr.micromania.entity.Employe();
             emp.setId(request.idEmploye());
             facture.setEmploye(emp);
         }
 
-        // Lignes facture
         for (LigneFactureRequest lReq : request.lignes()) {
             ProduitVariant variant = variantRepository.findById(lReq.idVariant())
                 .orElseThrow(() -> new EntityNotFoundException("Variant introuvable : " + lReq.idVariant()));
-            LigneFacture lf = construireLigneFacture(facture, variant,
-                lReq.quantite(), lReq.prixUnitaire(), null);
+            LigneFacture lf = construireLigneFacture(
+                facture,
+                variant,
+                lReq.quantite(),
+                lReq.prixUnitaire(),
+                null
+            );
             facture.getLignes().add(lf);
+        }
+
+        BonAchat bonAchat = null;
+        if (request.idBonAchat() != null) {
+            if (request.idClient() == null) {
+                throw new IllegalStateException("Un bon d'achat ne peut être utilisé que pour un client identifié");
+            }
+            bonAchat = chargerBonAchatDisponible(request.idClient(), request.idBonAchat());
         }
 
         recalculerTotauxFacture(facture);
 
-        // Code promo
         if (request.codePromo() != null) {
             BigDecimal remise = calculerRemisePromo(request.codePromo(), facture.getMontantTotal());
-            facture.setMontantRemise(remise);
-            facture.setMontantFinal(facture.getMontantTotal().subtract(remise).max(BigDecimal.ZERO));
+            facture.setMontantRemise(facture.getMontantRemise().add(remise));
+        }
+
+        if (bonAchat != null) {
+            appliquerBonAchat(facture, bonAchat);
+        } else {
+            facture.setMontantFinal(
+                facture.getMontantTotal().subtract(facture.getMontantRemise()).max(BigDecimal.ZERO)
+            );
         }
 
         facture = factureRepository.save(facture);
+        if (bonAchat != null) {
+            marquerBonAchatCommeUtilise(bonAchat, facture);
+        }
 
-        // Points fidélité si client connu
         if (request.idClient() != null) {
-            attribuerPoints(request.idClient(), facture.getMontantHtTotal(), null);
+            fideliteService.traiterFideliteApresFacture(facture);
+            fideliteUpgradeService.appliquerUpgradeAutomatique(request.idClient());
         }
 
         decrementerStock(facture);
@@ -173,18 +218,95 @@ public class FactureServiceImpl implements FactureService {
         return factureMapper.toResponse(facture);
     }
 
-    // ── Lecture ────────────────────────────────────────────────
+    @Override
+    @Transactional
+    public FactureResponse checkoutPanierClient(Long idClient, CheckoutPanierRequest request) {
+        Panier panier = panierRepository.findPanierActif(idClient, "WEB")
+            .orElseThrow(() -> new EntityNotFoundException("Panier introuvable pour le client " + idClient));
+
+        if (panier.getLignes() == null || panier.getLignes().isEmpty()) {
+            throw new IllegalStateException("Votre panier est vide");
+        }
+
+        Adresse adresse = chargerAdresseCheckout(idClient, request != null ? request.idAdresse() : null);
+        BonAchat bonAchat = null;
+        if (request != null && request.idBonAchat() != null) {
+            bonAchat = chargerBonAchatDisponible(idClient, request.idBonAchat());
+        }
+
+        Facture facture = Facture.builder()
+            .referenceFacture(genererReferenceFacture())
+            .client(panier.getClient())
+            .nomClient(panier.getClient().getNom() + " " + panier.getClient().getPrenom())
+            .emailClient(panier.getClient().getEmail())
+            .telephoneClient(panier.getClient().getTelephone())
+            .magasin(resoudreMagasinPourCheckout(adresse))
+            .modePaiement(chargerModePaiement(request != null ? request.modePaiementCode() : null))
+            .statutFacture(chargerStatutFacture("EMISE"))
+            .contexteVente(chargerContexteVente("EN_LIGNE"))
+            .montantRemise(BigDecimal.ZERO)
+            .montantTotal(BigDecimal.ZERO)
+            .montantHtTotal(BigDecimal.ZERO)
+            .montantTvaTotal(BigDecimal.ZERO)
+            .montantFinal(BigDecimal.ZERO)
+            .build();
+
+        for (LignePanier lignePanier : panier.getLignes()) {
+            LigneFacture ligneFacture = construireLigneFacture(
+                facture,
+                lignePanier.getVariant(),
+                lignePanier.getQuantite(),
+                lignePanier.getPrixUnitaire(),
+                null
+            );
+            facture.getLignes().add(ligneFacture);
+        }
+
+        recalculerTotauxFacture(facture);
+        if (bonAchat != null) {
+            appliquerBonAchat(facture, bonAchat);
+        }
+
+        facture = factureRepository.save(facture);
+        if (bonAchat != null) {
+            marquerBonAchatCommeUtilise(bonAchat, facture);
+        }
+
+        fideliteService.traiterFideliteApresFacture(facture);
+        fideliteUpgradeService.appliquerUpgradeAutomatique(idClient);
+        decrementerStock(facture);
+        viderPanier(panier);
+
+        log.info("Checkout web validé : client={} facture={}", idClient, facture.getReferenceFacture());
+        return factureMapper.toResponse(facture);
+    }
 
     @Override
     public FactureResponse getById(Long id) {
-        return factureMapper.toResponse(factureRepository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Facture introuvable : " + id)));
+        return factureMapper.toResponse(
+            factureRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Facture introuvable : " + id))
+        );
+    }
+
+    @Override
+    public FactureResponse getByIdForClient(Long idClient, Long id) {
+        Facture facture = factureRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Facture introuvable : " + id));
+
+        if (facture.getClient() == null || !facture.getClient().getId().equals(idClient)) {
+            throw new EntityNotFoundException("Facture introuvable : " + id);
+        }
+
+        return factureMapper.toResponse(facture);
     }
 
     @Override
     public FactureResponse getByReference(String reference) {
-        return factureMapper.toResponse(factureRepository.findByReferenceFacture(reference)
-            .orElseThrow(() -> new EntityNotFoundException("Facture introuvable : " + reference)));
+        return factureMapper.toResponse(
+            factureRepository.findByReferenceFacture(reference)
+                .orElseThrow(() -> new EntityNotFoundException("Facture introuvable : " + reference))
+        );
     }
 
     @Override
@@ -209,28 +331,24 @@ public class FactureServiceImpl implements FactureService {
             throw new IllegalStateException("Facture déjà annulée");
         }
 
-        StatutFacture annule = new StatutFacture();
-        annule.setCode("ANNULEE");
-        facture.setStatutFacture(annule);
+        facture.setStatutFacture(chargerStatutFacture("ANNULEE"));
         factureRepository.save(facture);
         log.info("Facture {} annulée", facture.getReferenceFacture());
     }
 
-    // ── Helpers privés ─────────────────────────────────────────
-
-    /**
-     * Construit une LigneFacture avec calcul automatique HT/TVA.
-     * Le taux TVA est résolu dans l'ordre : variant → type_categorie → défaut 20%
-     */
-    private LigneFacture construireLigneFacture(Facture facture, ProduitVariant variant,
-                                                 int quantite, BigDecimal prixUnitaire,
-                                                 LigneCommande ligneCommande) {
+    private LigneFacture construireLigneFacture(Facture facture,
+                                                ProduitVariant variant,
+                                                int quantite,
+                                                BigDecimal prixUnitaire,
+                                                LigneCommande ligneCommande) {
         BigDecimal taux = resoudreTauxTva(variant);
-        BigDecimal montantLigne  = prixUnitaire.multiply(BigDecimal.valueOf(quantite));
-        BigDecimal montantHt     = montantLigne.divide(
+        BigDecimal montantLigne = prixUnitaire.multiply(BigDecimal.valueOf(quantite));
+        BigDecimal montantHt = montantLigne.divide(
             BigDecimal.ONE.add(taux.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)),
-            2, RoundingMode.HALF_UP);
-        BigDecimal montantTva    = montantLigne.subtract(montantHt);
+            2,
+            RoundingMode.HALF_UP
+        );
+        BigDecimal montantTva = montantLigne.subtract(montantHt);
 
         LigneFacture ligne = LigneFacture.builder()
             .facture(facture)
@@ -251,26 +369,28 @@ public class FactureServiceImpl implements FactureService {
     }
 
     private BigDecimal resoudreTauxTva(ProduitVariant variant) {
-        // 1. Taux spécifique au variant
         if (variant.getTauxTva() != null) {
             return variant.getTauxTva().getTaux();
         }
-        // 2. Taux par défaut de la catégorie
         var tvaDefaut = variant.getProduit().getCategorie().getTypeCategorie().getTauxTvaDefaut();
         if (tvaDefaut != null) {
             return tvaDefaut.getTaux();
         }
-        // 3. Fallback 20%
         return new BigDecimal("20.00");
     }
 
     private void recalculerTotauxFacture(Facture facture) {
-        BigDecimal total    = facture.getLignes().stream()
-            .map(LigneFacture::getMontantLigne).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalHt  = facture.getLignes().stream()
-            .map(LigneFacture::getMontantHtLigne).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal total = facture.getLignes().stream()
+            .map(LigneFacture::getMontantLigne)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalHt = facture.getLignes().stream()
+            .map(LigneFacture::getMontantHtLigne)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         BigDecimal totalTva = facture.getLignes().stream()
-            .map(LigneFacture::getMontantTvaLigne).reduce(BigDecimal.ZERO, BigDecimal::add);
+            .map(LigneFacture::getMontantTvaLigne)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         facture.setMontantTotal(total);
         facture.setMontantHtTotal(totalHt);
@@ -278,37 +398,116 @@ public class FactureServiceImpl implements FactureService {
         facture.setMontantFinal(total.subtract(facture.getMontantRemise()).max(BigDecimal.ZERO));
     }
 
-    private void attribuerPoints(Long idClient, BigDecimal montantHt, Long idCommande) {
-        try {
-            // Ratio points : 1 point / euro HT (à affiner par type fidélité)
-            int points = montantHt.intValue();
-            if (points > 0) {
-                pointsRepository.addPoints(idClient, points);
-                pointsRepository.addAchatAnnuel(idClient, montantHt);
-                log.debug("Points attribués : client={} +{} pts", idClient, points);
-            }
-        } catch (Exception e) {
-            log.warn("Échec attribution points client={} : {}", idClient, e.getMessage());
+    private BonAchat chargerBonAchatDisponible(Long idClient, Long idBonAchat) {
+        BonAchat bonAchat = bonAchatRepository.findByIdAndClientIdAndUtiliseFalse(idBonAchat, idClient)
+            .orElseThrow(() -> new EntityNotFoundException(
+                "Bon d'achat introuvable ou déjà utilisé : " + idBonAchat
+            ));
+
+        boolean bon10Valide = bonAchat.getPointsUtilises() == 2000
+            && VALEUR_BON_10.compareTo(bonAchat.getValeur()) == 0;
+
+        boolean bon20Valide = bonAchat.getPointsUtilises() == 8000
+            && VALEUR_BON_20.compareTo(bonAchat.getValeur()) == 0;
+
+        if (!bon10Valide && !bon20Valide) {
+            throw new IllegalStateException("Bon d'achat invalide ou non conforme aux règles fidélité");
         }
+
+        return bonAchat;
+    }
+
+    private void appliquerBonAchat(Facture facture, BonAchat bonAchat) {
+        facture.setBonAchat(bonAchat);
+        BigDecimal remiseCalculee = facture.getMontantRemise().add(bonAchat.getValeur());
+        BigDecimal remisePlafonnee = remiseCalculee.min(facture.getMontantTotal());
+        facture.setMontantRemise(remisePlafonnee);
+        facture.setMontantFinal(facture.getMontantTotal().subtract(remisePlafonnee).max(BigDecimal.ZERO));
+    }
+
+    private void marquerBonAchatCommeUtilise(BonAchat bonAchat, Facture facture) {
+        bonAchat.setUtilise(true);
+        bonAchat.setDateUtilisation(LocalDateTime.now());
+        bonAchat.setFacture(facture);
+        bonAchatRepository.save(bonAchat);
     }
 
     private void decrementerStock(Facture facture) {
         for (LigneFacture ligne : facture.getLignes()) {
             ProduitVariant variant = ligne.getVariant();
-            if (variant.isEstDemat()) continue; // pas de stock physique
+            if (variant.isEstDemat()) {
+                continue;
+            }
 
             stockMagasinRepository.findByVariantIdAndMagasinId(
-                    variant.getId(), facture.getMagasin().getId())
+                    variant.getId(),
+                    facture.getMagasin().getId()
+                )
                 .ifPresent(stock -> {
-                    int nouv = Math.max(0, stock.getQuantiteNeuf() - ligne.getQuantite());
-                    stock.setQuantiteNeuf(nouv);
+                    int nouvelleQuantite = Math.max(0, stock.getQuantiteNeuf() - ligne.getQuantite());
+                    stock.setQuantiteNeuf(nouvelleQuantite);
                     stockMagasinRepository.save(stock);
                 });
         }
     }
 
     private BigDecimal calculerRemisePromo(String codePromo, BigDecimal montant) {
-        // Délégation simplifiée — en production injecter PromotionService
         return BigDecimal.ZERO;
+    }
+
+    private String genererReferenceFacture() {
+        return "FAC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
+    private ModePaiement chargerModePaiement(String code) {
+        String mode = (code == null || code.isBlank()) ? "CB" : code;
+        return modePaiementRepository.findByCode(mode)
+            .orElseThrow(() -> new EntityNotFoundException("Mode de paiement introuvable : " + mode));
+    }
+
+    private ContexteVente chargerContexteVente(String code) {
+        return contexteVenteRepository.findByCode(code)
+            .orElseThrow(() -> new EntityNotFoundException("Contexte de vente introuvable : " + code));
+    }
+
+    private StatutFacture chargerStatutFacture(String code) {
+        return statutFactureRepository.findByCode(code)
+            .orElseThrow(() -> new EntityNotFoundException("Statut de facture introuvable : " + code));
+    }
+
+    private Adresse chargerAdresseCheckout(Long idClient, Long idAdresse) {
+        if (idAdresse != null) {
+            Adresse adresse = adresseRepository.findById(idAdresse)
+                .orElseThrow(() -> new EntityNotFoundException("Adresse introuvable : " + idAdresse));
+
+            if (adresse.getClient() == null || !adresse.getClient().getId().equals(idClient)) {
+                throw new EntityNotFoundException("Adresse introuvable : " + idAdresse);
+            }
+            return adresse;
+        }
+
+        return adresseRepository.findByClientIdAndEstDefautTrue(idClient).orElse(null);
+    }
+
+    private Magasin resoudreMagasinPourCheckout(Adresse adresse) {
+        if (adresse != null && adresse.getMagasin() != null) {
+            return adresse.getMagasin();
+        }
+
+        List<Magasin> magasinsActifs = magasinRepository.findByActifTrue();
+        if (!magasinsActifs.isEmpty()) {
+            return magasinsActifs.get(0);
+        }
+
+        return magasinRepository.findById(1L)
+            .orElseThrow(() -> new EntityNotFoundException(
+                "Aucun magasin actif disponible pour facturer la commande web"
+            ));
+    }
+
+    private void viderPanier(Panier panier) {
+        panier.getLignes().clear();
+        panier.setDateDerniereActivite(LocalDateTime.now());
+        panierRepository.save(panier);
     }
 }
