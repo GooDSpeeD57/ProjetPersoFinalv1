@@ -48,6 +48,7 @@ public class SecurityConfig {
                     "/api/v1/produits/**",
                     "/api/v1/produits/mis-en-avant",
                     "/api/v1/categories/**",
+                    "/api/v1/magasins/**",
                     "/api/v1/tcg/cartes/**",
                     "/images/**"
                 ).permitAll()

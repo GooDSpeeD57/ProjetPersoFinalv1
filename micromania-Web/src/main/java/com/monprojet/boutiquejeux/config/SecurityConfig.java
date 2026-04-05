@@ -29,7 +29,7 @@ public class SecurityConfig {
             .addFilterBefore(apiRememberMeAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                    "/", "/catalogue/**", "/auth/**", "/css/**", "/js/**", "/img/**", "/panier/**"
+                    "/", "/catalogue/**", "/magasins/**", "/auth/**", "/css/**", "/js/**", "/img/**", "/panier/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

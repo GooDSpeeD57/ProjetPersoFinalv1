@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <th:block th:replace="~{fragments/layout :: head('Magasins')}"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+</head>
+<body>
+<th:block th:replace="~{fragments/layout :: navbar}"/>
+
+<main>
+  <div class="container">
+    <div class="section-label">// RÉSEAU MICROMANIA</div>
+    <div class="section-title">Choisir mon magasin</div>
+
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+
+    <section class="store-hero card card-accent-top">
+      <div class="card-body store-hero-body">
+        <div>
+          <div class="store-hero-kicker">Repère boutique + carte interactive</div>
+          <h1 class="store-hero-title">Trouve ton point de vente et active-le comme magasin de référence.</h1>
+          <p class="store-hero-text">
+            Recherche par ville, nom ou code postal. La carte et la liste n’apparaissent qu’après une recherche de secteur.
+          </p>
+        </div>
+        <div class="store-hero-actions">
+          <form th:action="@{/magasins}" method="get" class="store-search-form">
+            <input class="form-control" type="text" name="q" th:value="${q}"
+                   placeholder="Rechercher par ville, nom ou code postal"/>
+            <button type="submit" class="btn btn-primary">Rechercher</button>
+            <a class="btn btn-secondary" th:href="@{/magasins}">Effacer</a>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="store-current card" th:if="${session.selectedMagasinNom != null}">
+      <div class="card-header">Mon magasin actuel</div>
+      <div class="card-body store-current-body">
+        <div>
+          <div class="store-current-name" th:text="${session.selectedMagasinNom}">Micromania Paris Les Halles</div>
+          <div class="store-current-address" th:text="${session.selectedMagasinAdresse}">101 Porte Berger • 75001 Paris • France</div>
+        </div>
+        <div class="store-current-actions">
+          <a href="#magasins-map" class="btn btn-secondary btn-sm" th:if="${hasSearch and magasins != null and !magasins.isEmpty()}">Voir sur la carte</a>
+          <form th:action="@{/magasins/selection/reset}" method="post">
+            <button type="submit" class="btn btn-secondary btn-sm">Retirer la sélection</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" th:if="${!hasSearch}">
+      <div class="card-body" style="text-align:center;color:var(--text-dim)">
+        Lance une recherche par ville ou code postal pour afficher les magasins et les points sur la carte.
+      </div>
+    </section>
+
+    <section class="store-map-panel card card-accent-top" th:if="${hasSearch and magasins != null and !magasins.isEmpty()}">
+      <div class="card-body store-map-panel-body">
+        <div class="store-map-head">
+          <div>
+            <div class="section-label">// CARTE INTERACTIVE</div>
+            <h2 class="section-title stores-title" th:text="${#lists.size(magasins)} + ' magasin(s) trouvé(s)'">3 magasin(s) trouvé(s)</h2>
+          </div>
+          <div class="store-map-legend">
+            <span><i class="store-map-dot"></i> magasin</span>
+            <span><i class="store-map-dot store-map-dot-selected"></i> magasin sélectionné</span>
+          </div>
+        </div>
+
+        <div id="magasins-map"
+             class="store-map"
+             th:attr="data-selected-store-id=${selectedMagasinId}">
+        </div>
+        <p class="store-map-help">
+          Clique sur un point de la carte pour mettre la fiche magasin en avant, puis valide avec le bouton de sélection.
+        </p>
+      </div>
+    </section>
+
+    <section class="stores-section" th:if="${hasSearch}">
+      <div class="stores-section-head">
+        <div>
+          <div class="section-label">// RÉSULTATS</div>
+          <h2 class="section-title stores-title" th:text="${#lists.size(magasins)} + ' magasin(s) trouvé(s)'">3 magasin(s) trouvé(s)</h2>
+        </div>
+      </div>
+
+      <div class="stores-grid" th:if="${magasins != null and !magasins.isEmpty()}">
+        <article class="store-card card"
+                 th:each="magasin : ${magasins}"
+                 th:id="|store-card-${magasin.id()}|"
+                 th:classappend="${selectedMagasinId != null and selectedMagasinId == magasin.id() ? ' store-card-selected' : ''}"
+                 th:attr="data-store-id=${magasin.id()},
+                          data-latitude=${magasin.latitude()},
+                          data-longitude=${magasin.longitude()},
+                          data-store-name=${magasin.nom()},
+                          data-store-address=${magasin.adresseComplete()},
+                          data-store-city=${magasin.ville()},
+                          data-store-code-postal=${magasin.codePostal()}">
+          <div class="card-body store-card-body">
+            <div class="store-card-top">
+              <div>
+                <div class="store-card-city" th:text="${magasin.codePostal() + ' • ' + magasin.ville()}">75001 • Paris</div>
+                <h3 class="store-card-title" th:text="${magasin.nom()}">Micromania Paris Les Halles</h3>
+              </div>
+              <span class="status-pill status-approved"
+                    th:if="${selectedMagasinId != null and selectedMagasinId == magasin.id()}">Sélectionné</span>
+            </div>
+
+            <div class="store-card-address" th:text="${magasin.adresseComplete()}">101 Porte Berger • 75001 Paris • France</div>
+
+            <div class="store-card-meta">
+              <div th:if="${magasin.telephone() != null and !magasin.telephone().isBlank()}">
+                <span class="store-meta-label">Téléphone</span>
+                <span th:text="${magasin.telephone()}">0140203040</span>
+              </div>
+              <div th:if="${magasin.email() != null and !magasin.email().isBlank()}">
+                <span class="store-meta-label">Email</span>
+                <span th:text="${magasin.email()}">halles@micromania.fr</span>
+              </div>
+            </div>
+
+            <div class="store-card-actions">
+              <button type="button"
+                      class="btn btn-secondary btn-sm js-store-focus"
+                      th:if="${magasin.latitude() != null and magasin.longitude() != null}">
+                Voir sur la carte
+              </button>
+
+              <form th:action="@{/magasins/{idMagasin}/selection(idMagasin=${magasin.id()})}" method="post">
+                <button type="submit"
+                        class="btn btn-primary btn-sm"
+                        th:text="${selectedMagasinId != null and selectedMagasinId == magasin.id() ? 'Magasin actif' : 'Choisir ce magasin'}">
+                  Choisir ce magasin
+                </button>
+              </form>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="card" th:if="${magasins == null or magasins.isEmpty()}">
+        <div class="card-body" style="text-align:center;color:var(--text-dim)">
+          Aucun magasin ne correspond à la zone recherchée.
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/layout :: scripts}"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script th:src="@{/js/magasins.js}"></script>
+</body>
+</html>

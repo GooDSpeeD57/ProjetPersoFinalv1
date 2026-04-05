@@ -10,6 +10,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -58,6 +59,28 @@ public class CatalogController {
     @GetMapping("/produits/slug/{slug}")
     public ResponseEntity<ProduitResponse> getProduitBySlug(@PathVariable String slug) {
         return ResponseEntity.ok(catalogService.getProduitBySlug(slug));
+    }
+
+
+    @GetMapping("/produits/{idProduit}/avis/me")
+    @PreAuthorize("hasRole('CLIENT')")
+    public ResponseEntity<AvisProduitClientResponse> getMonAvisProduit(
+            @AuthenticationPrincipal Long idClient,
+            @PathVariable Long idProduit) {
+
+        AvisProduitClientResponse avis = catalogService.getMonAvisProduit(idClient, idProduit);
+        return avis == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(avis);
+    }
+
+    @PostMapping("/produits/{idProduit}/avis")
+    @PreAuthorize("hasRole('CLIENT')")
+    public ResponseEntity<AvisProduitClientResponse> soumettreAvisProduit(
+            @AuthenticationPrincipal Long idClient,
+            @PathVariable Long idProduit,
+            @Valid @RequestBody CreateAvisProduitRequest request) {
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(catalogService.soumettreAvisProduit(idClient, idProduit, request));
     }
 
     // ── Gestion catalogue (back-office) ───────────────────────

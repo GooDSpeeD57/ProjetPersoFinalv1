@@ -13,5 +13,7 @@ public record ProduitSummary(
         BigDecimal prixOccasion,
         boolean disponible,
         boolean misEnAvant,
-        Integer pegi
+        Integer pegi,
+        Double noteMoyenne,
+        long nbAvis
 ) {}

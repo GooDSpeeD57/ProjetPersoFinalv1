@@ -8,6 +8,7 @@ import fr.micromania.entity.referentiel.TypeAdresse;
 import fr.micromania.mapper.ClientMapper;
 import fr.micromania.repository.AdresseRepository;
 import fr.micromania.repository.ClientRepository;
+import fr.micromania.repository.TypeAdresseRepository;
 import fr.micromania.service.AdresseService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +23,9 @@ import java.util.List;
 public class AdresseServiceImpl implements AdresseService {
 
     private final AdresseRepository adresseRepository;
-    private final ClientRepository  clientRepository;
-    private final ClientMapper      clientMapper;
+    private final ClientRepository clientRepository;
+    private final TypeAdresseRepository typeAdresseRepository;
+    private final ClientMapper clientMapper;
 
     @Override
     public List<AdresseResponse> getByClient(Long idClient) {
@@ -36,7 +38,6 @@ public class AdresseServiceImpl implements AdresseService {
         Client client = clientRepository.findByIdAndDeletedFalse(idClient)
             .orElseThrow(() -> new EntityNotFoundException("Client introuvable : " + idClient));
 
-        // Si nouvelle adresse marquée par défaut → reset les autres
         if (request.estDefaut()) {
             adresseRepository.resetDefautByClient(idClient);
         }
@@ -47,14 +48,10 @@ public class AdresseServiceImpl implements AdresseService {
             .complement(request.complement())
             .ville(request.ville())
             .codePostal(request.codePostal())
-            .pays(request.pays() != null ? request.pays() : "France")
+            .pays(request.pays() != null && !request.pays().isBlank() ? request.pays() : "France")
             .estDefaut(request.estDefaut())
+            .typeAdresse(resoudreTypeAdresse(request))
             .build();
-
-        // TypeAdresse résolu par ID
-        TypeAdresse typeAdresse = new TypeAdresse();
-        typeAdresse.setId(request.idTypeAdresse());
-        adresse.setTypeAdresse(typeAdresse);
 
         return clientMapper.toAdresseResponse(adresseRepository.save(adresse));
     }
@@ -67,11 +64,14 @@ public class AdresseServiceImpl implements AdresseService {
 
         validerAppartenance(adresse, idClient);
 
-        if (request.rue()        != null) adresse.setRue(request.rue());
+        if (request.rue() != null) adresse.setRue(request.rue());
         if (request.complement() != null) adresse.setComplement(request.complement());
-        if (request.ville()      != null) adresse.setVille(request.ville());
+        if (request.ville() != null) adresse.setVille(request.ville());
         if (request.codePostal() != null) adresse.setCodePostal(request.codePostal());
-        if (request.pays()       != null) adresse.setPays(request.pays());
+        if (request.pays() != null) adresse.setPays(request.pays());
+        if ((request.idTypeAdresse() != null) || (request.codeTypeAdresse() != null && !request.codeTypeAdresse().isBlank())) {
+            adresse.setTypeAdresse(resoudreTypeAdresse(request));
+        }
 
         if (request.estDefaut() && !adresse.isEstDefaut()) {
             adresseRepository.resetDefautByClient(idClient);
@@ -108,11 +108,21 @@ public class AdresseServiceImpl implements AdresseService {
         adresseRepository.save(adresse);
     }
 
-    // ── Helper ────────────────────────────────────────────────
-
     private void validerAppartenance(Adresse adresse, Long idClient) {
         if (adresse.getClient() == null || !adresse.getClient().getId().equals(idClient)) {
             throw new SecurityException("Adresse n'appartient pas au client " + idClient);
         }
+    }
+
+    private TypeAdresse resoudreTypeAdresse(AdresseRequest request) {
+        if (request.codeTypeAdresse() != null && !request.codeTypeAdresse().isBlank()) {
+            return typeAdresseRepository.findByCode(request.codeTypeAdresse().trim().toUpperCase())
+                .orElseThrow(() -> new EntityNotFoundException("Type d'adresse introuvable : " + request.codeTypeAdresse()));
+        }
+        if (request.idTypeAdresse() != null) {
+            return typeAdresseRepository.findById(request.idTypeAdresse())
+                .orElseThrow(() -> new EntityNotFoundException("Type d'adresse introuvable : " + request.idTypeAdresse()));
+        }
+        throw new IllegalStateException("Le type d'adresse est obligatoire");
     }
 }

@@ -46,6 +46,20 @@
         <div class="product-body">
           <div class="product-platform" th:text="${p.categorie()}"></div>
           <div class="product-name" th:text="${p.nom()}"></div>
+
+          <div class="product-rating" th:if="${p.noteMoyenne() != null and p.nbAvis() > 0}">
+            <div class="rating-stars" aria-hidden="true">
+              <th:block th:each="i : ${#numbers.sequence(1, 5)}">
+                <span th:text="${i <= T(java.lang.Math).round(p.noteMoyenne()) ? '★' : '☆'}"></span>
+              </th:block>
+            </div>
+            <span class="rating-meta"
+                  th:text="${#numbers.formatDecimal(p.noteMoyenne(),1,1) + ' / 5 · ' + p.nbAvis() + ' avis'}"></span>
+          </div>
+          <div class="product-rating product-rating-empty" th:if="${p.noteMoyenne() == null or p.nbAvis() == 0}">
+            Pas encore d'avis
+          </div>
+
           <div class="product-price">
             <div th:if="${p.prixNeuf() != null}">
               Neuf :

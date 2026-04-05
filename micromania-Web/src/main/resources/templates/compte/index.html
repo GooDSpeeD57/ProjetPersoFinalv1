@@ -79,10 +79,46 @@
           <div class="card card-accent-top" id="infos">
             <div class="card-header">// INFORMATIONS PERSONNELLES</div>
             <div class="card-body">
-              <div class="info-row"><span class="label">Nom complet</span><span th:text="${client != null ? client.prenom() + ' ' + client.nom() : '—'}"></span></div>
-              <div class="info-row"><span class="label">Email</span><span th:text="${client != null && client.email() != null ? client.email() : '—'}"></span></div>
-              <div class="info-row"><span class="label">Téléphone</span><span th:text="${client != null && client.telephone() != null ? client.telephone() : '—'}"></span></div>
-              <div class="info-row"><span class="label">Date de naissance</span><span th:text="${client != null && client.dateNaissance() != null ? client.dateNaissance() : '—'}"></span></div>
+              <form th:action="@{/compte/infos}" method="post">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Pseudo</label>
+                    <input class="form-control" type="text" name="pseudo" th:value="${client != null ? client.pseudo() : ''}" required minlength="3" maxlength="50"/>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Date de naissance</label>
+                    <input class="form-control" type="date" name="dateNaissance" th:value="${client != null && client.dateNaissance() != null ? client.dateNaissance() : ''}"/>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Prénom</label>
+                    <input class="form-control" type="text" name="prenom" th:value="${client != null ? client.prenom() : ''}" required maxlength="100"/>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Nom</label>
+                    <input class="form-control" type="text" name="nom" th:value="${client != null ? client.nom() : ''}" required maxlength="100"/>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input class="form-control" type="email" name="email" th:value="${client != null ? client.email() : ''}" required maxlength="150"/>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Téléphone</label>
+                    <input class="form-control" type="text" name="telephone" th:value="${client != null ? client.telephone() : ''}" placeholder="0612345678" required maxlength="10"/>
+                  </div>
+                </div>
+
+                <div class="account-actions">
+                  <button type="submit" class="btn btn-primary">Enregistrer mes informations</button>
+                  <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                </div>
+              </form>
+
               <div class="info-row"><span class="label">N° Carte fidélité</span><span style="font-family:var(--font-head);font-size:0.8rem;color:var(--accent)" th:text="${client != null && client.numeroCarteFidelite() != null ? client.numeroCarteFidelite() : '—'}"></span></div>
               <div class="info-row"><span class="label">Email vérifié</span><span th:text="${client != null && client.emailVerifie() ? '✅ Oui' : '❌ Non'}"></span></div>
               <div class="info-row"><span class="label">Téléphone vérifié</span><span th:text="${client != null && client.telephoneVerifie() ? '✅ Oui' : '❌ Non'}"></span></div>
@@ -264,16 +300,88 @@
             </div>
           </div>
 
-          <div class="card" id="adresses" th:if="${adresses != null and !adresses.isEmpty()}">
+          <div class="card" id="adresses">
             <div class="card-header">// MES ADRESSES</div>
             <div class="card-body">
-              <div th:each="a : ${adresses}" style="padding:0.75rem 0;border-bottom:1px solid var(--border)">
-                <div style="font-family:var(--font-head);font-size:0.7rem;color:var(--text-dim)" th:text="${a.typeAdresse()}"></div>
-                <div th:text="${a.rue()}"></div>
-                <div th:if="${a.complement() != null and !a.complement().isBlank()}" th:text="${a.complement()}"></div>
-                <div th:text="${a.codePostal() + ' ' + a.ville()}"></div>
-                <div th:text="${a.pays()}"></div>
+              <div th:if="${adresses == null or adresses.isEmpty()}" class="dashboard-empty" style="margin-bottom:1rem">
+                Aucune adresse enregistrée pour le moment.
               </div>
+
+              <div class="address-list" th:unless="${adresses == null or adresses.isEmpty()}">
+                <div class="address-card" th:each="a : ${adresses}">
+                  <div class="address-card-head">
+                    <div>
+                      <span class="dashboard-pill" th:text="${a.typeAdresse()}">DOMICILE</span>
+                      <span class="dashboard-pill dashboard-pill-muted" th:if="${a.estDefaut()}" style="margin-left:0.5rem">Par défaut</span>
+                    </div>
+                    <div class="address-card-actions">
+                      <form th:if="${!a.estDefaut()}" th:action="@{/compte/adresses/{id}/defaut(id=${a.id()})}" method="post">
+                        <button type="submit" class="btn btn-secondary btn-sm">Mettre par défaut</button>
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                      </form>
+                      <form th:if="${!a.estDefaut()}" th:action="@{/compte/adresses/{id}/supprimer(id=${a.id()})}" method="post">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Supprimer cette adresse ?')">Supprimer</button>
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                      </form>
+                    </div>
+                  </div>
+                  <div class="address-card-line" th:text="${a.rue()}">Rue</div>
+                  <div class="address-card-line" th:if="${a.complement() != null and !a.complement().isBlank()}" th:text="${a.complement()}">Complément</div>
+                  <div class="address-card-line" th:text="${a.codePostal() + ' ' + a.ville()}">CP Ville</div>
+                  <div class="address-card-line" th:text="${a.pays()}">France</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">// AJOUTER UNE ADRESSE</div>
+            <div class="card-body">
+              <form th:action="@{/compte/adresses}" method="post">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Type d'adresse</label>
+                    <select name="codeTypeAdresse" class="form-control form-control-select">
+                      <option th:each="typeAdresse : ${typeAdresseOptions}" th:value="${typeAdresse}" th:text="${typeAdresse}">DOMICILE</option>
+                    </select>
+                  </div>
+                  <label class="form-check" style="margin-top:1.8rem">
+                    <input class="form-check-input" type="checkbox" name="estDefaut" value="true"/>
+                    <span class="form-check-label">Définir comme adresse par défaut</span>
+                  </label>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Rue</label>
+                  <input class="form-control" type="text" name="rue" required maxlength="255"/>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Complément</label>
+                  <input class="form-control" type="text" name="complement" maxlength="255"/>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Code postal</label>
+                    <input class="form-control" type="text" name="codePostal" required maxlength="15"/>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Ville</label>
+                    <input class="form-control" type="text" name="ville" required maxlength="100"/>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Pays</label>
+                  <input class="form-control" type="text" name="pays" value="France" maxlength="100"/>
+                </div>
+
+                <div class="account-actions">
+                  <button type="submit" class="btn btn-primary">Ajouter l'adresse</button>
+                  <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                </div>
+              </form>
             </div>
           </div>
         </div>

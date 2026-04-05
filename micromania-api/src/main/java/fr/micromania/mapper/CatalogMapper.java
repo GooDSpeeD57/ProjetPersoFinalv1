@@ -7,8 +7,10 @@ import fr.micromania.dto.referentiel.TauxTvaDto;
 import fr.micromania.entity.catalog.*;
 import fr.micromania.entity.referentiel.Plateforme;
 import fr.micromania.entity.referentiel.TauxTva;
-import fr.micromania.entity.referentiel.TypeCategorie;
-import org.mapstruct.*;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -18,6 +20,9 @@ public interface CatalogMapper {
     @Mapping(target = "categorie", source = "categorie")
     @Mapping(target = "variants",  source = "variants")
     @Mapping(target = "images",    source = "images")
+    @Mapping(target = "noteMoyenne", ignore = true)
+    @Mapping(target = "nbAvis", ignore = true)
+    @Mapping(target = "avis", ignore = true)
     ProduitResponse toProduitResponse(Produit produit);
 
     @Mapping(target = "categorie",   source = "categorie.nom")
@@ -26,6 +31,8 @@ public interface CatalogMapper {
     @Mapping(target = "prixNeuf", ignore = true)
     @Mapping(target = "prixOccasion", ignore = true)
     @Mapping(target = "disponible",  ignore = true)
+    @Mapping(target = "noteMoyenne", ignore = true)
+    @Mapping(target = "nbAvis", ignore = true)
     ProduitSummary toProduitSummary(Produit produit);
 
     List<ProduitSummary> toProduitSummaryList(List<Produit> produits);
@@ -36,7 +43,6 @@ public interface CatalogMapper {
     @Mapping(target = "description", source = "description")
     CodeDescriptionDto toCategorieDto(Categorie categorie);
 
-    // ── Variant ───────────────────────────────────────────────
     @Mapping(target = "plateforme",    source = "plateforme")
     @Mapping(target = "formatProduit", source = "formatProduit.code")
     @Mapping(target = "statutProduit", source = "statutProduit.code")
@@ -50,6 +56,13 @@ public interface CatalogMapper {
     @Mapping(target = "idVariant",  source = "variant.id")
     @Mapping(target = "canalVente", source = "canalVente.code")
     PrixResponse toPrixResponse(ProduitPrix prix);
+
+    @Mapping(target = "auteur", source = "client.pseudo")
+    AvisProduitPublicResponse toAvisProduitPublicResponse(AvisProduit avisProduit);
+
+    @Mapping(target = "idProduit", source = "produit.id")
+    @Mapping(target = "statut", source = "statutAvis.code")
+    AvisProduitClientResponse toAvisProduitClientResponse(AvisProduit avisProduit);
 
     ProduitImageDto toImageDto(ProduitImage image);
     List<ProduitImageDto> toImageDtoList(List<ProduitImage> images);
@@ -79,6 +92,7 @@ public interface CatalogMapper {
     default BigDecimal prixOccasion(List<ProduitVariant> variants) {
         return prixParStatut(variants, "OCCASION");
     }
+
     @Mapping(target = "taux", source = "taux")
     TauxTvaDto toTauxTvaDto(TauxTva tauxTva);
 }

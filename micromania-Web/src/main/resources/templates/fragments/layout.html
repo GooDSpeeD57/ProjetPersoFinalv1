@@ -8,6 +8,7 @@
   <ul class="navbar-nav">
     <li><a class="nav-link" th:href="@{/}">Accueil</a></li>
     <li><a class="nav-link" th:href="@{/catalogue}">Catalogue</a></li>
+    <li><a class="nav-link" th:href="@{/magasins}">Magasins</a></li>
     <li><a class="nav-link" th:href="@{/panier}">
       Panier
       <span th:if="${session.cartCount != null and session.cartCount > 0}"
@@ -20,6 +21,10 @@
   </ul>
 
   <div class="navbar-right">
+    <div class="nav-store" th:if="${session.selectedMagasinNom != null}">
+      <span class="nav-store-label">Mon magasin</span>
+      <span class="nav-store-name" th:text="${session.selectedMagasinNom}">Micromania Paris Les Halles</span>
+    </div>
     <div sec:authorize="isAuthenticated()" class="nav-user">
       <span th:text="${session.userPseudo ?: #authentication.name}"></span>
       <span class="nav-badge" th:if="${session.userTypeFidelite == 'ULTIMATE'}">ULTIMATE</span>

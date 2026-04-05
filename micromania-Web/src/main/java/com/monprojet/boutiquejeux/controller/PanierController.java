@@ -1,27 +1,26 @@
 package com.monprojet.boutiquejeux.controller;
 
-import com.monprojet.boutiquejeux.dto.CartItem;
 import com.monprojet.boutiquejeux.dto.api.catalog.ApiProduitDetail;
 import com.monprojet.boutiquejeux.dto.api.client.ApiAdresse;
 import com.monprojet.boutiquejeux.dto.api.client.ApiBonAchat;
 import com.monprojet.boutiquejeux.dto.api.facture.ApiFactureDetail;
+import com.monprojet.boutiquejeux.dto.api.magasin.ApiMagasinProche;
 import com.monprojet.boutiquejeux.dto.api.panier.ApiPanier;
+import com.monprojet.boutiquejeux.dto.CartItem;
 import com.monprojet.boutiquejeux.service.ApiService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/panier")
@@ -71,11 +70,30 @@ public class PanierController {
             .filter(bon -> !bon.utilise())
             .toList();
 
+        Long defaultAdresseId = adresses.stream().filter(ApiAdresse::estDefaut).map(ApiAdresse::id).findFirst()
+                .orElse(adresses.stream().map(ApiAdresse::id).findFirst().orElse(null));
+
+        Map<Long, List<ApiMagasinProche>> magasinsProchesParAdresse = new LinkedHashMap<>();
+        for (ApiAdresse adresse : adresses) {
+            magasinsProchesParAdresse.put(adresse.id(), api.getMagasinsProches(jwt, adresse.id()));
+        }
+
+        Long defaultMagasinRetraitId = null;
+        if (defaultAdresseId != null) {
+            List<ApiMagasinProche> magasinsDefaut = magasinsProchesParAdresse.get(defaultAdresseId);
+            if (magasinsDefaut != null && !magasinsDefaut.isEmpty()) {
+                defaultMagasinRetraitId = magasinsDefaut.getFirst().id();
+            }
+        }
+
         model.addAttribute("apiPanier", panier);
         model.addAttribute("adresses", adresses);
+        model.addAttribute("magasinsProchesParAdresse", magasinsProchesParAdresse);
         model.addAttribute("bonsDisponibles", bonsDisponibles);
-        model.addAttribute("defaultAdresseId", adresses.stream().filter(ApiAdresse::estDefaut).map(ApiAdresse::id).findFirst().orElse(null));
+        model.addAttribute("defaultAdresseId", defaultAdresseId);
+        model.addAttribute("defaultMagasinRetraitId", defaultMagasinRetraitId);
         model.addAttribute("modePaiementCode", "CB");
+        model.addAttribute("modeLivraisonCode", "DOMICILE");
         return "panier/checkout";
     }
 
@@ -235,6 +253,8 @@ public class PanierController {
     String valider(@RequestParam(required = false) Long idAdresse,
                    @RequestParam(required = false) Long idBonAchat,
                    @RequestParam(defaultValue = "CB") String modePaiementCode,
+                   @RequestParam(defaultValue = "DOMICILE") String modeLivraisonCode,
+                   @RequestParam(required = false) Long idMagasinRetrait,
                    HttpSession session,
                    RedirectAttributes redirect) {
         String jwt = (String) session.getAttribute("jwt");
@@ -243,7 +263,14 @@ public class PanierController {
             return "redirect:/auth/login";
         }
         try {
-            ApiFactureDetail facture = api.checkoutPanier(jwt, idAdresse, idBonAchat, modePaiementCode);
+            if (idAdresse == null) {
+                throw new IllegalStateException("Choisissez une adresse pour la livraison ou le retrait.");
+            }
+            if ("RETRAIT_MAGASIN".equals(modeLivraisonCode) && idMagasinRetrait == null) {
+                throw new IllegalStateException("Choisissez un magasin de retrait proche de votre adresse.");
+            }
+
+            ApiFactureDetail facture = api.checkoutPanier(jwt, idAdresse, idBonAchat, modePaiementCode, modeLivraisonCode, idMagasinRetrait);
             session.setAttribute("cartCount", 0);
             redirect.addFlashAttribute("successMessage", "Commande validée — facture " + facture.referenceFacture());
             return "redirect:/panier/confirmation/" + facture.id();
@@ -261,29 +288,27 @@ public class PanierController {
     @SuppressWarnings("unchecked")
     private List<CartItem> getCart(HttpSession session) {
         Object cart = session.getAttribute("cart");
-        if (cart instanceof List<?>) return (List<CartItem>) cart;
-        return new ArrayList<>();
+        if (cart instanceof List<?> list) {
+            return (List<CartItem>) list;
+        }
+        List<CartItem> panier = new ArrayList<>();
+        session.setAttribute("cart", panier);
+        return panier;
     }
 
-    private void saveCart(HttpSession session, List<CartItem> panier) {
-        session.setAttribute("cart", panier);
-        session.setAttribute("cartCount", panier.stream().mapToInt(CartItem::getQuantite).sum());
+    private void saveCart(HttpSession session, List<CartItem> cart) {
+        session.setAttribute("cart", cart);
+        session.setAttribute("cartCount", cart.stream().mapToInt(CartItem::getQuantite).sum());
     }
 
     private boolean isUnauthorized(RuntimeException e) {
-        String message = e.getMessage();
-        return message != null && (
-                message.contains("401")
-                        || message.contains("Non authentifié")
-                        || message.contains("Unauthorized")
-        );
+        return e.getMessage() != null && e.getMessage().contains("401");
     }
 
     private void clearWebAuthSession(HttpSession session) {
         session.removeAttribute("jwt");
-        session.removeAttribute("userEmail");
         session.removeAttribute("userPseudo");
         session.removeAttribute("userTypeFidelite");
-        session.removeAttribute("cartCount");
+        session.setAttribute("cartCount", 0);
     }
 }

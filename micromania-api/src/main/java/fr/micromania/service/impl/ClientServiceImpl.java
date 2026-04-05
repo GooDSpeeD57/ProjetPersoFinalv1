@@ -163,6 +163,12 @@ public class ClientServiceImpl implements ClientService {
         }
         if (request.nom() != null) client.setNom(request.nom());
         if (request.prenom() != null) client.setPrenom(request.prenom());
+        if (request.dateNaissance() != null) client.setDateNaissance(request.dateNaissance());
+        if (request.idAvatar() != null) {
+            Avatar avatar = avatarRepository.findById(request.idAvatar())
+                .orElseThrow(() -> new EntityNotFoundException("Avatar introuvable : " + request.idAvatar()));
+            client.setAvatar(avatar);
+        }
 
         client = clientRepository.save(client);
         PointsFidelite points = pointsRepository.findByClientId(id).orElse(null);

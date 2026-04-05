@@ -20,5 +20,8 @@ public record ProduitResponse(
     boolean misEnAvant,
     CodeDescriptionDto categorie,
     List<ProduitVariantResponse> variants,
-    List<ProduitImageDto> images
+    List<ProduitImageDto> images,
+    Double noteMoyenne,
+    long nbAvis,
+    List<AvisProduitPublicResponse> avis
 ) {}

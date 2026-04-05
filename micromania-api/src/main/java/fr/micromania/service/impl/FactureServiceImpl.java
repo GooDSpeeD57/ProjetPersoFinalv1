@@ -33,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -228,7 +229,16 @@ public class FactureServiceImpl implements FactureService {
             throw new IllegalStateException("Votre panier est vide");
         }
 
+        String modeLivraison = normaliserModeLivraison(request != null ? request.modeLivraisonCode() : null);
         Adresse adresse = chargerAdresseCheckout(idClient, request != null ? request.idAdresse() : null);
+        if (adresse == null) {
+            throw new IllegalStateException("Ajoutez une adresse puis sélectionnez-la pour finaliser votre commande");
+        }
+
+        Magasin magasinCheckout = "RETRAIT_MAGASIN".equals(modeLivraison)
+            ? chargerMagasinRetraitOuProche(idClient, request != null ? request.idMagasinRetrait() : null, adresse)
+            : resoudreMagasinPourCheckout(adresse);
+
         BonAchat bonAchat = null;
         if (request != null && request.idBonAchat() != null) {
             bonAchat = chargerBonAchatDisponible(idClient, request.idBonAchat());
@@ -240,7 +250,7 @@ public class FactureServiceImpl implements FactureService {
             .nomClient(panier.getClient().getNom() + " " + panier.getClient().getPrenom())
             .emailClient(panier.getClient().getEmail())
             .telephoneClient(panier.getClient().getTelephone())
-            .magasin(resoudreMagasinPourCheckout(adresse))
+            .magasin(magasinCheckout)
             .modePaiement(chargerModePaiement(request != null ? request.modePaiementCode() : null))
             .statutFacture(chargerStatutFacture("EMISE"))
             .contexteVente(chargerContexteVente("EN_LIGNE"))
@@ -277,7 +287,11 @@ public class FactureServiceImpl implements FactureService {
         decrementerStock(facture);
         viderPanier(panier);
 
-        log.info("Checkout web validé : client={} facture={}", idClient, facture.getReferenceFacture());
+        log.info("Checkout web validé : client={} facture={} mode={} magasin={}",
+            idClient,
+            facture.getReferenceFacture(),
+            modeLivraison,
+            facture.getMagasin() != null ? facture.getMagasin().getId() : null);
         return factureMapper.toResponse(facture);
     }
 
@@ -489,20 +503,85 @@ public class FactureServiceImpl implements FactureService {
         return adresseRepository.findByClientIdAndEstDefautTrue(idClient).orElse(null);
     }
 
+    private String normaliserModeLivraison(String modeLivraisonCode) {
+        return (modeLivraisonCode == null || modeLivraisonCode.isBlank()) ? "DOMICILE" : modeLivraisonCode;
+    }
+
+    private Magasin chargerMagasinRetraitOuProche(Long idClient, Long idMagasinRetrait, Adresse adresse) {
+        if (adresse == null) {
+            throw new IllegalStateException("Choisissez une adresse de référence pour le retrait magasin");
+        }
+        if (idMagasinRetrait != null) {
+            return magasinRepository.findByIdAndActifTrue(idMagasinRetrait)
+                .orElseThrow(() -> new EntityNotFoundException("Magasin introuvable : " + idMagasinRetrait));
+        }
+        return resoudreMagasinPourCheckout(adresse);
+    }
+
     private Magasin resoudreMagasinPourCheckout(Adresse adresse) {
         if (adresse != null && adresse.getMagasin() != null) {
             return adresse.getMagasin();
         }
 
-        List<Magasin> magasinsActifs = magasinRepository.findByActifTrue();
-        if (!magasinsActifs.isEmpty()) {
-            return magasinsActifs.get(0);
+        List<Adresse> adressesMagasins = adresseRepository.findAllMagasinAddressesActives();
+        if (!adressesMagasins.isEmpty()) {
+            return adressesMagasins.stream()
+                .sorted(Comparator
+                    .comparingDouble((Adresse a) -> scoreMagasin(adresse, a))
+                    .thenComparing(a -> a.getMagasin().getNom(), String.CASE_INSENSITIVE_ORDER))
+                .map(Adresse::getMagasin)
+                .findFirst()
+                .orElseGet(() -> magasinRepository.findByActifTrue().stream().findFirst().orElse(null));
         }
 
-        return magasinRepository.findById(1L)
+        return magasinRepository.findByActifTrue().stream().findFirst()
             .orElseThrow(() -> new EntityNotFoundException(
                 "Aucun magasin actif disponible pour facturer la commande web"
             ));
+    }
+
+    private double scoreMagasin(Adresse adresseClient, Adresse adresseMagasin) {
+        if (adresseClient == null) {
+            return 999.0;
+        }
+
+        Double distance = calculerDistanceKm(adresseClient, adresseMagasin);
+        if (distance != null) {
+            return distance;
+        }
+
+        String cpClient = adresseClient.getCodePostal() != null ? adresseClient.getCodePostal().trim() : "";
+        String cpMagasin = adresseMagasin.getCodePostal() != null ? adresseMagasin.getCodePostal().trim() : "";
+        String villeClient = adresseClient.getVille() != null ? adresseClient.getVille().trim() : "";
+        String villeMagasin = adresseMagasin.getVille() != null ? adresseMagasin.getVille().trim() : "";
+
+        if (!cpClient.isBlank() && cpClient.equalsIgnoreCase(cpMagasin)) return 0.05;
+        if (!villeClient.isBlank() && villeClient.equalsIgnoreCase(villeMagasin)) return 0.10;
+        if (cpClient.length() >= 2 && cpMagasin.length() >= 2 && cpClient.substring(0, 2).equals(cpMagasin.substring(0, 2))) {
+            return 0.20;
+        }
+        return 999.0;
+    }
+
+    private Double calculerDistanceKm(Adresse a, Adresse b) {
+        if (a == null || a.getLatitude() == null || a.getLongitude() == null || b == null || b.getLatitude() == null || b.getLongitude() == null) {
+            return null;
+        }
+
+        double lat1 = a.getLatitude().doubleValue();
+        double lon1 = a.getLongitude().doubleValue();
+        double lat2 = b.getLatitude().doubleValue();
+        double lon2 = b.getLongitude().doubleValue();
+
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double originLat = Math.toRadians(lat1);
+        double targetLat = Math.toRadians(lat2);
+
+        double h = Math.pow(Math.sin(dLat / 2), 2)
+            + Math.cos(originLat) * Math.cos(targetLat) * Math.pow(Math.sin(dLon / 2), 2);
+        double c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+        return 6371.0 * c;
     }
 
     private void viderPanier(Panier panier) {

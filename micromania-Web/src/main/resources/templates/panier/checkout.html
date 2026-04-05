@@ -18,20 +18,20 @@
 
       <div class="checkout-main">
         <div class="card card-accent-top">
-          <div class="card-header">// LIVRAISON</div>
+          <div class="card-header">// ADRESSE DE RÉFÉRENCE</div>
           <div class="card-body">
-            <div class="checkout-help">Checkout fictif pour affiner le site : aucune transaction bancaire réelle n'est effectuée.</div>
+            <div class="checkout-help">Choisissez l'adresse utilisée pour une livraison à domicile ou pour vous proposer des magasins de retrait proches.</div>
 
             <div th:if="${adresses == null or adresses.isEmpty()}" class="dashboard-empty">
-              Aucune adresse enregistrée. La facture sera générée avec vos informations client uniquement.
+              Aucune adresse enregistrée. Ajoutez une adresse depuis <a th:href="@{/compte#adresses}" style="color:var(--accent)">Mon compte</a> avant de passer commande.
             </div>
 
             <div class="checkout-option-list" th:unless="${adresses == null or adresses.isEmpty()}">
               <label class="checkout-option" th:each="adresse : ${adresses}">
-                <input type="radio" name="idAdresse" th:value="${adresse.id()}" th:checked="${defaultAdresseId != null and defaultAdresseId.equals(adresse.id())}"/>
+                <input type="radio" name="idAdresse" class="js-checkout-address" th:value="${adresse.id()}" th:checked="${defaultAdresseId != null and defaultAdresseId.equals(adresse.id())}"/>
                 <div class="checkout-option-content">
                   <div class="checkout-option-title">
-                    <span th:text="${adresse.typeAdresse()}">LIVRAISON</span>
+                    <span th:text="${adresse.typeAdresse()}">DOMICILE</span>
                     <span class="dashboard-pill" th:if="${adresse.estDefaut()}">Défaut</span>
                   </div>
                   <div class="checkout-option-text" th:text="${adresse.rue()}">Rue</div>
@@ -40,6 +40,61 @@
                   <div class="checkout-option-text" th:text="${adresse.pays()}">France</div>
                 </div>
               </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-header">// MODE DE LIVRAISON</div>
+          <div class="card-body">
+            <div class="checkout-option-list checkout-option-list-compact">
+              <label class="checkout-option checkout-option-inline">
+                <input type="radio" name="modeLivraisonCode" value="DOMICILE" class="js-delivery-mode" checked/>
+                <div class="checkout-option-content">
+                  <div class="checkout-option-title">Livraison à domicile</div>
+                  <div class="checkout-option-text">La commande part sur l'adresse sélectionnée.</div>
+                </div>
+              </label>
+              <label class="checkout-option checkout-option-inline">
+                <input type="radio" name="modeLivraisonCode" value="RETRAIT_MAGASIN" class="js-delivery-mode"/>
+                <div class="checkout-option-content">
+                  <div class="checkout-option-title">Retrait en magasin</div>
+                  <div class="checkout-option-text">Choisissez un magasin proposé à proximité de votre adresse.</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card js-retrait-wrapper" style="margin-top:1.5rem;display:none">
+          <div class="card-header">// MAGASIN DE RETRAIT</div>
+          <div class="card-body">
+            <div class="checkout-help" style="margin-bottom:1rem">Les magasins ci-dessous sont triés par proximité estimée depuis l'adresse sélectionnée.</div>
+
+            <div th:each="adresse : ${adresses}" class="checkout-store-group js-store-group" th:attr="data-adresse-id=${adresse.id()}" style="display:none">
+              <div th:if="${magasinsProchesParAdresse[adresse.id()] == null or #lists.isEmpty(magasinsProchesParAdresse[adresse.id()])}" class="dashboard-empty">
+                Aucun magasin proche trouvé pour cette adresse.
+              </div>
+
+              <div class="checkout-option-list" th:unless="${magasinsProchesParAdresse[adresse.id()] == null or #lists.isEmpty(magasinsProchesParAdresse[adresse.id()])}">
+                <label class="checkout-option" th:each="magasin, stat : ${magasinsProchesParAdresse[adresse.id()]}">
+                  <input type="radio"
+                         name="idMagasinRetrait"
+                         class="js-store-radio"
+                         th:value="${magasin.id()}"
+                         th:checked="${defaultAdresseId != null and defaultAdresseId.equals(adresse.id()) and defaultMagasinRetraitId != null and defaultMagasinRetraitId.equals(magasin.id())}"/>
+                  <div class="checkout-option-content">
+                    <div class="checkout-option-title">
+                      <span th:text="${magasin.nom()}">Micromania</span>
+                      <span class="dashboard-pill dashboard-pill-muted" th:text="${magasin.libelleDistance() != null ? magasin.libelleDistance() : 'Proche'}">3.2 km</span>
+                    </div>
+                    <div class="checkout-option-text" th:text="${magasin.rue()}">Rue</div>
+                    <div class="checkout-option-text" th:if="${magasin.complement() != null and !magasin.complement().isBlank()}" th:text="${magasin.complement()}">Complément</div>
+                    <div class="checkout-option-text" th:text="${magasin.codePostal() + ' ' + magasin.ville()}">Ville</div>
+                    <div class="checkout-option-text" th:if="${magasin.telephone() != null and !magasin.telephone().isBlank()}" th:text="${'Tél. ' + magasin.telephone()}">Téléphone</div>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -144,5 +199,48 @@
 
 <th:block th:replace="~{fragments/layout :: footer}"/>
 <th:block th:replace="~{fragments/layout :: scripts}"/>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const modeInputs = Array.from(document.querySelectorAll('.js-delivery-mode'));
+    const addressInputs = Array.from(document.querySelectorAll('.js-checkout-address'));
+    const retraitWrapper = document.querySelector('.js-retrait-wrapper');
+    const groups = Array.from(document.querySelectorAll('.js-store-group'));
+
+    function selectedMode() {
+      return modeInputs.find(input => input.checked)?.value || 'DOMICILE';
+    }
+
+    function selectedAddressId() {
+      return addressInputs.find(input => input.checked)?.value || null;
+    }
+
+    function ensureFirstStoreChecked(group) {
+      if (!group) return;
+      const checked = group.querySelector('.js-store-radio:checked');
+      if (checked) return;
+      const first = group.querySelector('.js-store-radio');
+      if (first) first.checked = true;
+    }
+
+    function refreshCheckoutUi() {
+      const retrait = selectedMode() === 'RETRAIT_MAGASIN';
+      const addressId = selectedAddressId();
+
+      if (retraitWrapper) {
+        retraitWrapper.style.display = retrait ? '' : 'none';
+      }
+
+      groups.forEach(group => {
+        const visible = retrait && addressId && group.dataset.adresseId === addressId;
+        group.style.display = visible ? '' : 'none';
+        if (visible) ensureFirstStoreChecked(group);
+      });
+    }
+
+    modeInputs.forEach(input => input.addEventListener('change', refreshCheckoutUi));
+    addressInputs.forEach(input => input.addEventListener('change', refreshCheckoutUi));
+    refreshCheckoutUi();
+  });
+</script>
 </body>
 </html>
