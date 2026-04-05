@@ -17,8 +17,14 @@
     <div class="profil-grid dashboard-layout">
       <aside class="dashboard-sidebar">
         <div class="card card-accent-top" style="text-align:center;padding:2rem">
-          <div class="profil-avatar"
-               th:text="${client != null ? #strings.toUpperCase(#strings.substring(client.pseudo(),0,1)) : 'U'}">U</div>
+          <div class="profil-avatar">
+            <img th:if="${client != null and client.avatar() != null and client.avatar().url() != null}"
+                 th:src="${'http://localhost:8080' + client.avatar().url()}"
+                 th:alt="${client.avatar().alt()}"
+                 style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
+            <span th:if="${client == null or client.avatar() == null or client.avatar().url() == null}"
+                  th:text="${client != null ? #strings.toUpperCase(#strings.substring(client.pseudo(),0,1)) : 'U'}">U</span>
+          </div>
           <div style="font-family:var(--font-head);font-size:1.1rem;margin-bottom:0.3rem"
                th:text="${client != null ? client.pseudo() : 'Pseudo'}">Pseudo</div>
           <div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:1rem"
@@ -262,15 +268,18 @@
               <div class="table-wrapper" th:unless="${factures == null or factures.isEmpty()}">
                 <table>
                   <thead>
-                  <tr><th>Référence</th><th>Date</th><th>Magasin</th><th>Total</th><th>Statut</th></tr>
+                  <tr><th>Référence</th><th>Date</th><th>Magasin</th><th>Total</th><th>Statut</th><th>Action</th></tr>
                   </thead>
                   <tbody>
                   <tr th:each="f : ${factures}">
                     <td style="font-family:var(--font-head);font-size:0.8rem;color:var(--accent)" th:text="${f.referenceFacture()}"></td>
-                    <td th:text="${f.dateFacture() != null ? f.dateFacture() : '—'}"></td>
+                    <td th:text="${f.dateFacture() != null ? #temporals.format(f.dateFacture(), 'dd/MM/yyyy HH:mm') : '—'}"></td>
                     <td th:text="${f.magasin() != null ? f.magasin() : '—'}"></td>
                     <td style="color:var(--accent);font-family:var(--font-head)" th:text="${f.montantFinal() != null ? #numbers.formatDecimal(f.montantFinal(),1,2) + ' €' : '—'}"></td>
                     <td th:text="${f.statutFacture() != null ? f.statutFacture() : '—'}"></td>
+                    <td>
+                      <a class="btn btn-outline" th:href="@{/compte/factures/{id}(id=${f.id()})}">Voir le détail</a>
+                    </td>
                   </tr>
                   </tbody>
                 </table>

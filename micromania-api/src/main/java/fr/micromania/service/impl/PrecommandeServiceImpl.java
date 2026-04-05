@@ -27,12 +27,17 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class PrecommandeServiceImpl implements PrecommandeService {
 
-    private final PrecommandeRepository    precommandeRepository;
-    private final ClientRepository         clientRepository;
-    private final ProduitVariantRepository variantRepository;
-    private final CommandeRepository       commandeRepository;
-    private final PrecommandeMapper        precommandeMapper;
-    private final CommandeMapper           commandeMapper;
+    private final PrecommandeRepository         precommandeRepository;
+    private final ClientRepository              clientRepository;
+    private final ProduitVariantRepository      variantRepository;
+    private final CommandeRepository            commandeRepository;
+    private final CanalVenteRepository          canalVenteRepository;
+    private final StatutPrecommandeRepository   statutPrecommandeRepository;
+    private final ModePaiementRepository        modePaiementRepository;
+    private final StatutCommandeRepository      statutCommandeRepository;
+    private final ModeLivraisonRepository       modeLivraisonRepository;
+    private final PrecommandeMapper             precommandeMapper;
+    private final CommandeMapper                commandeMapper;
 
     // ── Création ──────────────────────────────────────────────
 
@@ -51,20 +56,24 @@ public class PrecommandeServiceImpl implements PrecommandeService {
             .commentaireClient(request.commentaireClient())
             .build();
 
-        // Résolutions par ID
-        CanalVente canal = new CanalVente();
-        canal.setId(request.idCanalVente());
-        precommande.setCanalVente(canal);
+        precommande.setCanalVente(
+                canalVenteRepository.findById(request.idCanalVente())
+                        .orElseThrow(() -> new EntityNotFoundException("Canal de vente introuvable : " + request.idCanalVente()))
+        );
 
-        StatutPrecommande statut = new StatutPrecommande();
-        statut.setCode(request.acompteAVerser() != null && request.acompteAVerser().compareTo(BigDecimal.ZERO) > 0
-            ? "ACOMPTE_PAYE" : "ENREGISTREE");
-        precommande.setStatutPrecommande(statut);
+        precommande.setStatutPrecommande(
+                chargerStatutPrecommande(
+                        request.acompteAVerser() != null && request.acompteAVerser().compareTo(BigDecimal.ZERO) > 0
+                                ? "ACOMPTE_PAYE"
+                                : "ENREGISTREE"
+                )
+        );
 
         if (request.idModePaiement() != null) {
-            ModePaiement mp = new ModePaiement();
-            mp.setId(request.idModePaiement());
-            precommande.setModePaiement(mp);
+            precommande.setModePaiement(
+                    modePaiementRepository.findById(request.idModePaiement())
+                            .orElseThrow(() -> new EntityNotFoundException("Mode de paiement introuvable : " + request.idModePaiement()))
+            );
         }
 
         // Lignes + calcul du total estimé
@@ -148,14 +157,10 @@ public class PrecommandeServiceImpl implements PrecommandeService {
             .commentaireClient(pre.getCommentaireClient())
             .build();
 
-        StatutCommande statutCmd = new StatutCommande();
-        statutCmd.setCode("CREEE");
-        commande.setStatutCommande(statutCmd);
+        commande.setStatutCommande(chargerStatutCommande("CREEE"));
 
         // Mode de livraison par défaut DOMICILE
-        ModeLivraison ml = new ModeLivraison();
-        ml.setCode("DOMICILE");
-        commande.setModeLivraison(ml);
+        commande.setModeLivraison(chargerModeLivraison("DOMICILE"));
 
         // Convertir lignes précommande → lignes commande
         BigDecimal sousTotal = BigDecimal.ZERO;
@@ -179,9 +184,7 @@ public class PrecommandeServiceImpl implements PrecommandeService {
         commande = commandeRepository.save(commande);
 
         // Mettre à jour le statut de la précommande
-        StatutPrecommande statutConverti = new StatutPrecommande();
-        statutConverti.setCode("CONVERTIE_EN_COMMANDE");
-        pre.setStatutPrecommande(statutConverti);
+        pre.setStatutPrecommande(chargerStatutPrecommande("CONVERTIE_EN_COMMANDE"));
         pre.setDateConversionCommande(LocalDateTime.now());
         precommandeRepository.save(pre);
 
@@ -203,9 +206,7 @@ public class PrecommandeServiceImpl implements PrecommandeService {
             throw new IllegalStateException("Impossible d'annuler une précommande déjà convertie");
         }
 
-        StatutPrecommande annule = new StatutPrecommande();
-        annule.setCode("ANNULEE");
-        pre.setStatutPrecommande(annule);
+        pre.setStatutPrecommande(chargerStatutPrecommande("ANNULEE"));
         pre.setCommentaireClient(motif);
         precommandeRepository.save(pre);
 
@@ -216,5 +217,20 @@ public class PrecommandeServiceImpl implements PrecommandeService {
         }
 
         log.info("Précommande {} annulée : {}", pre.getReferencePrecommande(), motif);
+    }
+
+    private StatutPrecommande chargerStatutPrecommande(String code) {
+        return statutPrecommandeRepository.findByCode(code)
+                .orElseThrow(() -> new EntityNotFoundException("Statut précommande introuvable : " + code));
+    }
+
+    private StatutCommande chargerStatutCommande(String code) {
+        return statutCommandeRepository.findByCode(code)
+                .orElseThrow(() -> new EntityNotFoundException("Statut commande introuvable : " + code));
+    }
+
+    private ModeLivraison chargerModeLivraison(String code) {
+        return modeLivraisonRepository.findByCode(code)
+                .orElseThrow(() -> new EntityNotFoundException("Mode de livraison introuvable : " + code));
     }
 }

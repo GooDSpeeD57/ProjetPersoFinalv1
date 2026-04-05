@@ -25,10 +25,11 @@ import static org.mockito.Mockito.*;
 @DisplayName("AuthService — tests unitaires")
 class AuthServiceTest {
 
-    @Mock ClientRepository         clientRepository;
-    @Mock EmployeRepository        employeRepository;
-    @Mock ResetPasswordTokenRepository resetTokenRepository;
-    @Mock PasswordEncoder          passwordEncoder;
+    @Mock ClientRepository              clientRepository;
+    @Mock EmployeRepository             employeRepository;
+    @Mock ResetPasswordTokenRepository  resetTokenRepository;
+    @Mock PasswordEncoder               passwordEncoder;
+    @Mock RememberMeTokenRepository     rememberMeTokenRepository;
 
     @InjectMocks AuthServiceImpl authService;
 
@@ -37,7 +38,7 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Injecter les propriétés @Value via ReflectionTestUtils
+
         ReflectionTestUtils.setField(authService, "jwtSecret",
             "MicromaniaSuperSecretKeyPourJWTMinimum256BitsRequis!");
         ReflectionTestUtils.setField(authService, "jwtExpirationMs", 86400000L);
@@ -58,7 +59,6 @@ class AuthServiceTest {
         employe.setActif(true); employe.setDeleted(false);
     }
 
-    // ── loginClient ────────────────────────────────────────────
     @Test
     @DisplayName("loginClient — succès avec identifiants valides")
     void loginClient_ok() {
@@ -67,7 +67,7 @@ class AuthServiceTest {
         when(passwordEncoder.matches("Password1!", client.getMotDePasse())).thenReturn(true);
 
         AuthResponse result = authService.loginClient(
-            new LoginRequest("alice@test.fr", "Password1!"), "127.0.0.1", "TestAgent");
+            new LoginRequest("alice@test.fr", "Password1!", false), "127.0.0.1", "TestAgent");
 
         assertThat(result.accessToken()).isNotBlank();
         assertThat(result.email()).isEqualTo("alice@test.fr");
@@ -82,7 +82,7 @@ class AuthServiceTest {
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
         assertThatThrownBy(() -> authService.loginClient(
-            new LoginRequest("alice@test.fr", "mauvais"), "127.0.0.1", "TestAgent"))
+            new LoginRequest("alice@test.fr", "mauvais", false), "127.0.0.1", "TestAgent"))
             .isInstanceOf(BadCredentialsException.class);
     }
 
@@ -95,7 +95,7 @@ class AuthServiceTest {
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
 
         assertThatThrownBy(() -> authService.loginClient(
-            new LoginRequest("alice@test.fr", "Password1!"), "127.0.0.1", "TestAgent"))
+            new LoginRequest("alice@test.fr", "Password1!", false), "127.0.0.1", "TestAgent"))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("activé");
     }
@@ -109,7 +109,7 @@ class AuthServiceTest {
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
 
         assertThatThrownBy(() -> authService.loginClient(
-            new LoginRequest("alice@test.fr", "Password1!"), "127.0.0.1", "TestAgent"))
+            new LoginRequest("alice@test.fr", "Password1!", false), "127.0.0.1", "TestAgent"))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("vérifié");
     }
@@ -121,11 +121,10 @@ class AuthServiceTest {
             .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.loginClient(
-            new LoginRequest("inexistant@test.fr", "Password1!"), "127.0.0.1", "TestAgent"))
+            new LoginRequest("inexistant@test.fr", "Password1!", false), "127.0.0.1", "TestAgent"))
             .isInstanceOf(BadCredentialsException.class);
     }
 
-    // ── loginEmploye ───────────────────────────────────────────
     @Test
     @DisplayName("loginEmploye — succès avec rôle dans le token")
     void loginEmploye_ok() {
@@ -134,13 +133,12 @@ class AuthServiceTest {
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
 
         AuthResponse result = authService.loginEmploye(
-            new LoginRequest("vendeur@micromania.fr", "Admin1!?"), "127.0.0.1", "TestAgent");
+            new LoginRequest("vendeur@micromania.fr", "Admin1!?", false), "127.0.0.1", "TestAgent");
 
         assertThat(result.accessToken()).isNotBlank();
         assertThat(result.typeFidelite()).isEqualTo("VENDEUR");
     }
 
-    // ── demanderResetPassword ─────────────────────────────────
     @Test
     @DisplayName("demanderResetPassword — génère un token même si email existe")
     void demanderResetPassword_emailExistant() {
@@ -148,7 +146,6 @@ class AuthServiceTest {
             .thenReturn(Optional.of(client));
         when(resetTokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        // Ne lève pas d'exception — silencieux si email inexistant
         assertThatCode(() -> authService.demanderResetPassword("alice@test.fr"))
             .doesNotThrowAnyException();
 
@@ -167,7 +164,6 @@ class AuthServiceTest {
         verify(resetTokenRepository, never()).save(any());
     }
 
-    // ── changerMotDePasse ─────────────────────────────────────
     @Test
     @DisplayName("changerMotDePasse — encode et sauvegarde le nouveau mot de passe")
     void changerMotDePasse_ok() {

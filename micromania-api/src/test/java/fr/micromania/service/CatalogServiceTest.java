@@ -25,11 +25,14 @@ import static org.mockito.Mockito.*;
 @DisplayName("CatalogService — tests unitaires")
 class CatalogServiceTest {
 
-    @Mock ProduitRepository        produitRepository;
-    @Mock ProduitVariantRepository variantRepository;
-    @Mock ProduitPrixRepository    prixRepository;
-    @Mock CategorieRepository      categorieRepository;
-    @Mock CatalogMapper            catalogMapper;
+    @Mock ProduitRepository         produitRepository;
+    @Mock ProduitVariantRepository  variantRepository;
+    @Mock ProduitPrixRepository     prixRepository;
+    @Mock CategorieRepository       categorieRepository;
+    @Mock CatalogMapper             catalogMapper;
+    @Mock ClientRepository          clientRepository;
+    @Mock AvisProduitRepository     avisProduitRepository;
+    @Mock StatutAvisRepository      statutAvisRepository;
 
     @InjectMocks CatalogServiceImpl catalogService;
 
@@ -179,9 +182,12 @@ class CatalogServiceTest {
     }
 
     private ProduitResponse buildProduitResponse() {
-        return new ProduitResponse(1L, "Spider-Man PS5", "spider-man-ps5",
-            "Description", "Résumé", null, "Sony", null, 16, "Sony",
-            "NORMAL", "fr", false, null, List.of(), List.of());
+        return new ProduitResponse(
+                1L, "Spider-Man PS5", "spider-man-ps5",
+                "Description", "Résumé", null, "Sony", null, 16, "Sony",
+                "NORMAL", "fr", false, null, List.of(), List.of(),
+                null, 0L, List.of()
+        );
     }
 
     private ProduitVariantResponse buildVariantResponse() {

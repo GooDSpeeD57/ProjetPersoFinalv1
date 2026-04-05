@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 public class CatalogServiceImpl implements CatalogService {
 
     private static final String STATUT_AVIS_APPROUVE = "APPROUVE";
-
     private final ProduitRepository produitRepository;
     private final ProduitVariantRepository variantRepository;
     private final ProduitPrixRepository prixRepository;
@@ -139,13 +138,26 @@ public class CatalogServiceImpl implements CatalogService {
                 .map(produit -> {
                     ProduitSummary base = catalogMapper.toProduitSummary(produit);
                     AvisStats avisStats = avisStatsParProduit.getOrDefault(produit.getId(), AvisStats.EMPTY);
+
+                    String imageUrl = produit.getImages().stream()
+                            .filter(ProduitImage::isPrincipale)
+                            .findFirst()
+                            .map(ProduitImage::getUrl)
+                            .orElse(null);
+
+                    String imageAlt = produit.getImages().stream()
+                            .filter(ProduitImage::isPrincipale)
+                            .findFirst()
+                            .map(ProduitImage::getAlt)
+                            .orElse(null);
+
                     return new ProduitSummary(
                             base.id(),
                             base.nom(),
                             base.slug(),
                             base.categorie(),
-                            base.imageUrl(),
-                            base.imageAlt(),
+                            imageUrl,
+                            imageAlt,
                             catalogMapper.prixNeuf(produit.getVariants()),
                             catalogMapper.prixOccasion(produit.getVariants()),
                             produit.getVariants().stream().anyMatch(ProduitVariant::isActif),

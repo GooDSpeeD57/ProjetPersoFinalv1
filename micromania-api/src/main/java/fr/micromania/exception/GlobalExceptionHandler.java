@@ -11,7 +11,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
+import java.nio.file.NoSuchFileException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -109,6 +110,15 @@ public class GlobalExceptionHandler {
         String message = detecterConflitMessage(ex.getMostSpecificCause().getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
             new ErrorResponse(409, message, request.getRequestURI()));
+    }
+
+    @ExceptionHandler({NoResourceFoundException.class, NoSuchFileException.class})
+    public ResponseEntity<ErrorResponse> handleStaticNotFound(
+            Exception ex,
+            HttpServletRequest request) {
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                new ErrorResponse(404, "Ressource introuvable", request.getRequestURI()));
     }
 
     // ── 500 — Erreur inattendue ────────────────────────────────

@@ -43,5 +43,7 @@ public record RegisterRequest(
     String motDePasse,
 
     @NotNull
-    Boolean rgpdConsent
+    Boolean rgpdConsent,
+
+    Long idAvatar
 ) {}

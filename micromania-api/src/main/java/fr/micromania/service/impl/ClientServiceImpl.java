@@ -58,9 +58,7 @@ public class ClientServiceImpl implements ClientService {
         validerUnicitePseudo(request.pseudo());
         validerUniciteTelephone(request.telephone());
 
-        Avatar avatarDefaut = avatarRepository.findById(1L)
-            .or(() -> avatarRepository.findFirstByActifTrueOrderByIdAsc())
-            .orElseThrow(() -> new IllegalStateException("Aucun avatar actif disponible pour l'inscription"));
+        Avatar avatarDefaut = resoudreAvatar(request.idAvatar(), "l'inscription");
 
         TypeFidelite typeNormal = typeFideliteRepository.findByCode("NORMAL")
             .orElseThrow(() -> new IllegalStateException("Type fidélité NORMAL introuvable"));
@@ -96,9 +94,7 @@ public class ClientServiceImpl implements ClientService {
         validerUnicitePseudo(request.pseudo());
         validerUniciteTelephone(request.telephone());
 
-        Avatar avatarDefaut = avatarRepository.findById(1L)
-            .or(() -> avatarRepository.findFirstByActifTrueOrderByIdAsc())
-            .orElseThrow(() -> new IllegalStateException("Aucun avatar actif disponible pour la création client"));
+        Avatar avatarDefaut = resoudreAvatar(request.idAvatar(), "la création client");
 
         TypeFidelite typeNormal = typeFideliteRepository.findByCode("NORMAL")
             .orElseThrow(() -> new IllegalStateException("Type fidélité NORMAL introuvable"));
@@ -165,8 +161,8 @@ public class ClientServiceImpl implements ClientService {
         if (request.prenom() != null) client.setPrenom(request.prenom());
         if (request.dateNaissance() != null) client.setDateNaissance(request.dateNaissance());
         if (request.idAvatar() != null) {
-            Avatar avatar = avatarRepository.findById(request.idAvatar())
-                .orElseThrow(() -> new EntityNotFoundException("Avatar introuvable : " + request.idAvatar()));
+            Avatar avatar = avatarRepository.findByIdAndActifTrue(request.idAvatar())
+                    .orElseThrow(() -> new EntityNotFoundException("Avatar introuvable ou inactif : " + request.idAvatar()));
             client.setAvatar(avatar);
         }
 
@@ -388,5 +384,15 @@ public class ClientServiceImpl implements ClientService {
         int annee = Year.now().getValue();
         long blocAleatoire = ThreadLocalRandom.current().nextLong(100_000_000L, 1_000_000_000L);
         return "MM-" + annee + "-" + blocAleatoire;
+    }
+
+    private Avatar resoudreAvatar(Long idAvatar, String contexte) {
+        if (idAvatar != null) {
+            return avatarRepository.findByIdAndActifTrue(idAvatar)
+                    .orElseThrow(() -> new EntityNotFoundException("Avatar introuvable ou inactif : " + idAvatar));
+        }
+
+        return avatarRepository.findFirstByActifTrueOrderByIdAsc()
+                .orElseThrow(() -> new IllegalStateException("Aucun avatar actif disponible pour " + contexte));
     }
 }

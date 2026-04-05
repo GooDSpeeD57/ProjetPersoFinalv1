@@ -37,7 +37,7 @@
       <div class="product-card" th:each="p : ${produits.content()}">
         <div class="product-img">
           <img th:if="${p.imageUrl() != null}"
-               th:src="${p.imageUrl()}"
+               th:src="${'http://localhost:8080' + p.imageUrl()}"
                th:alt="${p.imageAlt() != null ? p.imageAlt() : p.nom()}"
                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
           <span th:if="${p.imageUrl() == null}">🎮</span>

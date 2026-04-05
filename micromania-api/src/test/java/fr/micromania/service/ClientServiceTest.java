@@ -6,8 +6,7 @@ import fr.micromania.entity.Client;
 import fr.micromania.entity.PointsFidelite;
 import fr.micromania.mapper.AuthMapper;
 import fr.micromania.mapper.ClientMapper;
-import fr.micromania.repository.ClientRepository;
-import fr.micromania.repository.PointsFideliteRepository;
+import fr.micromania.repository.*;
 import fr.micromania.service.impl.ClientServiceImpl;
 import fr.micromania.util.TestFixtures;
 import jakarta.persistence.EntityNotFoundException;
@@ -30,11 +29,15 @@ import static org.mockito.Mockito.*;
 @DisplayName("ClientService — tests unitaires")
 class ClientServiceTest {
 
-    @Mock ClientRepository         clientRepository;
-    @Mock PointsFideliteRepository pointsRepository;
-    @Mock ClientMapper             clientMapper;
-    @Mock AuthMapper               authMapper;
-    @Mock PasswordEncoder          passwordEncoder;
+    @Mock ClientRepository              clientRepository;
+    @Mock PointsFideliteRepository      pointsRepository;
+    @Mock ClientMapper                  clientMapper;
+    @Mock AuthMapper                    authMapper;
+    @Mock PasswordEncoder               passwordEncoder;
+    @Mock AvatarRepository              avatarRepository;
+    @Mock TypeFideliteRepository        typeFideliteRepository;
+    @Mock AbonnementClientRepository    abonnementClientRepository;
+    @Mock StatutAbonnementRepository    statutAbonnementRepository;
 
     @InjectMocks ClientServiceImpl clientService;
 
@@ -51,11 +54,15 @@ class ClientServiceTest {
                 LocalDate.of(1995, 6, 15), "alice@test.fr", "0601020304",
                 "NORMAL", null, 150,
                 new AvatarDto(1L, "Default", "/images/avatars/default.png", "Avatar"),
-                true,   // emailVerifie
-                false,  // telephoneVerifie  ← ajouté
-                true,   // compteActive
-                null,   // dateDerniereConnexion  ← ajouté
-                null    // dateCreation
+                true,
+                false,
+                true,
+                null,
+                null,
+                null,
+                null,
+                false,
+                null
         );
     }
 
@@ -89,7 +96,7 @@ class ClientServiceTest {
     void creerDepuisInscription_ok() {
         RegisterRequest request = new RegisterRequest(
             "newuser", "Martin", "Bob", LocalDate.of(2000, 1, 1),
-            "bob@test.fr", "0612345678", "Password1!", true
+            "bob@test.fr", "0612345678", "Password1!", true, null
         );
 
         when(clientRepository.existsByEmailAndDeletedFalse("bob@test.fr")).thenReturn(false);
@@ -112,7 +119,7 @@ class ClientServiceTest {
     void creerDepuisInscription_emailDuplique_leveException() {
         RegisterRequest request = new RegisterRequest(
             "newuser", "Martin", "Bob", LocalDate.of(2000, 1, 1),
-            "alice@test.fr", "0612345678", "Password1!", true
+            "alice@test.fr", "0612345678", "Password1!", true ,null
         );
         when(clientRepository.existsByEmailAndDeletedFalse("alice@test.fr")).thenReturn(true);
 

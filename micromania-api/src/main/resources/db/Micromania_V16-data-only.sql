@@ -1038,7 +1038,7 @@ INSERT INTO produit (id_categorie, nom, slug, description, resume_court, editeur
 
 INSERT INTO produit_image (id_produit, url, alt, principale, ordre_affichage)
 SELECT id_produit,
-       CONCAT('http://localhost:8080/images/catalogue/jeux/', slug, '.jpg'),
+       CONCAT('/images/catalogue/jeux/', slug, '.jpg'),
        CONCAT('Visuel ', nom), TRUE, 1
 FROM produit
 WHERE id_categorie = (SELECT id_categorie FROM categorie WHERE nom='Jeux Video');
@@ -1100,7 +1100,7 @@ INSERT INTO produit (id_categorie, nom, slug, description, resume_court, constru
 ((SELECT id_categorie FROM categorie WHERE nom='Consoles'),'Xbox Series X 1 To',          'xbox-series-x-1-to',          'Xbox Series X 1 To',          'Xbox Series X 1 To',          'Microsoft', 'Microsoft', TRUE);
 
 INSERT INTO produit_image (id_produit, url, alt, principale, ordre_affichage)
-SELECT id_produit, CONCAT('http://localhost:8080/images/catalogue/consoles/', slug, '.jpg'), CONCAT('Visuel ', nom), TRUE, 1
+SELECT id_produit, CONCAT('/images/catalogue/consoles/', slug, '.jpg'), CONCAT('Visuel ', nom), TRUE, 1
 FROM produit
 WHERE id_categorie = (SELECT id_categorie FROM categorie WHERE nom='Consoles');
 
@@ -1163,7 +1163,7 @@ INSERT INTO produit (id_categorie, nom, slug, description, resume_court, constru
 ((SELECT id_categorie FROM categorie WHERE nom='Accessoires'),'Camera Nintendo Switch 2',            'camera-nintendo-switch-2',            'Camera Nintendo Switch 2',            'Camera Nintendo Switch 2',            'Nintendo',  'Nintendo');
 
 INSERT INTO produit_image (id_produit, url, alt, principale, ordre_affichage)
-SELECT id_produit, CONCAT('http://localhost:8080/images/catalogue/accessoires/', slug, '.jpg'), CONCAT('Visuel ', nom), TRUE, 1
+SELECT id_produit, CONCAT('/images/catalogue/accessoires/', slug, '.jpg'), CONCAT('Visuel ', nom), TRUE, 1
 FROM produit WHERE id_categorie = (SELECT id_categorie FROM categorie WHERE nom='Accessoires');
 
 INSERT INTO produit_variant (id_produit, sku, id_plateforme, id_format_produit, id_statut_produit, nom_commercial, scelle, est_demat, est_tcg_unitaire, est_reprise) VALUES

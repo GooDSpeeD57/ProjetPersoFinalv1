@@ -8,17 +8,7 @@ import fr.micromania.entity.catalog.ProduitVariant;
 import fr.micromania.entity.commande.*;
 import fr.micromania.entity.referentiel.*;
 import fr.micromania.mapper.FactureMapper;
-import fr.micromania.repository.AdresseRepository;
-import fr.micromania.repository.BonAchatRepository;
-import fr.micromania.repository.CommandeRepository;
-import fr.micromania.repository.ContexteVenteRepository;
-import fr.micromania.repository.FactureRepository;
-import fr.micromania.repository.MagasinRepository;
-import fr.micromania.repository.ModePaiementRepository;
-import fr.micromania.repository.PanierRepository;
-import fr.micromania.repository.ProduitVariantRepository;
-import fr.micromania.repository.StatutFactureRepository;
-import fr.micromania.repository.StockMagasinRepository;
+import fr.micromania.repository.*;
 import fr.micromania.service.FactureService;
 import fr.micromania.service.FideliteService;
 import fr.micromania.service.FideliteUpgradeService;
@@ -60,6 +50,8 @@ public class FactureServiceImpl implements FactureService {
     private final FactureMapper factureMapper;
     private final FideliteUpgradeService fideliteUpgradeService;
     private final FideliteService fideliteService;
+    private final ClientRepository clientRepository;
+    private final EmployeRepository employeRepository;
 
     @Override
     @Transactional
@@ -142,29 +134,34 @@ public class FactureServiceImpl implements FactureService {
             .build();
 
         if (request.idClient() != null) {
-            Client client = new Client();
-            client.setId(request.idClient());
-            facture.setClient(client);
+            facture.setClient(
+                    clientRepository.findByIdAndDeletedFalse(request.idClient())
+                            .orElseThrow(() -> new EntityNotFoundException("Client introuvable : " + request.idClient()))
+            );
         }
 
-        Magasin magasin = new Magasin();
-        magasin.setId(request.idMagasin());
-        facture.setMagasin(magasin);
+        facture.setMagasin(
+                magasinRepository.findByIdAndActifTrue(request.idMagasin())
+                        .orElseThrow(() -> new EntityNotFoundException("Magasin introuvable : " + request.idMagasin()))
+        );
 
-        ModePaiement modePaiement = new ModePaiement();
-        modePaiement.setId(request.idModePaiement());
-        facture.setModePaiement(modePaiement);
+        facture.setModePaiement(
+                modePaiementRepository.findById(request.idModePaiement())
+                        .orElseThrow(() -> new EntityNotFoundException("Mode de paiement introuvable : " + request.idModePaiement()))
+        );
 
         facture.setStatutFacture(chargerStatutFacture("EMISE"));
 
-        ContexteVente contexte = new ContexteVente();
-        contexte.setId(request.idContexteVente());
-        facture.setContexteVente(contexte);
+        facture.setContexteVente(
+                contexteVenteRepository.findById(request.idContexteVente())
+                        .orElseThrow(() -> new EntityNotFoundException("Contexte de vente introuvable : " + request.idContexteVente()))
+        );
 
         if (request.idEmploye() != null) {
-            fr.micromania.entity.Employe emp = new fr.micromania.entity.Employe();
-            emp.setId(request.idEmploye());
-            facture.setEmploye(emp);
+            facture.setEmploye(
+                    employeRepository.findByIdAndDeletedFalse(request.idEmploye())
+                            .orElseThrow(() -> new EntityNotFoundException("Employé introuvable : " + request.idEmploye()))
+            );
         }
 
         for (LigneFactureRequest lReq : request.lignes()) {

@@ -49,7 +49,8 @@ class CatalogControllerTest {
         produitSummary = new ProduitSummary(
                 1L, "Spider-Man PS5", "spider-man-ps5",
                 "Jeux Video", "/img/spider.jpg", "Spider-Man",
-                new BigDecimal("69.99"), null, true, false, 16
+                new BigDecimal("69.99"), null, true, false, 16,
+                null, 0L
         );
 
         doAnswer(invocation -> {
@@ -103,7 +104,8 @@ class CatalogControllerTest {
         ProduitResponse response = new ProduitResponse(
                 1L, "Spider-Man PS5", "spider-man-ps5",
                 "Desc", "Résumé", null, "Sony", null, 16, "Sony",
-                "NORMAL", "fr", false, null, List.of(), List.of()
+                "NORMAL", "fr", false, null, List.of(), List.of(),
+                null, 0L, List.of()
         );
         when(catalogService.getProduitBySlug("spider-man-ps5")).thenReturn(response);
 

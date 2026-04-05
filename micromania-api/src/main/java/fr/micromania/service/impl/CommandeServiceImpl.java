@@ -38,8 +38,11 @@ public class CommandeServiceImpl implements CommandeService {
     private final StockEntrepotRepository   stockEntrepotRepository;
     private final PromotionRepository       promotionRepository;
     private final CommandeMapper            commandeMapper;
-
-    // ── Création ──────────────────────────────────────────────
+    private final ModeLivraisonRepository   modeLivraisonRepository;
+    private final StatutCommandeRepository  statutCommandeRepository;
+    private final AdresseRepository         adresseRepository;
+    private final MagasinRepository         magasinRepository;
+    private final StatutPanierRepository    statutPanierRepository;
 
     @Override
     @Transactional
@@ -54,7 +57,6 @@ public class CommandeServiceImpl implements CommandeService {
             throw new IllegalStateException("Impossible de créer une commande depuis un panier vide");
         }
 
-        // ── Construction de la commande ─────────────────────
         Commande commande = Commande.builder()
             .referenceCommande("CMD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
             .client(panier.getClient())
@@ -67,24 +69,18 @@ public class CommandeServiceImpl implements CommandeService {
             .montantTotal(BigDecimal.ZERO)
             .build();
 
-        // Résolution mode de livraison et statut
-        ModeLivraison modeLivraison = new ModeLivraison();
-        modeLivraison.setId(request.idModeLivraison());
+        ModeLivraison modeLivraison = chargerModeLivraison(request.idModeLivraison());
         commande.setModeLivraison(modeLivraison);
-
-        StatutCommande statut = new StatutCommande();
-        statut.setId(1L); // CREEE — à résoudre via repo en prod
-        commande.setStatutCommande(statut);
+        commande.setStatutCommande(chargerStatutCommande("CREEE"));
 
         if (request.idAdresseLivraison() != null) {
-            fr.micromania.entity.Adresse adresse = new fr.micromania.entity.Adresse();
-            adresse.setId(request.idAdresseLivraison());
-            commande.setAdresseLivraison(adresse);
+            commande.setAdresseLivraison(chargerAdresseLivraison(request.idAdresseLivraison(), idClient));
         }
         if (request.idMagasinRetrait() != null) {
-            fr.micromania.entity.Magasin magasin = new fr.micromania.entity.Magasin();
-            magasin.setId(request.idMagasinRetrait());
-            commande.setMagasinRetrait(magasin);
+            commande.setMagasinRetrait(
+                    magasinRepository.findByIdAndActifTrue(request.idMagasinRetrait())
+                            .orElseThrow(() -> new EntityNotFoundException("Magasin introuvable : " + request.idMagasinRetrait()))
+            );
         }
 
         // ── Conversion lignes panier → lignes commande ───────
@@ -104,7 +100,7 @@ public class CommandeServiceImpl implements CommandeService {
         }
 
         // ── Frais de livraison ────────────────────────────────
-        BigDecimal frais = calculerFraisLivraison(request.idModeLivraison(), sousTotal);
+        BigDecimal frais = calculerFraisLivraison(modeLivraison, sousTotal);
 
         // ── Code promo ─────────────────────────────────────────
         BigDecimal remise = BigDecimal.ZERO;
@@ -122,7 +118,7 @@ public class CommandeServiceImpl implements CommandeService {
         commande = commandeRepository.save(commande);
 
         // ── Invalider le panier ────────────────────────────────
-        panier.getStatutPanier().setCode("VALIDE");
+        panier.setStatutPanier(chargerStatutPanier("VALIDE"));
         panierRepository.save(panier);
 
         log.info("Commande créée : ref={} client={} total={}",
@@ -168,9 +164,7 @@ public class CommandeServiceImpl implements CommandeService {
         String ancienStatut = commande.getStatutCommande().getCode();
         validerTransitionStatut(ancienStatut, request.codeStatut());
 
-        StatutCommande nouveauStatut = new StatutCommande();
-        nouveauStatut.setCode(request.codeStatut());
-        commande.setStatutCommande(nouveauStatut);
+        commande.setStatutCommande(chargerStatutCommande(request.codeStatut()));
 
         // Horodatages selon le statut cible
         switch (request.codeStatut()) {
@@ -200,9 +194,7 @@ public class CommandeServiceImpl implements CommandeService {
             throw new IllegalStateException("Impossible d'annuler une commande déjà expédiée/livrée");
         }
 
-        StatutCommande annulee = new StatutCommande();
-        annulee.setCode("ANNULEE");
-        commande.setStatutCommande(annulee);
+        commande.setStatutCommande(chargerStatutCommande("ANNULEE"));
         commande.setCommentaireClient(motif);
 
         // Libérer les réservations de stock si existantes
@@ -232,11 +224,13 @@ public class CommandeServiceImpl implements CommandeService {
         }
     }
 
-    private BigDecimal calculerFraisLivraison(Long idModeLivraison, BigDecimal sousTotal) {
-        // Livraison gratuite au-delà de 60€, retrait magasin toujours gratuit
-        // idModeLivraison=2 = RETRAIT_MAGASIN (à adapter selon tes données)
-        if (idModeLivraison != null && idModeLivraison == 2L) return BigDecimal.ZERO;
-        if (sousTotal.compareTo(new BigDecimal("60.00")) >= 0) return BigDecimal.ZERO;
+    private BigDecimal calculerFraisLivraison(ModeLivraison modeLivraison, BigDecimal sousTotal) {
+        if ("RETRAIT_MAGASIN".equals(modeLivraison.getCode())) {
+            return BigDecimal.ZERO;
+        }
+        if (sousTotal.compareTo(new BigDecimal("60.00")) >= 0) {
+            return BigDecimal.ZERO;
+        }
         return new BigDecimal("4.99");
     }
 
@@ -252,6 +246,32 @@ public class CommandeServiceImpl implements CommandeService {
                 };
             })
             .orElse(BigDecimal.ZERO);
+    }
+
+    private ModeLivraison chargerModeLivraison(Long idModeLivraison) {
+        return modeLivraisonRepository.findById(idModeLivraison)
+                .orElseThrow(() -> new EntityNotFoundException("Mode de livraison introuvable : " + idModeLivraison));
+    }
+
+    private StatutCommande chargerStatutCommande(String code) {
+        return statutCommandeRepository.findByCode(code)
+                .orElseThrow(() -> new EntityNotFoundException("Statut commande introuvable : " + code));
+    }
+
+    private fr.micromania.entity.Adresse chargerAdresseLivraison(Long idAdresse, Long idClient) {
+        fr.micromania.entity.Adresse adresse = adresseRepository.findById(idAdresse)
+                .orElseThrow(() -> new EntityNotFoundException("Adresse introuvable : " + idAdresse));
+
+        if (adresse.getClient() == null || !adresse.getClient().getId().equals(idClient)) {
+            throw new IllegalStateException("Adresse de livraison invalide pour le client " + idClient);
+        }
+
+        return adresse;
+    }
+
+    private StatutPanier chargerStatutPanier(String code) {
+        return statutPanierRepository.findByCode(code)
+                .orElseThrow(() -> new EntityNotFoundException("Statut panier introuvable : " + code));
     }
 
     private void validerTransitionStatut(String actuel, String cible) {

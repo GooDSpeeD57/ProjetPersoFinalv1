@@ -13,7 +13,6 @@ import fr.micromania.service.StockService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,13 +25,14 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class StockServiceImpl implements StockService {
 
-    private final StockMagasinRepository stockMagasinRepo;
-    private final StockEntrepotRepository stockEntrepotRepo;
-    private final MouvementStockRepository mouvementRepo;
-    private final ProduitVariantRepository variantRepo;
-    private final MagasinRepository magasinRepo;
-    private final EntrepotRepository entrepotRepo;
-    private final StockMapper stockMapper;
+    private final StockMagasinRepository    stockMagasinRepo;
+    private final StockEntrepotRepository   stockEntrepotRepo;
+    private final MouvementStockRepository  mouvementRepo;
+    private final ProduitVariantRepository  variantRepo;
+    private final MagasinRepository         magasinRepo;
+    private final EntrepotRepository        entrepotRepo;
+    private final StockMapper               stockMapper;
+    private final TypeMouvementRepository   typeMouvementRepository;
 
     @Override
     public List<StockMagasinResponse> getStockVariantTousMagasins(Long idVariant) {
@@ -132,12 +132,39 @@ public class StockServiceImpl implements StockService {
     }
 
     private void enregistrerMouvement(AjustementStockRequest req, String lieu) {
-        // Mouvement tracé — TypeMouvement AJUSTEMENT résolu via repo
-        MouvementStock mv = MouvementStock.builder()
-            .quantite(Math.abs(req.delta()))
-            .sourceStock(req.sourceStock())
-            .commentaire(req.commentaire())
-            .build();
-        mouvementRepo.save(mv);
+        ProduitVariant variant = variantRepo.findById(req.idVariant())
+                .orElseThrow(() -> new EntityNotFoundException("Variant introuvable : " + req.idVariant()));
+
+        TypeMouvement typeMouvement = typeMouvementRepository.findByCode("AJUSTEMENT")
+                .orElseThrow(() -> new EntityNotFoundException("Type mouvement introuvable : AJUSTEMENT"));
+
+        MouvementStock.MouvementStockBuilder builder = MouvementStock.builder()
+                .variant(variant)
+                .typeMouvement(typeMouvement)
+                .quantite(req.delta())
+                .sourceStock(req.sourceStock())
+                .commentaire(req.commentaire());
+
+        if ("MAGASIN".equals(lieu)) {
+            if (req.idMagasin() == null) {
+                throw new IllegalArgumentException("idMagasin obligatoire pour un mouvement magasin");
+            }
+            builder.magasin(
+                    magasinRepo.findById(req.idMagasin())
+                            .orElseThrow(() -> new EntityNotFoundException("Magasin introuvable : " + req.idMagasin()))
+            );
+        } else if ("ENTREPOT".equals(lieu)) {
+            if (req.idEntrepot() == null) {
+                throw new IllegalArgumentException("idEntrepot obligatoire pour un mouvement entrepôt");
+            }
+            builder.entrepot(
+                    entrepotRepo.findById(req.idEntrepot())
+                            .orElseThrow(() -> new EntityNotFoundException("Entrepôt introuvable : " + req.idEntrepot()))
+            );
+        } else {
+            throw new IllegalArgumentException("Lieu de mouvement invalide : " + lieu);
+        }
+
+        mouvementRepo.save(builder.build());
     }
 }
