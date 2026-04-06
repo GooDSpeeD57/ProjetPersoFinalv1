@@ -37,6 +37,11 @@ class CommandeServiceTest {
     @Mock StockEntrepotRepository  stockEntrepotRepository;
     @Mock PromotionRepository      promotionRepository;
     @Mock CommandeMapper           commandeMapper;
+    @Mock ModeLivraisonRepository   modeLivraisonRepository;
+    @Mock StatutCommandeRepository  statutCommandeRepository;
+    @Mock AdresseRepository         adresseRepository;
+    @Mock MagasinRepository         magasinRepository;
+    @Mock StatutPanierRepository    statutPanierRepository;
 
     @InjectMocks CommandeServiceImpl commandeService;
 
@@ -77,6 +82,8 @@ class CommandeServiceTest {
     void updateStatut_creeVersPayee() {
         commande.setStatutCommande(TestFixtures.statutCommande("CREEE"));
         when(commandeRepository.findById(1L)).thenReturn(Optional.of(commande));
+        when(statutCommandeRepository.findByCode("PAYEE"))
+            .thenReturn(Optional.of(TestFixtures.statutCommande("PAYEE")));
         when(commandeRepository.save(any())).thenReturn(commande);
         when(commandeMapper.toResponse(any())).thenReturn(buildCommandeResponse("PAYEE"));
 
@@ -105,6 +112,8 @@ class CommandeServiceTest {
     void annuler_depuisCreee() {
         commande.setStatutCommande(TestFixtures.statutCommande("CREEE"));
         when(commandeRepository.findById(1L)).thenReturn(Optional.of(commande));
+        when(statutCommandeRepository.findByCode("ANNULEE"))
+            .thenReturn(Optional.of(TestFixtures.statutCommande("ANNULEE")));
         when(commandeRepository.save(any())).thenReturn(commande);
 
         commandeService.annuler(1L, "Client a changé d'avis");

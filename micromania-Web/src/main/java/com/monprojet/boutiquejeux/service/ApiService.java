@@ -7,6 +7,7 @@ import com.monprojet.boutiquejeux.dto.api.catalog.ApiProduitDetail;
 import com.monprojet.boutiquejeux.dto.api.catalog.ApiProduitSummary;
 import com.monprojet.boutiquejeux.dto.api.client.ApiAdresse;
 import com.monprojet.boutiquejeux.dto.api.client.ApiAdresseRequest;
+import com.monprojet.boutiquejeux.dto.api.client.ApiAvatar;
 import com.monprojet.boutiquejeux.dto.api.client.ApiBonAchat;
 import com.monprojet.boutiquejeux.dto.api.client.ApiClient;
 import com.monprojet.boutiquejeux.dto.api.client.ApiFideliteDetail;
@@ -64,6 +65,52 @@ public class ApiService {
         } catch (Exception e) {
             log.error("getProduits error", e);
             return emptyPage();
+        }
+    }
+
+
+    public ApiPage<ApiProduitSummary> getProduitsTries(int page, int size, String q, Long categorie, String niveau, String... tris) {
+        try {
+            return restClient.get()
+                    .uri(uriBuilder -> {
+                        uriBuilder.path("/produits")
+                                .queryParam("page", page)
+                                .queryParam("size", size);
+                        if (q != null && !q.isBlank()) uriBuilder.queryParam("q", q);
+                        if (categorie != null) uriBuilder.queryParam("categorie", categorie);
+                        if (niveau != null && !niveau.isBlank()) uriBuilder.queryParam("niveau", niveau);
+                        if (tris != null) {
+                            for (String tri : tris) {
+                                if (tri != null && !tri.isBlank()) {
+                                    uriBuilder.queryParam("sort", tri);
+                                }
+                            }
+                        }
+                        return uriBuilder.build();
+                    })
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {});
+        } catch (RestClientResponseException e) {
+            log.error("getProduitsTries error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return emptyPage();
+        } catch (Exception e) {
+            log.error("getProduitsTries error", e);
+            return emptyPage();
+        }
+    }
+
+    public List<ApiProduitSummary> getProduitsMisEnAvant() {
+        try {
+            List<ApiProduitSummary> produits = restClient.get().uri("/produits/mis-en-avant")
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {});
+            return produits != null ? produits : List.of();
+        } catch (RestClientResponseException e) {
+            log.error("getProduitsMisEnAvant error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return List.of();
+        } catch (Exception e) {
+            log.error("getProduitsMisEnAvant error", e);
+            return List.of();
         }
     }
 
@@ -239,6 +286,22 @@ public class ApiService {
             request.retrieve().toBodilessEntity();
         } catch (RestClientResponseException e) {
             log.warn("logout error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+        }
+    }
+
+    public List<ApiAvatar> getAvatars(String jwtToken) {
+        try {
+            List<ApiAvatar> avatars = restClient.get().uri("/avatars")
+                    .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {});
+            return avatars != null ? avatars : List.of();
+        } catch (RestClientResponseException e) {
+            log.error("getAvatars error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return List.of();
+        } catch (Exception e) {
+            log.error("getAvatars error", e);
+            return List.of();
         }
     }
 

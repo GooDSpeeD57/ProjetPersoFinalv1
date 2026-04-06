@@ -4,6 +4,7 @@
   <th:block th:replace="~{fragments/layout :: head(${produit != null && produit.nom() != null ? produit.nom() : 'Produit'})}"/>
 </head>
 <body>
+<div class="site-shell">
 <th:block th:replace="~{fragments/layout :: navbar}"/>
 <th:block th:replace="~{fragments/layout :: alerts}"/>
 <main>
@@ -18,7 +19,7 @@
       <div class="card product-detail-media-card">
         <div class="product-detail-image-wrap">
           <img th:if="${produit.images() != null and !#lists.isEmpty(produit.images())}"
-               th:src="${'http://localhost:8080' + produit.images().get(0).url()}"
+               th:src="${#strings.replace(@environment.getProperty('api.base-url'), '/api/v1', '') + produit.images().get(0).url()}"
                th:alt="${produit.images().get(0).alt() != null ? produit.images().get(0).alt() : produit.nom()}"
                class="product-detail-image"/>
           <span th:unless="${produit.images() != null and !#lists.isEmpty(produit.images())}">🎮</span>
@@ -83,6 +84,7 @@
 </main>
 
 <th:block th:replace="~{fragments/layout :: footer}"/>
+</div>
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 
 <script>

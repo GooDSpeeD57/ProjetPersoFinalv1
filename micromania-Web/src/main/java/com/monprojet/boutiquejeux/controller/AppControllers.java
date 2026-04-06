@@ -2,6 +2,7 @@ package com.monprojet.boutiquejeux.controller;
 
 import com.monprojet.boutiquejeux.dto.api.client.ApiAdresse;
 import com.monprojet.boutiquejeux.dto.api.client.ApiAdresseRequest;
+import com.monprojet.boutiquejeux.dto.api.client.ApiAvatar;
 import com.monprojet.boutiquejeux.dto.api.client.ApiBonAchat;
 import com.monprojet.boutiquejeux.dto.api.client.ApiClient;
 import com.monprojet.boutiquejeux.dto.api.client.ApiFideliteDetail;
@@ -46,6 +47,7 @@ class CompteController {
         List<ApiAdresse> adresses = api.getClientAdresses(jwt);
         List<ApiBonAchat> bons = api.getClientBonsAchat(jwt);
         List<ApiHistoriquePoints> historiquePoints = api.getClientHistoriquePoints(jwt);
+        List<ApiAvatar> avatars = api.getAvatars(jwt);
 
         model.addAttribute("client", client);
         model.addAttribute("points", points);
@@ -56,7 +58,35 @@ class CompteController {
         model.addAttribute("bonsUtilises", bons != null ? bons.stream().filter(ApiBonAchat::utilise).toList() : List.of());
         model.addAttribute("historiquePoints", historiquePoints != null ? historiquePoints : List.of());
         model.addAttribute("typeAdresseOptions", List.of("DOMICILE", "LIVRAISON", "FACTURATION"));
+        model.addAttribute("avatars", avatars != null ? avatars : List.of());
         return "compte/index";
+    }
+
+    @PostMapping("/avatar")
+    String updateAvatar(HttpSession session,
+                        @RequestParam Long idAvatar,
+                        RedirectAttributes redirect) {
+        String jwt = (String) session.getAttribute("jwt");
+        if (jwt == null) return "redirect:/auth/login";
+
+        try {
+            ApiClient client = api.updateClientMe(jwt, new ApiUpdateClientRequest(
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    idAvatar
+            ));
+            if (client != null) {
+                session.setAttribute("userTypeFidelite", client.typeFidelite());
+            }
+            redirect.addFlashAttribute("successMessage", "Avatar mis à jour.");
+        } catch (RuntimeException e) {
+            redirect.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/compte#avatar-picker";
     }
 
     @PostMapping("/infos")

@@ -5,6 +5,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 </head>
 <body>
+<div class="site-shell">
 <th:block th:replace="~{fragments/layout :: navbar}"/>
 
 <main>
@@ -45,6 +46,7 @@
           <a href="#magasins-map" class="btn btn-secondary btn-sm" th:if="${hasSearch and magasins != null and !magasins.isEmpty()}">Voir sur la carte</a>
           <form th:action="@{/magasins/selection/reset}" method="post">
             <button type="submit" class="btn btn-secondary btn-sm">Retirer la sélection</button>
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
           </form>
         </div>
       </div>
@@ -135,6 +137,7 @@
                         th:text="${selectedMagasinId != null and selectedMagasinId == magasin.id() ? 'Magasin actif' : 'Choisir ce magasin'}">
                   Choisir ce magasin
                 </button>
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
               </form>
             </div>
           </div>
@@ -151,6 +154,7 @@
 </main>
 
 <th:block th:replace="~{fragments/layout :: footer}"/>
+</div>
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script th:src="@{/js/magasins.js}"></script>

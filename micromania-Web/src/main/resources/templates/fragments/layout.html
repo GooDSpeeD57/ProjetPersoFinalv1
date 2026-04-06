@@ -1,23 +1,134 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<nav th:fragment="navbar" class="navbar">
+<th:block th:fragment="navbar">
+<div class="viewport-top-mask" aria-hidden="true"></div>
+<header class="site-header">
+<nav class="navbar">
 
   <a class="navbar-brand" th:href="@{/}">MICRO<span>MANIA</span></a>
 
   <ul class="navbar-nav">
-    <li><a class="nav-link" th:href="@{/}">Accueil</a></li>
-    <li><a class="nav-link" th:href="@{/catalogue}">Catalogue</a></li>
-    <li><a class="nav-link" th:href="@{/magasins}">Magasins</a></li>
-    <li><a class="nav-link" th:href="@{/panier}">
-      Panier
-      <span th:if="${session.cartCount != null and session.cartCount > 0}"
-            style="color:var(--accent2)"
-            th:text="'(' + ${session.cartCount} + ')'" ></span>
-    </a></li>
-    <li sec:authorize="isAuthenticated()">
-      <a class="nav-link" th:href="@{/compte}">Mon Compte</a>
+    <li class="nav-item-mega">
+      <div class="nav-mega-trigger-row">
+        <a class="nav-link nav-link-mega" th:href="@{/catalogue(univers='jeux-video')}">Jeux vidéo</a>
+        <button class="nav-mega-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Ouvrir le menu Jeux vidéo">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="mega-menu" role="menu">
+        <div class="mega-menu-header">
+          <div class="mega-menu-kicker">UNIVERS GAMING</div>
+          <div class="mega-menu-heading">Jeux vidéo</div>
+          <p>Le menu principal définit déjà l'univers ; les entrées ci-dessous ouvrent directement la bonne section du catalogue.</p>
+        </div>
+        <div class="mega-menu-grid">
+          <div class="mega-menu-column">
+            <div class="mega-menu-title">PlayStation 4</div>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps4',famille='jeux')}">Jeux PS4</a>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps4',famille='consoles')}">Consoles PS4</a>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps4',famille='accessoires')}">Accessoires PS4</a>
+          </div>
+          <div class="mega-menu-column">
+            <div class="mega-menu-title">Nintendo Switch</div>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='switch',famille='jeux')}">Jeux Switch</a>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='switch',famille='consoles')}">Consoles Switch</a>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='switch',famille='accessoires')}">Accessoires Switch</a>
+          </div>
+          <div class="mega-menu-column">
+            <div class="mega-menu-title">PlayStation 5</div>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps5',famille='jeux')}">Jeux PS5</a>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps5',famille='consoles')}">Consoles PS5</a>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps5',famille='accessoires')}">Accessoires PS5</a>
+          </div>
+          <div class="mega-menu-column">
+            <div class="mega-menu-title">Nintendo Switch 2</div>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='switch2',famille='jeux')}">Jeux Switch 2</a>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='switch2',famille='consoles')}">Consoles Switch 2</a>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='switch2',famille='accessoires')}">Accessoires Switch 2</a>
+          </div>
+          <div class="mega-menu-column">
+            <div class="mega-menu-title">Xbox</div>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='xbox',famille='jeux')}">Jeux Xbox</a>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='xbox',famille='consoles')}">Consoles Xbox</a>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='xbox',famille='accessoires')}">Accessoires Xbox</a>
+          </div>
+          <div class="mega-menu-column">
+            <div class="mega-menu-title">PC</div>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='pc',famille='jeux')}">Jeux PC</a>
+            <a th:href="@{/catalogue(univers='jeux-video',plateforme='pc',famille='accessoires')}">Accessoires PC</a>
+          </div>
+        </div>
+      </div>
     </li>
+    <li class="nav-item-mega">
+      <div class="nav-mega-trigger-row">
+        <a class="nav-link nav-link-mega" th:href="@{/catalogue(univers='occasion',etat='occasion')}">Occasion</a>
+        <button class="nav-mega-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Ouvrir le menu Occasion">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="mega-menu" role="menu">
+        <div class="mega-menu-header">
+          <div class="mega-menu-kicker">BONS PLANS</div>
+          <div class="mega-menu-heading">Occasion</div>
+          <p>Cette entrée ouvre une vue dédiée à l'occasion : les cartes affichées ne montrent que l'offre occasion.</p>
+        </div>
+        <div class="mega-menu-grid">
+          <div class="mega-menu-column">
+            <div class="mega-menu-title">Sélection</div>
+            <a th:href="@{/catalogue(univers='occasion')}">Tout l'occasion</a>
+            <a th:href="@{/catalogue(univers='occasion',famille='jeux')}">Jeux d'occasion</a>
+            <a th:href="@{/catalogue(univers='occasion',famille='consoles')}">Consoles d'occasion</a>
+          </div>
+          <div class="mega-menu-column">
+            <div class="mega-menu-title">Plateformes</div>
+            <a th:href="@{/catalogue(univers='occasion',plateforme='ps5')}">PS5 Occasion</a>
+            <a th:href="@{/catalogue(univers='occasion',plateforme='xbox')}">Xbox Occasion</a>
+            <a th:href="@{/catalogue(univers='occasion',plateforme='nintendo')}">Nintendo Occasion</a>
+            <a th:href="@{/catalogue(univers='occasion',plateforme='pc')}">PC Occasion</a>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="nav-item-mega">
+      <div class="nav-mega-trigger-row">
+        <a class="nav-link nav-link-mega" th:href="@{/catalogue(univers='tcg')}">TCG</a>
+        <button class="nav-mega-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Ouvrir le menu TCG">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="mega-menu" role="menu">
+        <div class="mega-menu-header">
+          <div class="mega-menu-kicker">CARTES & COLLECTION</div>
+          <div class="mega-menu-heading">TCG</div>
+          <p>Les entrées pointent directement vers les sections utiles du catalogue TCG.</p>
+        </div>
+        <div class="mega-menu-grid">
+          <div class="mega-menu-column">
+            <div class="mega-menu-title">Licences</div>
+            <a th:href="@{/catalogue(univers='tcg')}">Tout le TCG</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='pokemon')}">Pokémon</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='yugioh')}">Yu-Gi-Oh!</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='magic')}">Magic</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='lorcana')}">Lorcana</a>
+          </div>
+          <div class="mega-menu-column">
+            <div class="mega-menu-title">Formats</div>
+            <a th:href="@{/catalogue(univers='tcg',format='boosters')}">Boosters</a>
+            <a th:href="@{/catalogue(univers='tcg',format='coffrets')}">Coffrets</a>
+            <a th:href="@{/catalogue(univers='tcg',format='accessoires')}">Accessoires</a>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li><a class="nav-link" th:href="@{/magasins}">Magasins</a></li>
   </ul>
 
   <div class="navbar-right">
@@ -25,18 +136,41 @@
       <span class="nav-store-label">Mon magasin</span>
       <span class="nav-store-name" th:text="${session.selectedMagasinNom}">Micromania Paris Les Halles</span>
     </div>
-    <div sec:authorize="isAuthenticated()" class="nav-user">
-      <span th:text="${session.userPseudo ?: #authentication.name}"></span>
-      <span class="nav-badge" th:if="${session.userTypeFidelite == 'ULTIMATE'}">ULTIMATE</span>
-      <span class="nav-badge" th:if="${session.userTypeFidelite == 'PREMIUM'}"
-            style="border-color:var(--accent3);color:var(--accent3)">PREMIUM</span>
+
+    <div class="nav-actions">
+      <a class="nav-icon-link" th:href="@{/panier}" aria-label="Panier" title="Panier">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M3 5h2l2.1 9.2a1 1 0 0 0 .98.8H18a1 1 0 0 0 .97-.76L21 8H7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="10" cy="19" r="1.6" fill="currentColor"/>
+          <circle cx="17" cy="19" r="1.6" fill="currentColor"/>
+        </svg>
+        <span class="nav-icon-badge"
+              th:if="${session.cartCount != null and session.cartCount > 0}"
+              th:text="${session.cartCount}">0</span>
+      </a>
+
+      <a sec:authorize="isAnonymous()" class="nav-icon-link" th:href="@{/auth/login}" aria-label="Mon compte" title="Connexion">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 20a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+
+      <a sec:authorize="isAuthenticated()" class="nav-user nav-user-link" th:href="@{/compte}" title="Accéder à mon compte">
+        <span th:text="${session.userPseudo ?: #authentication.name}"></span>
+        <span class="nav-badge" th:if="${session.userTypeFidelite == 'ULTIMATE'}">ULTIMATE</span>
+        <span class="nav-badge nav-badge-premium" th:if="${session.userTypeFidelite == 'PREMIUM'}">PREMIUM</span>
+      </a>
     </div>
-    <a sec:authorize="isAnonymous()" class="btn btn-primary btn-sm" th:href="@{/auth/login}">Connexion</a>
+
     <form sec:authorize="isAuthenticated()" th:action="@{/auth/logout}" method="post" style="margin:0">
       <button type="submit" class="btn btn-secondary btn-sm">Déconnexion</button>
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
     </form>
   </div>
 </nav>
+</header>
+</th:block>
 
 <th:block th:fragment="head(title)">
   <meta charset="UTF-8"/>

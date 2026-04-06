@@ -5,23 +5,200 @@
   <th:block th:replace="~{fragments/layout :: head('Accueil')}"/>
 </head>
 <body>
+<div class="site-shell">
 
 <th:block th:replace="~{fragments/layout :: navbar}"/>
 
-<main>
-  <div class="hero">
-    <div class="hero-tag">⚡ Bienvenue chez</div>
-    <h1 class="hero-title">MICRO<span class="hero-title-accent">MANIA</span></h1>
-    <p class="hero-sub">Les meilleurs jeux vidéo, consoles et accessoires gaming. Fidélité récompensée.</p>
-    <div class="hero-cta">
-      <a class="btn btn-primary" th:href="@{/catalogue}">🎮 Voir le catalogue</a>
-      <a sec:authorize="isAnonymous()" class="btn btn-secondary" th:href="@{/auth/inscription}">Créer un compte</a>
-      <a sec:authorize="isAuthenticated()" class="btn btn-secondary" th:href="@{/compte}">Mon espace</a>
-    </div>
+<main th:with="apiRoot=${#strings.replace(@environment.getProperty('api.base-url'), '/api/v1', '')}">
+  <div class="container home-shell">
+    <th:block th:replace="~{fragments/layout :: alerts}"/>
+
+    <section class="promo-stage" th:if="${promoSlides != null and !promoSlides.isEmpty()}" data-promo-carousel>
+      <div class="promo-stage-grid">
+        <div class="promo-carousel-track">
+          <article class="promo-slide"
+                   th:each="slide, stat : ${promoSlides}"
+                   th:classappend="${stat.index == 0} ? ' is-active'">
+            <div class="promo-copy">
+              <div class="section-label" th:text="${slide.eyebrow()}">Promo en cours</div>
+              <h1 class="promo-title" th:text="${slide.product().nom()}">EA Sports FC</h1>
+              <p class="promo-description" th:text="${slide.description()}">Sélection gaming du moment.</p>
+
+              <div class="promo-meta-row">
+                <span class="promo-chip" th:text="${slide.product().categorie()}">Jeu vidéo</span>
+                <span class="promo-chip" th:if="${slide.product().infoLine() != null}" th:text="${slide.product().infoLine()}">Sortie le 12 mai</span>
+              </div>
+
+              <div class="promo-prices">
+                <div class="promo-price-block" th:if="${slide.product().prixNeuf() != null}">
+                  <span class="promo-price-label">Neuf</span>
+                  <span class="promo-price" th:text="${#numbers.formatDecimal(slide.product().prixNeuf(),1,2) + ' €'}">69,99 €</span>
+                </div>
+                <div class="promo-price-block promo-price-block-secondary" th:if="${slide.product().prixOccasion() != null}">
+                  <span class="promo-price-label">Occasion</span>
+                  <span class="promo-price promo-price-secondary" th:text="${#numbers.formatDecimal(slide.product().prixOccasion(),1,2) + ' €'}">49,99 €</span>
+                </div>
+              </div>
+
+              <div class="hero-cta promo-actions">
+                <a class="btn btn-primary" th:href="@{/catalogue/{id}(id=${slide.product().id()})}">Voir l'offre</a>
+                <a class="btn btn-secondary" th:href="@{/catalogue}">Voir le catalogue</a>
+              </div>
+            </div>
+
+            <div class="promo-visual card card-accent-top">
+              <span class="product-badge"
+                    th:classappend="' ' + ${slide.product().badgeClass()}"
+                    th:text="${slide.product().badge()}">Offre web</span>
+              <div class="promo-visual-glow"></div>
+              <div class="promo-image-wrap">
+                <img th:if="${slide.product().imageUrl() != null}"
+                     th:src="${apiRoot + slide.product().imageUrl()}"
+                     th:alt="${slide.product().imageAlt() != null ? slide.product().imageAlt() : slide.product().nom()}"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+                <div class="promo-image-fallback" th:style="${slide.product().imageUrl() != null} ? 'display:none' : ''">🎮</div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <button type="button" class="carousel-arrow carousel-arrow-prev" data-promo-prev aria-label="Slide précédent">‹</button>
+        <button type="button" class="carousel-arrow carousel-arrow-next" data-promo-next aria-label="Slide suivant">›</button>
+
+        <div class="promo-dots" th:if="${promoSlides.size() > 1}">
+          <button type="button"
+                  class="promo-dot"
+                  th:each="slide, stat : ${promoSlides}"
+                  th:classappend="${stat.index == 0} ? ' is-active'"
+                  th:attr="data-index=${stat.index}, aria-label='Aller au slide ' + ${stat.index + 1}"></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-section" th:if="${prochainesSorties != null and !prochainesSorties.isEmpty()}">
+      <div class="section-head">
+        <div>
+          <div class="section-label">// LES HITS À VENIR</div>
+          <h2 class="section-title">Prochaines sorties</h2>
+        </div>
+        <a class="section-link" th:href="@{/catalogue}">Voir tout →</a>
+      </div>
+
+      <div class="home-rail-shell" data-rail-wrapper>
+        <button type="button" class="carousel-arrow carousel-arrow-prev rail-arrow" data-rail-prev aria-label="Défiler vers la gauche">‹</button>
+        <div class="home-rail" data-rail>
+          <article class="product-card home-product-card" th:each="p : ${prochainesSorties}">
+            <div class="product-img home-product-img">
+              <img th:if="${p.imageUrl() != null}"
+                   th:src="${apiRoot + p.imageUrl()}"
+                   th:alt="${p.imageAlt() != null ? p.imageAlt() : p.nom()}"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+              <div class="promo-image-fallback" th:style="${p.imageUrl() != null} ? 'display:none' : ''">🎮</div>
+              <span class="product-badge" th:classappend="' ' + ${p.badgeClass()}" th:text="${p.badge()}">À venir</span>
+            </div>
+            <div class="product-body">
+              <div class="product-platform" th:text="${p.categorie()}">PS5</div>
+              <div class="product-name" th:text="${p.nom()}">Titre du produit</div>
+              <div class="home-product-meta" th:if="${p.infoLine() != null}" th:text="${p.infoLine()}">Sortie le 10 mai</div>
+              <div class="product-price home-product-price">
+                <div th:if="${p.prixNeuf() != null}">Neuf : <span th:text="${#numbers.formatDecimal(p.prixNeuf(),1,2) + ' €'}">69,99 €</span></div>
+                <div th:if="${p.prixOccasion() != null}">Occasion : <span th:text="${#numbers.formatDecimal(p.prixOccasion(),1,2) + ' €'}">49,99 €</span></div>
+                <div th:if="${p.prixNeuf() == null and p.prixOccasion() == null}">Prix à venir</div>
+              </div>
+              <div class="product-actions">
+                <a class="btn btn-sm btn-secondary" th:href="@{/catalogue/{id}(id=${p.id()})}">Voir la fiche</a>
+              </div>
+            </div>
+          </article>
+        </div>
+        <button type="button" class="carousel-arrow carousel-arrow-next rail-arrow" data-rail-next aria-label="Défiler vers la droite">›</button>
+      </div>
+    </section>
+
+    <section class="home-section" th:if="${topVentes != null and !topVentes.isEmpty()}">
+      <div class="section-head">
+        <div>
+          <div class="section-label">// LES INCONTOURNABLES</div>
+          <h2 class="section-title">Top ventes</h2>
+        </div>
+        <a class="section-link" th:href="@{/catalogue}">Voir tout →</a>
+      </div>
+
+      <div class="home-rail-shell" data-rail-wrapper>
+        <button type="button" class="carousel-arrow carousel-arrow-prev rail-arrow" data-rail-prev aria-label="Défiler vers la gauche">‹</button>
+        <div class="home-rail" data-rail>
+          <article class="product-card home-product-card" th:each="p : ${topVentes}">
+            <div class="product-img home-product-img">
+              <img th:if="${p.imageUrl() != null}"
+                   th:src="${apiRoot + p.imageUrl()}"
+                   th:alt="${p.imageAlt() != null ? p.imageAlt() : p.nom()}"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+              <div class="promo-image-fallback" th:style="${p.imageUrl() != null} ? 'display:none' : ''">🎮</div>
+              <span class="product-badge" th:classappend="' ' + ${p.badgeClass()}" th:text="${p.badge()}">Top vente</span>
+            </div>
+            <div class="product-body">
+              <div class="product-platform" th:text="${p.categorie()}">PS5</div>
+              <div class="product-name" th:text="${p.nom()}">Titre du produit</div>
+              <div class="home-product-meta" th:if="${p.infoLine() != null}" th:text="${p.infoLine()}">4,8/5 · 120 avis</div>
+              <div class="product-price home-product-price">
+                <div th:if="${p.prixNeuf() != null}">Neuf : <span th:text="${#numbers.formatDecimal(p.prixNeuf(),1,2) + ' €'}">69,99 €</span></div>
+                <div th:if="${p.prixOccasion() != null}">Occasion : <span th:text="${#numbers.formatDecimal(p.prixOccasion(),1,2) + ' €'}">49,99 €</span></div>
+                <div th:if="${p.prixNeuf() == null and p.prixOccasion() == null}">N/A</div>
+              </div>
+              <div class="product-actions">
+                <a class="btn btn-sm btn-secondary" th:href="@{/catalogue/{id}(id=${p.id()})}">Voir la fiche</a>
+              </div>
+            </div>
+          </article>
+        </div>
+        <button type="button" class="carousel-arrow carousel-arrow-next rail-arrow" data-rail-next aria-label="Défiler vers la droite">›</button>
+      </div>
+    </section>
+
+    <section class="home-section" th:if="${nouveautes != null and !nouveautes.isEmpty()}">
+      <div class="section-head">
+        <div>
+          <div class="section-label">// LES NOUVEAUTÉS</div>
+          <h2 class="section-title">Nouveautés</h2>
+        </div>
+        <a class="section-link" th:href="@{/catalogue}">Voir tout →</a>
+      </div>
+
+      <div class="home-rail-shell" data-rail-wrapper>
+        <button type="button" class="carousel-arrow carousel-arrow-prev rail-arrow" data-rail-prev aria-label="Défiler vers la gauche">‹</button>
+        <div class="home-rail" data-rail>
+          <article class="product-card home-product-card" th:each="p : ${nouveautes}">
+            <div class="product-img home-product-img">
+              <img th:if="${p.imageUrl() != null}"
+                   th:src="${apiRoot + p.imageUrl()}"
+                   th:alt="${p.imageAlt() != null ? p.imageAlt() : p.nom()}"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+              <div class="promo-image-fallback" th:style="${p.imageUrl() != null} ? 'display:none' : ''">🎮</div>
+              <span class="product-badge" th:classappend="' ' + ${p.badgeClass()}" th:text="${p.badge()}">Nouveau</span>
+            </div>
+            <div class="product-body">
+              <div class="product-platform" th:text="${p.categorie()}">PS5</div>
+              <div class="product-name" th:text="${p.nom()}">Titre du produit</div>
+              <div class="home-product-meta" th:if="${p.infoLine() != null}" th:text="${p.infoLine()}">Sorti le 10 mai</div>
+              <div class="product-price home-product-price">
+                <div th:if="${p.prixNeuf() != null}">Neuf : <span th:text="${#numbers.formatDecimal(p.prixNeuf(),1,2) + ' €'}">69,99 €</span></div>
+                <div th:if="${p.prixOccasion() != null}">Occasion : <span th:text="${#numbers.formatDecimal(p.prixOccasion(),1,2) + ' €'}">49,99 €</span></div>
+                <div th:if="${p.prixNeuf() == null and p.prixOccasion() == null}">N/A</div>
+              </div>
+              <div class="product-actions">
+                <a class="btn btn-sm btn-secondary" th:href="@{/catalogue/{id}(id=${p.id()})}">Voir la fiche</a>
+              </div>
+            </div>
+          </article>
+        </div>
+        <button type="button" class="carousel-arrow carousel-arrow-next rail-arrow" data-rail-next aria-label="Défiler vers la droite">›</button>
+      </div>
+    </section>
   </div>
 </main>
 
 <th:block th:replace="~{fragments/layout :: footer}"/>
+</div>
 <th:block th:replace="~{fragments/layout :: scripts}"/>
 </body>
 </html>
