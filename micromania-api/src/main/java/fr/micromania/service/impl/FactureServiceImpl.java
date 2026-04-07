@@ -444,6 +444,9 @@ public class FactureServiceImpl implements FactureService {
     }
 
     private void decrementerStock(Facture facture) {
+        if (facture.getMagasin() == null) {
+            return;
+        }
         for (LigneFacture ligne : facture.getLignes()) {
             ProduitVariant variant = ligne.getVariant();
             if (variant.isEstDemat()) {

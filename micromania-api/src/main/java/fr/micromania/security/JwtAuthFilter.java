@@ -1,5 +1,6 @@
 package fr.micromania.security;
 
+import fr.micromania.repository.TokenBlacklistRepository;
 import fr.micromania.service.impl.AuthServiceImpl;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -25,6 +26,7 @@ import java.util.List;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final AuthServiceImpl authService;
+    private final TokenBlacklistRepository tokenBlacklistRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -37,6 +39,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (token != null) {
             try {
                 Claims claims = authService.parserToken(token);
+
+                String jti = claims.getId();
+                if (jti != null && tokenBlacklistRepository.existsByJti(jti)) {
+                    log.debug("Token JWT révoqué (blacklist) : jti={}", jti);
+                    SecurityContextHolder.clearContext();
+                    chain.doFilter(request, response);
+                    return;
+                }
 
                 Long   userId   = Long.parseLong(claims.getSubject());
                 String userType = claims.get("userType", String.class);

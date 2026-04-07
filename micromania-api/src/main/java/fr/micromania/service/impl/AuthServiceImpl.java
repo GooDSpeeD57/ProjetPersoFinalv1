@@ -5,10 +5,16 @@ import fr.micromania.entity.Client;
 import fr.micromania.entity.Employe;
 import fr.micromania.entity.RememberMeToken;
 import fr.micromania.entity.ResetPasswordToken;
+import fr.micromania.entity.securite.ConnexionLog;
+import fr.micromania.entity.securite.TentativeConnexionEchec;
+import fr.micromania.entity.securite.TokenBlacklist;
 import fr.micromania.repository.ClientRepository;
+import fr.micromania.repository.ConnexionLogRepository;
 import fr.micromania.repository.EmployeRepository;
 import fr.micromania.repository.RememberMeTokenRepository;
 import fr.micromania.repository.ResetPasswordTokenRepository;
+import fr.micromania.repository.TentativeConnexionEchecRepository;
+import fr.micromania.repository.TokenBlacklistRepository;
 import fr.micromania.service.AuthService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -38,10 +44,16 @@ public class AuthServiceImpl implements AuthService {
     private static final String USER_TYPE_CLIENT = "CLIENT";
     private static final String USER_TYPE_EMPLOYE = "EMPLOYE";
 
+    private static final int MAX_TENTATIVES = 5;
+    private static final int BLOCAGE_MINUTES = 15;
+
     private final ClientRepository clientRepository;
     private final EmployeRepository employeRepository;
     private final ResetPasswordTokenRepository resetTokenRepository;
     private final RememberMeTokenRepository rememberMeTokenRepository;
+    private final TentativeConnexionEchecRepository tentativeRepository;
+    private final ConnexionLogRepository connexionLogRepository;
+    private final TokenBlacklistRepository tokenBlacklistRepository;
     private final PasswordEncoder passwordEncoder;
 
     private final SecureRandom secureRandom = new SecureRandom();
@@ -180,7 +192,23 @@ public class AuthServiceImpl implements AuthService {
                 log.warn("Logout remember me ignoré : {}", e.getMessage());
             }
         }
-        log.info("Logout demandé — token JWT invalidé côté client");
+        if (token != null && !token.isBlank()) {
+            try {
+                String rawToken = token.startsWith("Bearer ") ? token.substring(7) : token;
+                Claims claims = parserToken(rawToken);
+                String jti = claims.getId();
+                if (jti != null) {
+                    tokenBlacklistRepository.save(TokenBlacklist.builder()
+                        .jti(jti)
+                        .expireLe(claims.getExpiration().toInstant()
+                            .atZone(java.time.ZoneId.systemDefault()).toLocalDateTime())
+                        .build());
+                    log.info("Token JWT révoqué : jti={}", jti);
+                }
+            } catch (RuntimeException e) {
+                log.warn("Logout JWT blacklist ignoré : {}", e.getMessage());
+            }
+        }
     }
 
     @Override
@@ -286,14 +314,60 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void verifierBlocage(String userType, String email) {
+        tentativeRepository.findByUserTypeAndEmailTente(userType, email).ifPresent(t -> {
+            if (t.getBloqueJusquAu() != null && t.getBloqueJusquAu().isAfter(LocalDateTime.now())) {
+                throw new AccountLockedException(
+                    "Compte temporairement bloqué après " + MAX_TENTATIVES +
+                    " tentatives. Réessayez dans " + BLOCAGE_MINUTES + " minutes."
+                );
+            }
+        });
     }
 
     private void enregistrerEchec(String userType, Long userId, String email, String ip, String motif) {
         log.warn("Échec connexion {} email={} ip={} motif={}", userType, email, ip, motif);
+
+        TentativeConnexionEchec tentative = tentativeRepository
+            .findByUserTypeAndEmailTente(userType, email)
+            .orElseGet(() -> TentativeConnexionEchec.builder()
+                .userType(userType)
+                .userId(userId)
+                .emailTente(email)
+                .ip(ip)
+                .nbTentatives(0)
+                .build());
+
+        tentative.setNbTentatives(tentative.getNbTentatives() + 1);
+        tentative.setIp(ip);
+        if (tentative.getNbTentatives() >= MAX_TENTATIVES) {
+            tentative.setBloqueJusquAu(LocalDateTime.now().plusMinutes(BLOCAGE_MINUTES));
+            log.warn("Compte bloqué {} email={} jusqu'à {}", userType, email, tentative.getBloqueJusquAu());
+        }
+        tentativeRepository.save(tentative);
+
+        connexionLogRepository.save(ConnexionLog.builder()
+            .userType(userType)
+            .userId(userId)
+            .emailTente(email)
+            .ip(ip)
+            .succes(false)
+            .motifEchec(motif)
+            .build());
     }
 
     private void enregistrerSucces(String userType, Long userId, String email, String ip, String userAgent) {
         log.info("Connexion réussie {} email={} ip={}", userType, email, ip);
+
+        tentativeRepository.deleteByUserTypeAndEmailTente(userType, email);
+
+        connexionLogRepository.save(ConnexionLog.builder()
+            .userType(userType)
+            .userId(userId)
+            .emailTente(email)
+            .ip(ip)
+            .userAgent(userAgent)
+            .succes(true)
+            .build());
     }
 
     private String creerRememberMeToken(String username, String userType) {
@@ -348,5 +422,9 @@ public class AuthServiceImpl implements AuthService {
 
     public static class BadCredentialsException extends RuntimeException {
         public BadCredentialsException(String msg) { super(msg); }
+    }
+
+    public static class AccountLockedException extends RuntimeException {
+        public AccountLockedException(String msg) { super(msg); }
     }
 }
