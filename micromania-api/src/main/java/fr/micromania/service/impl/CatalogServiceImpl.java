@@ -112,26 +112,8 @@ public class CatalogServiceImpl implements CatalogService {
         Page<Produit> produits = produitRepository.search(query, idCategorie, niveauAccesMin, pageable);
         Map<Long, AvisStats> avisStatsParProduit = chargerAvisStats(produits.getContent());
 
-        return produits.map(produit -> {
-            ProduitSummary base = catalogMapper.toProduitSummary(produit);
-            String imageUrl = produit.getImages().stream()
-                    .filter(ProduitImage::isPrincipale).findFirst()
-                    .map(ProduitImage::getUrl).orElse(null);
-            String imageAlt = produit.getImages().stream()
-                    .filter(ProduitImage::isPrincipale).findFirst()
-                    .map(ProduitImage::getAlt).orElse(null);
-            var prixNeuf = catalogMapper.prixNeuf(produit.getVariants());
-            var prixOccasion = catalogMapper.prixOccasion(produit.getVariants());
-            AvisStats avisStats = avisStatsParProduit.getOrDefault(produit.getId(), AvisStats.EMPTY);
-
-            return new ProduitSummary(
-                    base.id(), base.nom(), base.slug(), base.categorie(),
-                    imageUrl, imageAlt, prixNeuf, prixOccasion,
-                    produit.getVariants().stream().anyMatch(ProduitVariant::isActif),
-                    base.misEnAvant(), base.pegi(),
-                    avisStats.noteMoyenne(), avisStats.nbAvis()
-            );
-        });
+        return produits.map(produit ->
+                toProduitSummaryAvecStats(produit, avisStatsParProduit.getOrDefault(produit.getId(), AvisStats.EMPTY)));
     }
 
     @Override
@@ -140,38 +122,8 @@ public class CatalogServiceImpl implements CatalogService {
         Map<Long, AvisStats> avisStatsParProduit = chargerAvisStats(produits);
 
         return produits.stream()
-                .map(produit -> {
-                    ProduitSummary base = catalogMapper.toProduitSummary(produit);
-                    AvisStats avisStats = avisStatsParProduit.getOrDefault(produit.getId(), AvisStats.EMPTY);
-
-                    String imageUrl = produit.getImages().stream()
-                            .filter(ProduitImage::isPrincipale)
-                            .findFirst()
-                            .map(ProduitImage::getUrl)
-                            .orElse(null);
-
-                    String imageAlt = produit.getImages().stream()
-                            .filter(ProduitImage::isPrincipale)
-                            .findFirst()
-                            .map(ProduitImage::getAlt)
-                            .orElse(null);
-
-                    return new ProduitSummary(
-                            base.id(),
-                            base.nom(),
-                            base.slug(),
-                            base.categorie(),
-                            imageUrl,
-                            imageAlt,
-                            catalogMapper.prixNeuf(produit.getVariants()),
-                            catalogMapper.prixOccasion(produit.getVariants()),
-                            produit.getVariants().stream().anyMatch(ProduitVariant::isActif),
-                            base.misEnAvant(),
-                            base.pegi(),
-                            avisStats.noteMoyenne(),
-                            avisStats.nbAvis()
-                    );
-                })
+                .map(produit ->
+                        toProduitSummaryAvecStats(produit, avisStatsParProduit.getOrDefault(produit.getId(), AvisStats.EMPTY)))
                 .toList();
     }
 
@@ -295,6 +247,25 @@ public class CatalogServiceImpl implements CatalogService {
     public CategorieResponse getCategorieById(Long id) {
         return catalogMapper.toCategorieResponse(categorieRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Catégorie introuvable : " + id)));
+    }
+
+    private ProduitSummary toProduitSummaryAvecStats(Produit produit, AvisStats avisStats) {
+        ProduitSummary base = catalogMapper.toProduitSummary(produit);
+        String imageUrl = produit.getImages().stream()
+                .filter(ProduitImage::isPrincipale).findFirst()
+                .map(ProduitImage::getUrl).orElse(null);
+        String imageAlt = produit.getImages().stream()
+                .filter(ProduitImage::isPrincipale).findFirst()
+                .map(ProduitImage::getAlt).orElse(null);
+        return new ProduitSummary(
+                base.id(), base.nom(), base.slug(), base.categorie(),
+                imageUrl, imageAlt,
+                catalogMapper.prixNeuf(produit.getVariants()),
+                catalogMapper.prixOccasion(produit.getVariants()),
+                produit.getVariants().stream().anyMatch(ProduitVariant::isActif),
+                base.misEnAvant(), base.pegi(),
+                avisStats.noteMoyenne(), avisStats.nbAvis()
+        );
     }
 
     private ProduitResponse enrichirProduitDetail(Produit produit) {

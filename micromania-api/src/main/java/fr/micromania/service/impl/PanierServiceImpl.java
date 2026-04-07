@@ -14,6 +14,7 @@ import fr.micromania.repository.LignePanierRepository;
 import fr.micromania.repository.PanierRepository;
 import fr.micromania.repository.ProduitVariantRepository;
 import fr.micromania.repository.StatutPanierRepository;
+import fr.micromania.repository.StockMagasinRepository;
 import fr.micromania.service.PanierService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class PanierServiceImpl implements PanierService {
     private final ClientRepository clientRepository;
     private final StatutPanierRepository statutPanierRepository;
     private final CanalVenteRepository canalVenteRepository;
+    private final StockMagasinRepository stockMagasinRepository;
     private final PanierMapper panierMapper;
 
     @Override
@@ -55,6 +57,8 @@ public class PanierServiceImpl implements PanierService {
 
         ProduitVariant variant = variantRepository.findById(request.idVariant())
             .orElseThrow(() -> new EntityNotFoundException("Variant introuvable : " + request.idVariant()));
+
+        verifierStock(variant, request.quantite());
 
         lignePanierRepository.findByPanierIdAndVariantId(panier.getId(), variant.getId())
             .ifPresentOrElse(
@@ -87,6 +91,7 @@ public class PanierServiceImpl implements PanierService {
             .orElseThrow(() -> new EntityNotFoundException("Ligne panier introuvable : " + idLigne));
 
         validerAppartenance(ligne, idClient);
+        verifierStock(ligne.getVariant(), request.quantite());
         ligne.setQuantite(request.quantite());
         lignePanierRepository.save(ligne);
         ligne.getPanier().setDateDerniereActivite(LocalDateTime.now());
@@ -140,6 +145,18 @@ public class PanierServiceImpl implements PanierService {
         panier.setDateDerniereActivite(LocalDateTime.now());
         panierRepository.save(panier);
         return enrichirPanier(panier);
+    }
+
+    private void verifierStock(ProduitVariant variant, int quantiteDemandee) {
+        if (variant.isEstDemat()) {
+            return;
+        }
+        int stockTotal = stockMagasinRepository.findByVariantId(variant.getId()).stream()
+                .mapToInt(s -> s.getQuantiteNeuf())
+                .sum();
+        if (stockTotal < quantiteDemandee) {
+            throw new IllegalStateException("Stock insuffisant pour ce produit");
+        }
     }
 
     private Panier creerPanierVide(Long idClient, String canalCode) {

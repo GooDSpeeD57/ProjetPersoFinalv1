@@ -38,6 +38,8 @@ public class FactureServiceImpl implements FactureService {
 
     private static final BigDecimal VALEUR_BON_10 = new BigDecimal("10.00");
     private static final BigDecimal VALEUR_BON_20 = new BigDecimal("20.00");
+    private static final int POINTS_REQUIS_BON_10 = 2000;
+    private static final int POINTS_REQUIS_BON_20 = 8000;
 
     private final FactureRepository factureRepository;
     private final CommandeRepository commandeRepository;
@@ -429,10 +431,10 @@ public class FactureServiceImpl implements FactureService {
                 "Bon d'achat introuvable ou déjà utilisé : " + idBonAchat
             ));
 
-        boolean bon10Valide = bonAchat.getPointsUtilises() == 2000
+        boolean bon10Valide = bonAchat.getPointsUtilises() == POINTS_REQUIS_BON_10
             && VALEUR_BON_10.compareTo(bonAchat.getValeur()) == 0;
 
-        boolean bon20Valide = bonAchat.getPointsUtilises() == 8000
+        boolean bon20Valide = bonAchat.getPointsUtilises() == POINTS_REQUIS_BON_20
             && VALEUR_BON_20.compareTo(bonAchat.getValeur()) == 0;
 
         if (!bon10Valide && !bon20Valide) {
