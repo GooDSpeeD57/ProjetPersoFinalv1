@@ -116,6 +116,7 @@ public class ClientServiceImpl implements ClientService {
     }
 
     @Override
+    @Transactional
     public ClientResponse getById(Long id) {
         Client client = clientRepository.findByIdAndDeletedFalse(id)
             .orElseThrow(() -> new EntityNotFoundException("Client introuvable : " + id));

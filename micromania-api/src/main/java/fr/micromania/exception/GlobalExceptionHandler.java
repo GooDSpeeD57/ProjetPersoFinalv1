@@ -70,6 +70,16 @@ public class GlobalExceptionHandler {
             new ErrorResponse(429, ex.getMessage(), request.getRequestURI()));
     }
 
+    // ── 401 — Token JWT invalide / expiré ────────────────────
+    @ExceptionHandler(io.jsonwebtoken.JwtException.class)
+    public ResponseEntity<ErrorResponse> handleJwt(
+            io.jsonwebtoken.JwtException ex,
+            HttpServletRequest request) {
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+            new ErrorResponse(401, "Token invalide ou expiré", request.getRequestURI()));
+    }
+
     // ── 401 — Mauvaises credentials ───────────────────────────
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentials(
