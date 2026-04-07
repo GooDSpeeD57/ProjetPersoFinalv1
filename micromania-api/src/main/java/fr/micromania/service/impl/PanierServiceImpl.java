@@ -40,6 +40,7 @@ public class PanierServiceImpl implements PanierService {
     private final PanierMapper panierMapper;
 
     @Override
+    @Transactional
     public PanierResponse getPanierActif(Long idClient, String canalVente) {
         Panier panier = panierRepository.findPanierActif(idClient, canalVente)
             .orElseGet(() -> creerPanierVide(idClient, canalVente));

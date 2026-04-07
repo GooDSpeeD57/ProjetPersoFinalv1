@@ -41,6 +41,7 @@ public class FideliteServiceImpl implements FideliteService {
     private final BonAchatRepository bonAchatRepository;
     private final HistoriquePointsRepository historiquePointsRepository;
     private final RatioPointsRepository ratioPointsRepository;
+    private final FactureRepository factureRepository;
 
     @Override
     public FideliteDetailResponse getDetail(Long idClient) {
@@ -100,7 +101,9 @@ public class FideliteServiceImpl implements FideliteService {
         Client client = chargerClient(idClient);
         PointsFidelite points = chargerComptePoints(idClient);
 
-        int pointsGagnes = calculerPointsFacture(facture, client);
+        Facture factureAvecLignes = factureRepository.findByIdAvecLignesEtCategories(facture.getId())
+            .orElse(facture);
+        int pointsGagnes = calculerPointsFacture(factureAvecLignes, client);
         if (pointsGagnes <= 0) {
             return;
         }
