@@ -8,7 +8,9 @@ import fr.micromania.entity.catalog.ProduitVariant;
 import fr.micromania.entity.commande.*;
 import fr.micromania.entity.referentiel.*;
 import fr.micromania.mapper.FactureMapper;
+import fr.micromania.entity.Client;
 import fr.micromania.entity.commande.Promotion;
+import fr.micromania.entity.commande.PromotionUsage;
 import fr.micromania.repository.*;
 import fr.micromania.service.FactureService;
 import fr.micromania.service.FideliteService;
@@ -54,6 +56,7 @@ public class FactureServiceImpl implements FactureService {
     private final ClientRepository clientRepository;
     private final EmployeRepository employeRepository;
     private final PromotionRepository promotionRepository;
+    private final PromotionUsageRepository promotionUsageRepository;
 
     @Override
     @Transactional
@@ -189,9 +192,12 @@ public class FactureServiceImpl implements FactureService {
 
         recalculerTotauxFacture(facture);
 
+        PromoResult promoResult = null;
         if (request.codePromo() != null) {
-            BigDecimal remise = calculerRemisePromo(request.codePromo(), facture.getMontantTotal());
-            facture.setMontantRemise(facture.getMontantRemise().add(remise));
+            promoResult = resoudrePromo(request.codePromo(), facture.getMontantTotal());
+            if (promoResult != null) {
+                facture.setMontantRemise(facture.getMontantRemise().add(promoResult.remise()));
+            }
         }
 
         if (bonAchat != null) {
@@ -205,6 +211,12 @@ public class FactureServiceImpl implements FactureService {
         facture = factureRepository.save(facture);
         if (bonAchat != null) {
             marquerBonAchatCommeUtilise(bonAchat, facture);
+        }
+        if (promoResult != null) {
+            Client clientPromo = request.idClient() != null
+                ? clientRepository.findByIdAndDeletedFalse(request.idClient()).orElse(null)
+                : null;
+            enregistrerUsagePromo(promoResult.promotion(), facture, clientPromo, promoResult.remise());
         }
 
         if (request.idClient() != null) {
@@ -467,30 +479,46 @@ public class FactureServiceImpl implements FactureService {
         }
     }
 
-    private BigDecimal calculerRemisePromo(String codePromo, BigDecimal montant) {
+    private PromoResult resoudrePromo(String codePromo, BigDecimal montant) {
         return promotionRepository.findByCodePromoAndActifTrue(codePromo)
             .filter(promo -> {
-                java.time.LocalDateTime now = java.time.LocalDateTime.now();
+                LocalDateTime now = LocalDateTime.now();
                 return !now.isBefore(promo.getDateDebut()) && !now.isAfter(promo.getDateFin());
             })
             .map(promo -> {
                 if (promo.getMontantMinimumCommande() != null
                         && montant.compareTo(promo.getMontantMinimumCommande()) < 0) {
-                    return BigDecimal.ZERO;
+                    return null;
                 }
                 if (promo.getNbUtilisationsMax() != null
                         && promo.getNbUtilisationsActuel() >= promo.getNbUtilisationsMax()) {
-                    return BigDecimal.ZERO;
+                    return null;
                 }
-                return switch (promo.getTypeReduction().getCode()) {
+                BigDecimal remise = switch (promo.getTypeReduction().getCode()) {
                     case "POURCENTAGE"  -> montant.multiply(promo.getValeur())
-                            .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+                            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
                     case "MONTANT_FIXE" -> promo.getValeur().min(montant);
                     default             -> BigDecimal.ZERO;
                 };
+                return new PromoResult(promo, remise);
             })
-            .orElse(BigDecimal.ZERO);
+            .orElse(null);
     }
+
+    private void enregistrerUsagePromo(Promotion promotion, Facture facture, Client client, BigDecimal remise) {
+        promotion.setNbUtilisationsActuel(promotion.getNbUtilisationsActuel() + 1);
+        promotionRepository.save(promotion);
+
+        promotionUsageRepository.save(PromotionUsage.builder()
+            .promotion(promotion)
+            .facture(facture)
+            .client(client)
+            .montantCommandeHt(facture.getMontantHtTotal())
+            .montantRemise(remise)
+            .build());
+    }
+
+    private record PromoResult(Promotion promotion, BigDecimal remise) {}
 
     private String genererReferenceFacture() {
         return "FAC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
