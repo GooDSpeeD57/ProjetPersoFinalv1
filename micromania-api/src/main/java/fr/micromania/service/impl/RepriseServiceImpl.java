@@ -33,6 +33,7 @@ public class RepriseServiceImpl implements RepriseService {
     private final EmployeRepository employeRepository;
     private final MagasinRepository magasinRepository;
     private final ProduitVariantRepository variantRepository;
+    private final StatutRepriseRepository statutRepriseRepository;
     private final RepriseMapper repriseMapper;
 
     @Override
@@ -121,6 +122,7 @@ public class RepriseServiceImpl implements RepriseService {
     public RepriseResponse valider(Long idReprise) {
         Reprise reprise = repriseRepository.findById(idReprise)
             .orElseThrow(() -> new EntityNotFoundException("Reprise introuvable : " + idReprise));
+        reprise.setStatutReprise(chargerStatutReprise("VALIDEE"));
         reprise.setDateValidation(LocalDateTime.now());
         return repriseMapper.toResponse(repriseRepository.save(reprise));
     }
@@ -130,6 +132,7 @@ public class RepriseServiceImpl implements RepriseService {
     public RepriseResponse refuser(Long idReprise, String motif) {
         Reprise reprise = repriseRepository.findById(idReprise)
             .orElseThrow(() -> new EntityNotFoundException("Reprise introuvable : " + idReprise));
+        reprise.setStatutReprise(chargerStatutReprise("REFUSEE"));
         reprise.setCommentaire(motif);
         return repriseMapper.toResponse(repriseRepository.save(reprise));
     }
@@ -151,5 +154,10 @@ public class RepriseServiceImpl implements RepriseService {
                 .orElseThrow(() -> new EntityNotFoundException("Variant introuvable : " + req.idVariant())));
         }
         return ligne;
+    }
+
+    private fr.micromania.entity.referentiel.StatutReprise chargerStatutReprise(String code) {
+        return statutRepriseRepository.findByCode(code)
+            .orElseThrow(() -> new EntityNotFoundException("Statut reprise introuvable : " + code));
     }
 }

@@ -307,6 +307,7 @@ public class PanierController {
 
     private void clearWebAuthSession(HttpSession session) {
         session.removeAttribute("jwt");
+        session.removeAttribute("userEmail");
         session.removeAttribute("userPseudo");
         session.removeAttribute("userTypeFidelite");
         session.setAttribute("cartCount", 0);

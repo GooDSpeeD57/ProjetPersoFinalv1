@@ -16,6 +16,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,8 +31,15 @@ public class MagasinServiceImpl implements MagasinService {
     public List<MagasinPublicResponse> getMagasinsActifs(String q) {
         String filtre = normaliser(q);
 
+        Map<Long, Adresse> adresseParMagasin = adresseRepository.findAllMagasinAddressesActives().stream()
+                .collect(Collectors.toMap(
+                        a -> a.getMagasin().getId(),
+                        a -> a,
+                        (a1, a2) -> a1.isEstDefaut() ? a1 : a2
+                ));
+
         return magasinRepository.findByActifTrueOrderByNomAsc().stream()
-                .map(this::toPublicResponse)
+                .map(magasin -> toPublicResponse(magasin, adresseParMagasin.get(magasin.getId())))
                 .filter(magasin -> filtre.isBlank() || match(magasin, filtre))
                 .sorted(Comparator.comparing(MagasinPublicResponse::nom, String.CASE_INSENSITIVE_ORDER))
                 .toList();
@@ -69,6 +78,10 @@ public class MagasinServiceImpl implements MagasinService {
     private MagasinPublicResponse toPublicResponse(Magasin magasin) {
         Adresse adresse = adresseRepository.findFirstByMagasinIdAndEstDefautTrue(magasin.getId())
                 .orElseGet(() -> adresseRepository.findByMagasinId(magasin.getId()).stream().findFirst().orElse(null));
+        return toPublicResponse(magasin, adresse);
+    }
+
+    private MagasinPublicResponse toPublicResponse(Magasin magasin, Adresse adresse) {
 
         String rue = adresse != null ? adresse.getRue() : null;
         String complement = adresse != null ? adresse.getComplement() : null;

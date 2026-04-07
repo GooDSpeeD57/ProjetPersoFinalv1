@@ -2,8 +2,10 @@ package fr.micromania.service.impl;
 
 import fr.micromania.dto.promotion.*;
 import fr.micromania.entity.commande.Promotion;
+import fr.micromania.entity.referentiel.TypeReduction;
 import fr.micromania.mapper.PromotionMapper;
 import fr.micromania.repository.PromotionRepository;
+import fr.micromania.repository.TypeReductionRepository;
 import fr.micromania.service.PromotionService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
 @Service
@@ -21,6 +24,7 @@ import java.time.LocalDateTime;
 public class PromotionServiceImpl implements PromotionService {
 
     private final PromotionRepository promotionRepository;
+    private final TypeReductionRepository typeReductionRepository;
     private final PromotionMapper promotionMapper;
 
     @Override
@@ -29,9 +33,13 @@ public class PromotionServiceImpl implements PromotionService {
         if (promotionRepository.findByCodePromoAndActifTrue(request.codePromo()).isPresent()) {
             throw new IllegalArgumentException("Code promo déjà actif : " + request.codePromo());
         }
+        TypeReduction typeReduction = typeReductionRepository.findById(request.idTypeReduction())
+            .orElseThrow(() -> new EntityNotFoundException("Type de réduction introuvable : " + request.idTypeReduction()));
+
         Promotion promotion = Promotion.builder()
             .codePromo(request.codePromo())
             .description(request.description())
+            .typeReduction(typeReduction)
             .valeur(request.valeur())
             .dateDebut(request.dateDebut())
             .dateFin(request.dateFin())
@@ -98,7 +106,7 @@ public class PromotionServiceImpl implements PromotionService {
 
     private BigDecimal calculerRemise(Promotion promo, BigDecimal montant) {
         return switch (promo.getTypeReduction().getCode()) {
-            case "POURCENTAGE"  -> montant.multiply(promo.getValeur()).divide(BigDecimal.valueOf(100));
+            case "POURCENTAGE"  -> montant.multiply(promo.getValeur()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
             case "MONTANT_FIXE" -> promo.getValeur().min(montant);
             default             -> BigDecimal.ZERO;
         };

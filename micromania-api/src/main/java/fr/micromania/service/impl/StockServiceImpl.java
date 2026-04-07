@@ -105,6 +105,9 @@ public class StockServiceImpl implements StockService {
             case "REPRISE"  -> { int r = stock.getQuantiteReprise() + delta;  if (r < 0) throw new IllegalStateException("Stock reprise insuffisant");  stock.setQuantiteReprise(r); }
             default         -> throw new IllegalArgumentException("Source stock invalide : " + source);
         }
+        stock.setQuantiteDisponible(
+            stock.getQuantiteNeuf() + stock.getQuantiteOccasion() - stock.getQuantiteReservee()
+        );
     }
 
     private StockMagasin creerStockMagasin(Long idVariant, Long idMagasin) {
