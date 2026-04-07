@@ -7,8 +7,8 @@ spring:
 
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/Micromania?useSSL=false&serverTimezone=Europe/Paris&allowPublicKeyRetrieval=true}
-    username: ${DB_USER:root}
-    password: ${DB_PASSWORD:Root}
+    username: ${DB_USER:MISSING_DB_USER_SET_ENV_VAR}
+    password: ${DB_PASSWORD:MISSING_DB_PASSWORD_SET_ENV_VAR}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 20
@@ -40,7 +40,7 @@ app:
   media:
     images-path: ${APP_IMAGES_PATH:./media/images}
   jwt:
-    secret: ${JWT_SECRET:micromania-super-secret-key-minimum-32-chars-please-change-in-prod}
+    secret: ${JWT_SECRET:MISSING_JWT_SECRET_SET_ENV_VAR_MIN_32_CHARS_______________________}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
     refresh-expiration-ms: ${JWT_REFRESH_MS:604800000}
   remember-me:
