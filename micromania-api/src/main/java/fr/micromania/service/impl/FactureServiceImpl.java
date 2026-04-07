@@ -8,6 +8,7 @@ import fr.micromania.entity.catalog.ProduitVariant;
 import fr.micromania.entity.commande.*;
 import fr.micromania.entity.referentiel.*;
 import fr.micromania.mapper.FactureMapper;
+import fr.micromania.entity.commande.Promotion;
 import fr.micromania.repository.*;
 import fr.micromania.service.FactureService;
 import fr.micromania.service.FideliteService;
@@ -52,6 +53,7 @@ public class FactureServiceImpl implements FactureService {
     private final FideliteService fideliteService;
     private final ClientRepository clientRepository;
     private final EmployeRepository employeRepository;
+    private final PromotionRepository promotionRepository;
 
     @Override
     @Transactional
@@ -466,7 +468,28 @@ public class FactureServiceImpl implements FactureService {
     }
 
     private BigDecimal calculerRemisePromo(String codePromo, BigDecimal montant) {
-        return BigDecimal.ZERO;
+        return promotionRepository.findByCodePromoAndActifTrue(codePromo)
+            .filter(promo -> {
+                java.time.LocalDateTime now = java.time.LocalDateTime.now();
+                return !now.isBefore(promo.getDateDebut()) && !now.isAfter(promo.getDateFin());
+            })
+            .map(promo -> {
+                if (promo.getMontantMinimumCommande() != null
+                        && montant.compareTo(promo.getMontantMinimumCommande()) < 0) {
+                    return BigDecimal.ZERO;
+                }
+                if (promo.getNbUtilisationsMax() != null
+                        && promo.getNbUtilisationsActuel() >= promo.getNbUtilisationsMax()) {
+                    return BigDecimal.ZERO;
+                }
+                return switch (promo.getTypeReduction().getCode()) {
+                    case "POURCENTAGE"  -> montant.multiply(promo.getValeur())
+                            .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+                    case "MONTANT_FIXE" -> promo.getValeur().min(montant);
+                    default             -> BigDecimal.ZERO;
+                };
+            })
+            .orElse(BigDecimal.ZERO);
     }
 
     private String genererReferenceFacture() {

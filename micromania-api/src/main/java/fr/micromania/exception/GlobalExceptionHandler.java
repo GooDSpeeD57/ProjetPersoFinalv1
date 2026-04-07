@@ -1,5 +1,6 @@
 package fr.micromania.exception;
 
+import fr.micromania.service.impl.AuthServiceImpl.AccountLockedException;
 import fr.micromania.service.impl.AuthServiceImpl.BadCredentialsException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -57,6 +58,16 @@ public class GlobalExceptionHandler {
         log.debug("État invalide : {}", ex.getMessage());
         return ResponseEntity.badRequest().body(
             new ErrorResponse(400, ex.getMessage(), request.getRequestURI()));
+    }
+
+    // ── 429 — Compte bloqué (trop de tentatives) ─────────────
+    @ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<ErrorResponse> handleAccountLocked(
+            AccountLockedException ex,
+            HttpServletRequest request) {
+
+        return ResponseEntity.status(429).body(
+            new ErrorResponse(429, ex.getMessage(), request.getRequestURI()));
     }
 
     // ── 401 — Mauvaises credentials ───────────────────────────

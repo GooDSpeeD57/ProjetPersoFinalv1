@@ -1,6 +1,7 @@
 package fr.micromania.service.impl;
 
 import fr.micromania.dto.catalog.*;
+import fr.micromania.entity.AuditLog;
 import fr.micromania.entity.Client;
 import fr.micromania.entity.catalog.AvisProduit;
 import fr.micromania.entity.catalog.Categorie;
@@ -10,6 +11,7 @@ import fr.micromania.entity.catalog.ProduitPrix;
 import fr.micromania.entity.catalog.ProduitVariant;
 import fr.micromania.entity.referentiel.StatutAvis;
 import fr.micromania.mapper.CatalogMapper;
+import fr.micromania.repository.AuditLogRepository;
 import fr.micromania.repository.AvisProduitRepository;
 import fr.micromania.repository.CategorieRepository;
 import fr.micromania.repository.ClientRepository;
@@ -18,6 +20,8 @@ import fr.micromania.repository.ProduitRepository;
 import fr.micromania.repository.ProduitVariantRepository;
 import fr.micromania.repository.StatutAvisRepository;
 import fr.micromania.service.CatalogService;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +44,7 @@ import java.util.stream.Collectors;
 public class CatalogServiceImpl implements CatalogService {
 
     private static final String STATUT_AVIS_APPROUVE = "APPROUVE";
+    private final AuditLogRepository auditLogRepository;
     private final ProduitRepository produitRepository;
     private final ProduitVariantRepository variantRepository;
     private final ProduitPrixRepository prixRepository;
@@ -196,6 +201,7 @@ public class CatalogServiceImpl implements CatalogService {
             .build();
 
         produit = produitRepository.save(produit);
+        auditer("produit", "CREATE", produit.getId());
         log.info("Produit créé : slug={}", produit.getSlug());
         return enrichirProduitDetail(produit);
     }
@@ -217,6 +223,7 @@ public class CatalogServiceImpl implements CatalogService {
     public void supprimerProduit(Long id) {
         chargerProduit(id);
         produitRepository.softDelete(id);
+        auditer("produit", "DELETE", id);
     }
 
     @Override
@@ -273,7 +280,9 @@ public class CatalogServiceImpl implements CatalogService {
             .variant(variant).prix(request.prix())
             .dateDebut(request.dateDebut()).dateFin(request.dateFin())
             .actif(true).build();
-        return catalogMapper.toPrixResponse(prixRepository.save(prix));
+        ProduitPrix saved = prixRepository.save(prix);
+        auditer("produit_prix", "UPDATE", saved.getId());
+        return catalogMapper.toPrixResponse(saved);
     }
 
     @Override
@@ -414,5 +423,18 @@ public class CatalogServiceImpl implements CatalogService {
 
     private record AvisStats(Double noteMoyenne, long nbAvis) {
         private static final AvisStats EMPTY = new AvisStats(null, 0);
+    }
+
+    private void auditer(String tableName, String operationType, Long recordId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String userIdentifier = (auth != null && auth.getPrincipal() != null)
+            ? auth.getPrincipal().toString()
+            : "system";
+        auditLogRepository.save(AuditLog.builder()
+            .tableName(tableName)
+            .operationType(operationType)
+            .recordId(recordId)
+            .userIdentifier(userIdentifier)
+            .build());
     }
 }

@@ -27,7 +27,7 @@ public class AuthController {
         clientService.creerDepuisInscription(request);
         AuthResponse response = authService.loginClient(
             new LoginRequest(request.email(), request.motDePasse(), false),
-            http.getRemoteAddr(),
+            extractClientIp(http),
             http.getHeader("User-Agent")
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -39,7 +39,7 @@ public class AuthController {
             HttpServletRequest http) {
 
         return ResponseEntity.ok(authService.loginClient(
-            request, http.getRemoteAddr(), http.getHeader("User-Agent")));
+            request, extractClientIp(http), http.getHeader("User-Agent")));
     }
 
     @PostMapping("/remember-me/client")
@@ -48,7 +48,7 @@ public class AuthController {
             HttpServletRequest http) {
 
         return ResponseEntity.ok(authService.loginClientWithRememberMe(
-            request.rememberMeToken(), http.getRemoteAddr(), http.getHeader("User-Agent")));
+            request.rememberMeToken(), extractClientIp(http), http.getHeader("User-Agent")));
     }
 
     @PostMapping("/login/employe")
@@ -57,7 +57,15 @@ public class AuthController {
             HttpServletRequest http) {
 
         return ResponseEntity.ok(authService.loginEmploye(
-            request, http.getRemoteAddr(), http.getHeader("User-Agent")));
+            request, extractClientIp(http), http.getHeader("User-Agent")));
+    }
+
+    private String extractClientIp(HttpServletRequest request) {
+        String xff = request.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) {
+            return xff.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     @PostMapping("/logout")

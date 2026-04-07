@@ -33,7 +33,7 @@ public interface ProduitRepository extends JpaRepository<Produit, Long> {
         Pageable pageable
     );
 
-    @Query("SELECT p FROM Produit p WHERE p.deleted = false AND p.actif = true AND p.misEnAvant = true")
+    @Query("SELECT p FROM Produit p WHERE p.deleted = false AND p.actif = true AND p.misEnAvant = true ORDER BY p.id DESC LIMIT 12")
     java.util.List<Produit> findMisEnAvant();
 
     @Modifying

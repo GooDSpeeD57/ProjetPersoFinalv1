@@ -41,8 +41,8 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class AuthServiceImpl implements AuthService {
 
-    private static final String USER_TYPE_CLIENT = "CLIENT";
-    private static final String USER_TYPE_EMPLOYE = "EMPLOYE";
+    private static final String USER_TYPE_CLIENT  = fr.micromania.security.UserType.CLIENT;
+    private static final String USER_TYPE_EMPLOYE = fr.micromania.security.UserType.EMPLOYE;
 
     private static final int MAX_TENTATIVES = 5;
     private static final int BLOCAGE_MINUTES = 15;

@@ -53,7 +53,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 String role     = claims.get("role",     String.class);
 
                 // Préfixe ROLE_ pour Spring Security
-                String authority = "CLIENT".equals(userType)
+                String authority = UserType.CLIENT.equals(userType)
                     ? "ROLE_CLIENT"
                     : "ROLE_" + role;       // ROLE_VENDEUR, ROLE_MANAGER, ROLE_ADMIN
 
