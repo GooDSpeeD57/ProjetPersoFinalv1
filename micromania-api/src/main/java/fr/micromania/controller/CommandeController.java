@@ -46,10 +46,7 @@ public class CommandeController {
             @AuthenticationPrincipal Long idClient,
             @PathVariable Long id) {
 
-        CommandeResponse commande = commandeService.getById(id);
-        // Sécurité : le client ne peut voir que ses propres commandes
-        // Vérification délégable au service si besoin
-        return ResponseEntity.ok(commande);
+        return ResponseEntity.ok(commandeService.getByIdForClient(idClient, id));
     }
 
     @DeleteMapping("/me/{id}")
@@ -59,7 +56,7 @@ public class CommandeController {
             @PathVariable Long id,
             @RequestParam(required = false, defaultValue = "Annulée par le client") String motif) {
 
-        commandeService.annuler(id, motif);
+        commandeService.annulerPourClient(idClient, id, motif);
         return ResponseEntity.noContent().build();
     }
 

@@ -10,6 +10,8 @@ public interface CommandeService {
 
     CommandeResponse getById(Long id);
 
+    CommandeResponse getByIdForClient(Long idClient, Long id);
+
     CommandeResponse getByReference(String reference);
 
     Page<CommandeSummary> getByClient(Long idClient, Pageable pageable);
@@ -19,4 +21,6 @@ public interface CommandeService {
     CommandeResponse updateStatut(Long id, UpdateStatutCommandeRequest request);
 
     void annuler(Long id, String motif);
+
+    void annulerPourClient(Long idClient, Long id, String motif);
 }
