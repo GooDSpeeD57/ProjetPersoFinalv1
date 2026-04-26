@@ -1,8 +1,10 @@
 package fr.micromania.dto.catalog;
 
+import fr.micromania.dto.referentiel.EditionDto;
 import fr.micromania.dto.referentiel.PlatformeDto;
 import fr.micromania.dto.referentiel.TauxTvaDto;
 import java.math.BigDecimal;
+import java.util.List;
 
 public record ProduitVariantResponse(
     Long id,
@@ -12,7 +14,7 @@ public record ProduitVariantResponse(
     PlatformeDto plateforme,
     String formatProduit,
     String statutProduit,
-    String edition,
+    EditionDto edition,
     String couleur,
     String langueVente,
     boolean scelle,
@@ -21,7 +23,10 @@ public record ProduitVariantResponse(
     boolean estReprise,
     boolean necessiteNumeroSerie,
     TauxTvaDto tauxTva,
-    BigDecimal prixWeb,
-    BigDecimal prixMagasin,
-    boolean actif
+    BigDecimal prixNeuf,
+    BigDecimal prixOccasion,
+    BigDecimal prixReprise,
+    BigDecimal prixLocation,
+    boolean actif,
+    List<ProduitImageDto> images
 ) {}

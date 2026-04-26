@@ -24,5 +24,8 @@ public record ClientResponse(
         LocalDate ultimateDateDebut,
         LocalDate ultimateDateFin,
         boolean ultimateActif,
-        BigDecimal prixAbonnementUltimate
-) {}
+        BigDecimal prixAbonnementUltimate,
+        MagasinBrefDto magasinFavori
+) {
+    public record MagasinBrefDto(Long id, String nom, String telephone, String ville, String adresseComplete) {}
+}

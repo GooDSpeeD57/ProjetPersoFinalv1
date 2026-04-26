@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.monprojet.boutiquejeux.controller.PlanningController"
+      spacing="16" styleClass="view-container">
+    <padding><Insets top="20" bottom="20" left="20" right="20"/></padding>
+
+    <Label text="📅 Planning équipe" styleClass="page-title"/>
+    <Separator/>
+
+    <HBox spacing="12" alignment="CENTER_LEFT">
+        <Label text="Semaine du :" styleClass="field-label"/>
+        <DatePicker fx:id="datePicker" styleClass="date-picker-dark"/>
+        <Button text="Charger" onAction="#handleCharger" styleClass="btn-secondary"/>
+        <ProgressIndicator fx:id="spinner" maxWidth="26" maxHeight="26"/>
+    </HBox>
+
+    <TableView fx:id="tablePlanning" VBox.vgrow="ALWAYS" styleClass="table-dark">
+        <columns>
+            <TableColumn fx:id="colEmploye"  text="Employé"   prefWidth="200" minWidth="200"/>
+            <TableColumn fx:id="colRole"     text="Rôle"      prefWidth="120" minWidth="120"/>
+            <TableColumn fx:id="colLundi"    text="Lundi"     prefWidth="110" minWidth="110"/>
+            <TableColumn fx:id="colMardi"    text="Mardi"     prefWidth="110" minWidth="110"/>
+            <TableColumn fx:id="colMercredi" text="Mercredi"  prefWidth="110" minWidth="110"/>
+            <TableColumn fx:id="colJeudi"    text="Jeudi"     prefWidth="110" minWidth="110"/>
+            <TableColumn fx:id="colVendredi" text="Vendredi"  prefWidth="110" minWidth="110"/>
+        </columns>
+    </TableView>
+
+    <Label text="ℹ️ Affiché en lecture seule. Contactez le manager pour toute modification." styleClass="field-label"/>
+</VBox>

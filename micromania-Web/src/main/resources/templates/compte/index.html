@@ -6,7 +6,7 @@
 </head>
 <body>
 <div class="site-shell">
-<th:block th:replace="~{fragments/layout :: navbar}"/>
+<th:block th:replace="~{fragments/navbar :: navbar}"/>
 
 <main>
   <div class="container">
@@ -33,45 +33,100 @@
           </button>
           <div style="font-family:var(--font-head);font-size:1.1rem;margin-bottom:0.3rem"
                th:text="${client != null ? client.pseudo() : 'Pseudo'}">Pseudo</div>
-          <div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:1rem"
+          <div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:0.75rem"
                th:text="${client != null ? client.email() : 'email@exemple.com'}">email</div>
-          <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:1rem">
-            Cliquez sur votre avatar pour le changer.
-          </div>
 
-          <div th:switch="${fidelite != null ? fidelite.typeFidelite() : (client != null ? client.typeFidelite() : null)}">
+          <!-- Badge niveau unique -->
+          <div th:switch="${fidelite != null ? fidelite.typeFidelite() : (client != null ? client.typeFidelite() : null)}"
+               style="margin-bottom:0.75rem">
             <span th:case="'ULTIMATE'" class="fidelite-badge fidelite-ultimate">⚡ ULTIMATE</span>
             <span th:case="'PREMIUM'" class="fidelite-badge fidelite-premium">★ PREMIUM</span>
             <span th:case="*" class="fidelite-badge fidelite-normal">◆ NORMAL</span>
           </div>
 
-          <div class="card" style="padding:1rem;margin:1rem 0;text-align:center">
-            <div style="font-family:var(--font-head);font-size:0.6rem;letter-spacing:2px;color:var(--text-dim);margin-bottom:0.3rem">SOLDE DISPONIBLE</div>
-            <div class="points-big" th:text="${fidelite != null ? fidelite.soldePoints() : (points != null ? points.soldePoints() : 0)}">0</div>
-            <div style="font-size:0.8rem;color:var(--text-dim);margin-top:0.3rem"
-                 th:if="${fidelite != null and fidelite.totalAchatsAnnuel() != null}"
-                 th:text="${#numbers.formatDecimal(fidelite.totalAchatsAnnuel(),1,2) + ' € cette année'}">0 € cette année</div>
+          <!-- Séparateur + bouton toggle règles -->
+          <div style="border-top:1px solid var(--border);margin:0.75rem -2rem;"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 0.5rem">
+            <span style="font-family:var(--font-head);font-size:0.6rem;letter-spacing:1px;color:var(--text-dim)">// RÈGLES FIDÉLITÉ</span>
+            <button type="button" id="btn-toggle-regles" onclick="toggleRegles()"
+                    style="background:none;border:none;color:var(--text-dim);font-size:0.72rem;cursor:pointer;padding:0">
+              Masquer ▲
+            </button>
           </div>
+
+          <!-- Contenu des règles (masquable) -->
+          <div id="regles-fidelite" style="text-align:left">
+            <!-- Taux par catégorie -->
+            <div style="font-family:var(--font-head);font-size:0.6rem;letter-spacing:1px;color:var(--text-dim);margin-bottom:0.4rem">
+              POINTS PAR € DÉPENSÉ
+            </div>
+            <div th:if="${fidelite != null and fidelite.ratiosParCategorie() != null and !fidelite.ratiosParCategorie().isEmpty()}">
+              <div th:each="r : ${fidelite.ratiosParCategorie()}"
+                   style="display:flex;justify-content:space-between;align-items:center;padding:0.2rem 0;border-bottom:1px solid var(--border)">
+                <span style="font-size:0.8rem" th:text="${r.categorieDescription()}">Catégorie</span>
+                <span style="font-family:var(--font-head);font-size:0.8rem;color:var(--accent)"
+                      th:text="${#numbers.formatDecimal(r.ratio(),1,0) + ' pt/€'}">5 pt/€</span>
+              </div>
+            </div>
+            <div th:if="${fidelite == null or fidelite.ratiosParCategorie() == null or fidelite.ratiosParCategorie().isEmpty()}"
+                 th:text="${'Taux de base : ' + (fidelite != null and fidelite.pointsParEuroBase() != null ? #numbers.formatDecimal(fidelite.pointsParEuroBase(),1,0) : '—') + ' pt/€'}"
+                 style="font-size:0.8rem;color:var(--text-dim)">—</div>
+
+            <!-- Seuils bons -->
+            <div style="font-family:var(--font-head);font-size:0.6rem;letter-spacing:1px;color:var(--text-dim);margin:0.75rem 0 0.4rem">
+              BONS D'ACHAT
+            </div>
+            <div style="font-size:0.8rem;text-align:left">• 2 000 pts = bon automatique <strong>10 €</strong></div>
+            <div style="font-size:0.8rem;margin-top:0.2rem;text-align:left">• 8 000 pts cumulés = bon palier <strong>20 €</strong></div>
+          </div>
+
         </div>
 
         <div class="card" style="margin-top:1.5rem">
           <div class="card-header">// NAVIGATION</div>
           <div class="card-body dashboard-nav">
             <a href="#infos">Informations personnelles</a>
+            <a href="#adresses">Mes adresses</a>
             <a href="#ultimate">Abonnement ultimate</a>
             <a href="#fidelite">Points fidélité</a>
             <a href="#bons">Bons d'achat</a>
             <a href="#factures">Mes factures</a>
-            <a href="#historique">Historique points</a>
-            <a href="#adresses">Mes adresses</a>
+            <a href="#garanties">Mes garanties</a>
           </div>
         </div>
 
         <div class="card" style="margin-top:1.5rem">
-          <div class="card-header">// RÈGLES FIDÉLITÉ</div>
-          <div class="card-body dashboard-note">
-            <div>• 2 000 points = bon automatique de 10 €</div>
-            <div>• 8 000 points cumulés = bon palier de 20 €</div>
+          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem">
+            <span>// MA BOUTIQUE</span>
+            <button type="button" class="btn btn-primary btn-sm" style="font-size:0.7rem;padding:0.2rem 0.55rem"
+                    onclick="openBoutiqueModal()">
+              <span th:text="${client != null and client.magasinFavori() != null ? '✎ Modifier' : '+ Choisir'}">+ Choisir</span>
+            </button>
+          </div>
+          <div class="card-body">
+            <!-- Aucune boutique favorite -->
+            <div th:if="${client == null or client.magasinFavori() == null}"
+                 style="font-size:0.82rem;color:var(--text-dim);text-align:center;padding:0.5rem 0">
+              Aucune boutique sélectionnée.
+            </div>
+            <!-- Boutique favorite -->
+            <div th:if="${client != null and client.magasinFavori() != null}">
+              <div style="font-family:var(--font-head);font-size:0.95rem;color:var(--accent);margin-bottom:0.4rem"
+                   th:text="${client.magasinFavori().nom()}">Nom boutique</div>
+              <div th:if="${client.magasinFavori().adresseComplete() != null}"
+                   style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.25rem"
+                   th:text="${client.magasinFavori().adresseComplete()}">Adresse</div>
+              <div th:if="${client.magasinFavori().telephone() != null}"
+                   style="font-size:0.8rem;color:var(--text-dim)">
+                📞 <span th:text="${client.magasinFavori().telephone()}"></span>
+              </div>
+              <form th:action="@{/compte/magasin-favori/supprimer}" method="post" style="margin-top:0.75rem">
+                <button type="submit" class="btn btn-outline btn-sm"
+                        style="font-size:0.72rem;color:var(--danger);border-color:var(--danger)"
+                        onclick="return confirm('Retirer cette boutique des favoris ?')">Retirer</button>
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+              </form>
+            </div>
           </div>
         </div>
 
@@ -135,11 +190,75 @@
               </form>
 
               <div class="info-row"><span class="label">N° Carte fidélité</span><span style="font-family:var(--font-head);font-size:0.8rem;color:var(--accent)" th:text="${client != null && client.numeroCarteFidelite() != null ? client.numeroCarteFidelite() : '—'}"></span></div>
-              <div class="info-row"><span class="label">Email vérifié</span><span th:text="${client != null && client.emailVerifie() ? '✅ Oui' : '❌ Non'}"></span></div>
-              <div class="info-row"><span class="label">Téléphone vérifié</span><span th:text="${client != null && client.telephoneVerifie() ? '✅ Oui' : '❌ Non'}"></span></div>
+
+              <div class="info-row">
+                <span class="label">Email vérifié</span>
+                <span th:if="${client != null && client.emailVerifie()}">✅ Oui</span>
+                <span th:if="${client == null or !client.emailVerifie()}" style="display:flex;align-items:center;gap:0.75rem">
+                  <span style="color:var(--danger)">❌ Non</span>
+                  <form th:action="@{/compte/verifier-email}" method="post" style="margin:0">
+                    <button type="submit" class="btn btn-outline btn-sm"
+                            style="font-size:0.75rem;padding:0.2rem 0.65rem">
+                      Vérifier l'e-mail
+                    </button>
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                  </form>
+                </span>
+              </div>
+
+              <div class="info-row">
+                <span class="label">Téléphone vérifié</span>
+                <span th:if="${client != null && client.telephoneVerifie()}">✅ Oui</span>
+                <span th:if="${client == null or !client.telephoneVerifie()}" style="display:flex;align-items:center;gap:0.75rem">
+                  <span style="color:var(--danger)">❌ Non</span>
+                  <form th:action="@{/compte/verifier-telephone}" method="post" style="margin:0">
+                    <button type="submit" class="btn btn-outline btn-sm"
+                            style="font-size:0.75rem;padding:0.2rem 0.65rem">
+                      Vérifier le téléphone
+                    </button>
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                  </form>
+                </span>
+              </div>
               <div class="info-row"><span class="label">Compte actif</span><span th:text="${client != null && client.compteActive() ? '✅ Oui' : '⏳ En attente'}"></span></div>
-              <div class="info-row"><span class="label">Dernière connexion</span><span th:text="${client != null && client.dateDerniereConnexion() != null ? client.dateDerniereConnexion() : '—'}"></span></div>
-              <div class="info-row"><span class="label">Membre depuis</span><span th:text="${client != null && client.dateCreation() != null ? client.dateCreation() : '—'}"></span></div>
+              <div class="info-row"><span class="label">Dernière connexion</span><span th:text="${client != null && client.dateDerniereConnexion() != null ? #temporals.format(client.dateDerniereConnexion(), 'dd/MM/yyyy HH:mm') : '—'}"></span></div>
+              <div class="info-row"><span class="label">Membre depuis</span><span th:text="${client != null && client.dateCreation() != null ? #temporals.format(client.dateCreation(), 'dd/MM/yyyy') : '—'}"></span></div>
+            </div>
+          </div>
+
+          <div class="card" id="adresses">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:1rem">
+              <span>// MES ADRESSES</span>
+              <button type="button" class="btn btn-primary btn-sm" onclick="openAdresseModal()">+ Ajouter une adresse</button>
+            </div>
+            <div class="card-body">
+              <div th:if="${adresses == null or adresses.isEmpty()}" class="dashboard-empty" style="margin-bottom:1rem">
+                Aucune adresse enregistrée pour le moment.
+              </div>
+              <div class="address-list" th:unless="${adresses == null or adresses.isEmpty()}">
+                <div class="address-card" th:each="a : ${adresses}">
+                  <div class="address-card-head">
+                    <div>
+                      <span class="dashboard-pill" th:text="${a.typeAdresse()}">DOMICILE</span>
+                      <span class="dashboard-pill dashboard-pill-muted" th:if="${a.estDefaut()}" style="margin-left:0.5rem">Par défaut</span>
+                    </div>
+                    <div class="address-card-actions">
+                      <form th:if="${!a.estDefaut()}" th:action="@{/compte/adresses/{id}/defaut(id=${a.id()})}" method="post">
+                        <button type="submit" class="btn btn-secondary btn-sm">Mettre par défaut</button>
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                      </form>
+                      <form th:if="${!a.estDefaut()}" th:action="@{/compte/adresses/{id}/supprimer(id=${a.id()})}" method="post">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Supprimer cette adresse ?')">Supprimer</button>
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                      </form>
+                    </div>
+                  </div>
+                  <div class="address-card-line" th:text="${a.rue()}">Rue</div>
+                  <div class="address-card-line" th:if="${a.complement() != null and !a.complement().isBlank()}" th:text="${a.complement()}">Complément</div>
+                  <div class="address-card-line" th:text="${a.codePostal() + ' ' + a.ville()}">CP Ville</div>
+                  <div class="address-card-line" th:text="${a.pays()}">France</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -152,11 +271,11 @@
               </div>
               <div class="info-row">
                 <span class="label">Date de début</span>
-                <span th:text="${client != null && client.ultimateDateDebut() != null ? client.ultimateDateDebut() : '—'}">—</span>
+                <span th:text="${client != null && client.ultimateDateDebut() != null ? #temporals.format(client.ultimateDateDebut(), 'dd/MM/yyyy') : '—'}">—</span>
               </div>
               <div class="info-row">
                 <span class="label">Date de fin</span>
-                <span th:text="${client != null && client.ultimateDateFin() != null ? client.ultimateDateFin() : '—'}">—</span>
+                <span th:text="${client != null && client.ultimateDateFin() != null ? #temporals.format(client.ultimateDateFin(), 'dd/MM/yyyy') : '—'}">—</span>
               </div>
               <div class="info-row">
                 <span class="label">Tarif 12 mois</span>
@@ -164,7 +283,7 @@
               </div>
 
               <div style="margin-top:1rem;color:var(--text-dim);font-size:0.85rem" th:if="${client != null && client.ultimateActif()}">
-                Votre abonnement ULTIMATE est actif jusqu'au <span th:text="${client.ultimateDateFin()}"></span>.
+                Votre abonnement ULTIMATE est actif jusqu'au <span th:text="${#temporals.format(client.ultimateDateFin(), 'dd/MM/yyyy')}"></span>.
               </div>
 
               <form th:if="${client == null or !client.ultimateActif()}" th:action="@{/compte/ultimate/subscribe}" method="post" style="margin-top:1rem">
@@ -232,40 +351,23 @@
           <div class="card" id="bons">
             <div class="card-header">// BONS D'ACHAT</div>
             <div class="card-body">
-              <div class="dashboard-bon-grid">
-                <div>
-                  <div class="dashboard-subtitle">Disponibles</div>
-                  <div th:if="${bonsDisponibles == null or bonsDisponibles.isEmpty()}" class="dashboard-empty">Aucun bon disponible pour le moment.</div>
-                  <div class="dashboard-bon-list" th:unless="${bonsDisponibles == null or bonsDisponibles.isEmpty()}">
-                    <div class="dashboard-bon-item" th:each="bon : ${bonsDisponibles}">
-                      <div class="dashboard-bon-row">
-                        <span class="dashboard-bon-code" th:text="${bon.codeBon()}">BON-XXXX</span>
-                        <span class="dashboard-pill" th:text="${#numbers.formatDecimal(bon.valeur(),1,2) + ' €'}">10.00 €</span>
-                      </div>
-                      <div class="dashboard-bon-meta">
-                        <span th:text="${bon.pointsUtilises() + ' pts'}">2000 pts</span>
-                        <span th:text="${bon.dateCreation() != null ? #temporals.format(bon.dateCreation(), 'dd/MM/yyyy HH:mm') : '—'}">01/04/2026</span>
-                      </div>
-                    </div>
+              <div th:if="${bonsDisponibles == null or bonsDisponibles.isEmpty()}" class="dashboard-empty">Aucun bon disponible pour le moment.</div>
+              <div class="dashboard-bon-list collapsible-list" th:unless="${bonsDisponibles == null or bonsDisponibles.isEmpty()}">
+                <div class="dashboard-bon-item" th:each="bon,s : ${bonsDisponibles}"
+                     th:classappend="${s.index >= 5 ? ' item-hidden' : ''}">
+                  <div class="dashboard-bon-row">
+                    <span class="dashboard-bon-code"
+                          th:text="|Bon d'achat de ${#numbers.formatDecimal(bon.valeur(),1,2)} €|">Bon d'achat de 10.00 €</span>
+                  </div>
+                  <div class="dashboard-bon-meta">
+                    <span th:if="${bon.dateExpiration() != null}"
+                          th:classappend="${bon.dateExpiration().isBefore(T(java.time.LocalDateTime).now().plusDays(30))} ? 'dashboard-bon-expiry-soon' : 'dashboard-bon-expiry'"
+                          th:text="${'À utiliser avant le ' + #temporals.format(bon.dateExpiration(), 'dd/MM/yyyy')}">À utiliser avant le 01/04/2027</span>
+                    <span th:if="${bon.dateExpiration() == null}" class="dashboard-bon-expiry">Sans date d'expiration</span>
                   </div>
                 </div>
-
-                <div>
-                  <div class="dashboard-subtitle">Utilisés</div>
-                  <div th:if="${bonsUtilises == null or bonsUtilises.isEmpty()}" class="dashboard-empty">Aucun bon utilisé pour le moment.</div>
-                  <div class="dashboard-bon-list" th:unless="${bonsUtilises == null or bonsUtilises.isEmpty()}">
-                    <div class="dashboard-bon-item" th:each="bon : ${bonsUtilises}">
-                      <div class="dashboard-bon-row">
-                        <span class="dashboard-bon-code" th:text="${bon.codeBon()}">BON-XXXX</span>
-                        <span class="dashboard-pill dashboard-pill-muted" th:text="${#numbers.formatDecimal(bon.valeur(),1,2) + ' €'}">10.00 €</span>
-                      </div>
-                      <div class="dashboard-bon-meta">
-                        <span th:text="${bon.pointsUtilises() + ' pts'}">2000 pts</span>
-                        <span th:text="${bon.dateUtilisation() != null ? #temporals.format(bon.dateUtilisation(), 'dd/MM/yyyy HH:mm') : 'Utilisé'}">Utilisé</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <button type="button" class="btn-voir-plus" th:if="${#lists.size(bonsDisponibles) > 5}"
+                        onclick="toggleVoirPlus(this)">Voir tout (<span th:text="${#lists.size(bonsDisponibles)}"></span>)</button>
               </div>
             </div>
           </div>
@@ -274,140 +376,179 @@
             <div class="card-header">// MES FACTURES</div>
             <div class="card-body">
               <div th:if="${factures == null or factures.isEmpty()}" style="color:var(--text-dim);font-size:0.85rem">Aucune facture.</div>
-              <div class="table-wrapper" th:unless="${factures == null or factures.isEmpty()}">
+              <div class="table-wrapper collapsible-list" th:unless="${factures == null or factures.isEmpty()}">
                 <table>
                   <thead>
                   <tr><th>Référence</th><th>Date</th><th>Magasin</th><th>Total</th><th>Statut</th><th>Action</th></tr>
                   </thead>
                   <tbody>
-                  <tr th:each="f : ${factures}">
+                  <tr th:each="f,s : ${factures}" th:classappend="${s.index >= 5 ? ' item-hidden' : ''}">
                     <td style="font-family:var(--font-head);font-size:0.8rem;color:var(--accent)" th:text="${f.referenceFacture()}"></td>
-                    <td th:text="${f.dateFacture() != null ? #temporals.format(f.dateFacture(), 'dd/MM/yyyy HH:mm') : '—'}"></td>
+                    <td>
+                      <span th:if="${f.dateFacture() != null}">
+                        <span th:text="${#temporals.format(f.dateFacture(), 'dd/MM/yyyy')}"></span><br/>
+                        <span style="font-size:0.75rem;color:var(--text-dim)" th:text="${#temporals.format(f.dateFacture(), 'HH:mm')}"></span>
+                      </span>
+                      <span th:unless="${f.dateFacture() != null}">—</span>
+                    </td>
                     <td th:text="${f.magasin() != null ? f.magasin() : '—'}"></td>
                     <td style="color:var(--accent);font-family:var(--font-head)" th:text="${f.montantFinal() != null ? #numbers.formatDecimal(f.montantFinal(),1,2) + ' €' : '—'}"></td>
                     <td th:text="${f.statutFacture() != null ? f.statutFacture() : '—'}"></td>
+                    <td><a class="btn btn-outline" th:href="@{/compte/factures/{id}(id=${f.id()})}">Voir le détail</a></td>
+                  </tr>
+                  </tbody>
+                </table>
+                <button type="button" class="btn-voir-plus" th:if="${#lists.size(factures) > 5}"
+                        onclick="toggleVoirPlus(this)">Voir tout (<span th:text="${#lists.size(factures)}"></span>)</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" id="garanties">
+            <div class="card-header">// MES GARANTIES</div>
+            <div class="card-body">
+              <div th:if="${garanties == null or garanties.isEmpty()}" class="dashboard-empty">
+                Aucune garantie enregistrée pour le moment.
+              </div>
+              <div class="table-wrapper collapsible-list" th:unless="${garanties == null or garanties.isEmpty()}">
+                <table>
+                  <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Début</th>
+                    <th>Fin</th>
+                    <th>Durée</th>
+                    <th>Statut</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  <tr th:each="g,s : ${garanties}" th:classappend="${s.index >= 5 ? ' item-hidden' : ''}">
                     <td>
-                      <a class="btn btn-outline" th:href="@{/compte/factures/{id}(id=${f.id()})}">Voir le détail</a>
+                      <span th:text="${g.descTypeGarantie() != null ? g.descTypeGarantie() : g.codeTypeGarantie()}">Garantie constructeur</span>
+                      <span th:if="${g.estEtendue()}"
+                            style="margin-left:0.5rem;font-size:0.72rem;font-family:var(--font-head);background:rgba(var(--accent-rgb,255,193,7),.15);color:var(--accent);padding:0.1rem 0.4rem;border-radius:3px;letter-spacing:0.5px">
+                        ÉTENDUE
+                      </span>
+                    </td>
+                    <td th:text="${g.dateDebut() != null ? #temporals.format(g.dateDebut(), 'dd/MM/yyyy') : '—'}">—</td>
+                    <td>
+                      <span th:if="${g.dateFin() != null}"
+                            th:text="${#temporals.format(g.dateFin(), 'dd/MM/yyyy')}">—</span>
+                      <span th:unless="${g.dateFin() != null}">—</span>
+                    </td>
+                    <td th:text="${g.dureeMois() != null ? g.dureeMois() + ' mois' : '—'}">—</td>
+                    <td>
+                      <!-- Active -->
+                      <span th:if="${g.dateFin() != null and g.dateFin().isAfter(T(java.time.LocalDate).now().plusDays(30))}"
+                            style="font-size:0.78rem;font-family:var(--font-head);color:#4caf50;background:rgba(76,175,80,.12);padding:0.15rem 0.55rem;border-radius:4px;letter-spacing:0.5px">
+                        ✅ Active
+                      </span>
+                      <!-- Expire bientôt (≤ 30 jours) -->
+                      <span th:if="${g.dateFin() != null and !g.dateFin().isBefore(T(java.time.LocalDate).now()) and !g.dateFin().isAfter(T(java.time.LocalDate).now().plusDays(30))}"
+                            style="font-size:0.78rem;font-family:var(--font-head);color:#ff9800;background:rgba(255,152,0,.12);padding:0.15rem 0.55rem;border-radius:4px;letter-spacing:0.5px">
+                        ⚠ Expire bientôt
+                      </span>
+                      <!-- Expirée -->
+                      <span th:if="${g.dateFin() == null or g.dateFin().isBefore(T(java.time.LocalDate).now())}"
+                            style="font-size:0.78rem;font-family:var(--font-head);color:var(--danger);background:rgba(220,53,69,.1);padding:0.15rem 0.55rem;border-radius:4px;letter-spacing:0.5px">
+                        ❌ Expirée
+                      </span>
                     </td>
                   </tr>
                   </tbody>
                 </table>
+                <button type="button" class="btn-voir-plus" th:if="${#lists.size(garanties) > 5}"
+                        onclick="toggleVoirPlus(this)">Voir tout (<span th:text="${#lists.size(garanties)}"></span>)</button>
               </div>
             </div>
           </div>
 
-          <div class="card" id="historique">
-            <div class="card-header">// HISTORIQUE DES POINTS</div>
-            <div class="card-body">
-              <div th:if="${historiquePoints == null or historiquePoints.isEmpty()}" class="dashboard-empty">Aucun mouvement de points pour le moment.</div>
-              <div class="dashboard-history-list" th:unless="${historiquePoints == null or historiquePoints.isEmpty()}">
-                <div class="dashboard-history-item" th:each="h : ${historiquePoints}">
-                  <div>
-                    <div class="dashboard-history-title" th:text="${h.typeOperation()}">ACHAT</div>
-                    <div class="dashboard-history-meta" th:text="${h.commentaire() != null ? h.commentaire() : '—'}">Commentaire</div>
-                  </div>
-                  <div style="text-align:right">
-                    <div class="dashboard-history-points"
-                         th:classappend="${h.points() > 0 ? ' dashboard-history-positive' : (h.points() < 0 ? ' dashboard-history-negative' : ' dashboard-history-neutral')}"
-                         th:text="${(h.points() > 0 ? '+' + h.points() : h.points()) + ' pts'}">+100 pts</div>
-                    <div class="dashboard-history-meta"
-                         th:text="${h.dateOperation() != null ? #temporals.format(h.dateOperation(), 'dd/MM/yyyy HH:mm') : '—'}">01/04/2026</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card" id="adresses">
-            <div class="card-header">// MES ADRESSES</div>
-            <div class="card-body">
-              <div th:if="${adresses == null or adresses.isEmpty()}" class="dashboard-empty" style="margin-bottom:1rem">
-                Aucune adresse enregistrée pour le moment.
-              </div>
-
-              <div class="address-list" th:unless="${adresses == null or adresses.isEmpty()}">
-                <div class="address-card" th:each="a : ${adresses}">
-                  <div class="address-card-head">
-                    <div>
-                      <span class="dashboard-pill" th:text="${a.typeAdresse()}">DOMICILE</span>
-                      <span class="dashboard-pill dashboard-pill-muted" th:if="${a.estDefaut()}" style="margin-left:0.5rem">Par défaut</span>
-                    </div>
-                    <div class="address-card-actions">
-                      <form th:if="${!a.estDefaut()}" th:action="@{/compte/adresses/{id}/defaut(id=${a.id()})}" method="post">
-                        <button type="submit" class="btn btn-secondary btn-sm">Mettre par défaut</button>
-                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                      </form>
-                      <form th:if="${!a.estDefaut()}" th:action="@{/compte/adresses/{id}/supprimer(id=${a.id()})}" method="post">
-                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Supprimer cette adresse ?')">Supprimer</button>
-                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                      </form>
-                    </div>
-                  </div>
-                  <div class="address-card-line" th:text="${a.rue()}">Rue</div>
-                  <div class="address-card-line" th:if="${a.complement() != null and !a.complement().isBlank()}" th:text="${a.complement()}">Complément</div>
-                  <div class="address-card-line" th:text="${a.codePostal() + ' ' + a.ville()}">CP Ville</div>
-                  <div class="address-card-line" th:text="${a.pays()}">France</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">// AJOUTER UNE ADRESSE</div>
-            <div class="card-body">
-              <form th:action="@{/compte/adresses}" method="post">
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Type d'adresse</label>
-                    <select name="codeTypeAdresse" class="form-control form-control-select">
-                      <option th:each="typeAdresse : ${typeAdresseOptions}" th:value="${typeAdresse}" th:text="${typeAdresse}">DOMICILE</option>
-                    </select>
-                  </div>
-                  <label class="form-check" style="margin-top:1.8rem">
-                    <input class="form-check-input" type="checkbox" name="estDefaut" value="true"/>
-                    <span class="form-check-label">Définir comme adresse par défaut</span>
-                  </label>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label">Rue</label>
-                  <input class="form-control" type="text" name="rue" required maxlength="255"/>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label">Complément</label>
-                  <input class="form-control" type="text" name="complement" maxlength="255"/>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Code postal</label>
-                    <input class="form-control" type="text" name="codePostal" required maxlength="15"/>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Ville</label>
-                    <input class="form-control" type="text" name="ville" required maxlength="100"/>
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label">Pays</label>
-                  <input class="form-control" type="text" name="pays" value="France" maxlength="100"/>
-                </div>
-
-                <div class="account-actions">
-                  <button type="submit" class="btn btn-primary">Ajouter l'adresse</button>
-                  <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                </div>
-              </form>
-            </div>
-          </div>
         </div>
       </section>
     </div>
   </div>
 </main>
 
+
+<div id="adresse-modal"
+     onclick="if(event.target===this){closeAdresseModal();}"
+     style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:1rem;">
+  <div class="card card-accent-top"
+       style="position:relative;z-index:100000;width:min(560px,100%);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;text-align:left;box-shadow:0 20px 60px rgba(0,0,0,.45);">
+    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:1rem">
+      <span>// AJOUTER UNE ADRESSE</span>
+      <button type="button"
+              onclick="closeAdresseModal()"
+              style="background:none;border:1px solid var(--border);color:var(--text);width:2rem;height:2rem;cursor:pointer">✕</button>
+    </div>
+    <div class="card-body" style="overflow:auto">
+      <form th:action="@{/compte/adresses}" method="post">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Type d'adresse</label>
+            <select name="codeTypeAdresse" class="form-control form-control-select">
+              <option th:each="t : ${typeAdresseOptions}" th:value="${t}" th:text="${t}">DOMICILE</option>
+            </select>
+          </div>
+          <label class="form-check" style="margin-top:1.8rem">
+            <input class="form-check-input" type="checkbox" name="estDefaut" value="true"/>
+            <span class="form-check-label">Adresse par défaut</span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Rue</label>
+          <input class="form-control" type="text" name="rue" required maxlength="255" placeholder="12 rue de la Paix"/>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Complément <span style="color:var(--text-dim);font-size:0.8rem">(optionnel)</span></label>
+          <input class="form-control" type="text" name="complement" maxlength="255" placeholder="Bât. A, Apt. 42…"/>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Code postal</label>
+            <input class="form-control" type="text" name="codePostal" required maxlength="15" placeholder="75001"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ville</label>
+            <input class="form-control" type="text" name="ville" required maxlength="100" placeholder="Paris"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Pays</label>
+          <input class="form-control" type="text" name="pays" value="France" maxlength="100"/>
+        </div>
+
+        <div class="account-actions" style="margin-top:1.25rem">
+          <button type="submit" class="btn btn-primary">Enregistrer l'adresse</button>
+          <button type="button" class="btn btn-outline" onclick="closeAdresseModal()">Annuler</button>
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="boutique-modal"
+     onclick="if(event.target===this){closeBoutiqueModal();}"
+     style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:1rem;">
+  <div class="card card-accent-top"
+       style="position:relative;z-index:100000;width:min(860px,100%);height:85vh;display:flex;flex-direction:column;overflow:hidden;text-align:left;box-shadow:0 20px 60px rgba(0,0,0,.45);">
+    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-shrink:0">
+      <span>// CHOISIR MA BOUTIQUE FAVORITE</span>
+      <button type="button" onclick="closeBoutiqueModal()"
+              style="background:none;border:1px solid var(--border);color:var(--text);width:2rem;height:2rem;cursor:pointer">✕</button>
+    </div>
+    <iframe id="boutique-iframe"
+            src="/magasins?popup=true"
+            style="flex:1;border:none;width:100%;background:var(--bg)"
+            title="Choisir ma boutique favorite">
+    </iframe>
+  </div>
+</div>
 
 <div id="avatar-modal"
      onclick="if(event.target===this){closeAvatarModal();}"
@@ -466,10 +607,65 @@
   </div>
 </div>
 
-<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/footer :: footer}"/>
 </div>
-<th:block th:replace="~{fragments/layout :: scripts}"/>
 <script>
+  // Toggle règles fidélité avec mémorisation
+  (function() {
+    var hidden = localStorage.getItem('regles-hidden') === '1';
+    if (hidden) {
+      var el = document.getElementById('regles-fidelite');
+      var btn = document.getElementById('btn-toggle-regles');
+      if (el) el.style.display = 'none';
+      if (btn) btn.textContent = 'Afficher ▼';
+    }
+  })();
+
+  function toggleRegles() {
+    var el  = document.getElementById('regles-fidelite');
+    var btn = document.getElementById('btn-toggle-regles');
+    var visible = el.style.display !== 'none';
+    el.style.display = visible ? 'none' : 'block';
+    btn.textContent   = visible ? 'Afficher ▼' : 'Masquer ▲';
+    localStorage.setItem('regles-hidden', visible ? '1' : '0');
+  }
+
+  function openBoutiqueModal() {
+    const iframe = document.getElementById('boutique-iframe');
+    iframe.src = '/magasins?popup=true';   // reset propre à chaque ouverture
+    const m = document.getElementById('boutique-modal');
+    m.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+  function closeBoutiqueModal() {
+    document.getElementById('boutique-modal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  // Réception du signal de l'iframe après sélection d'un favori
+  window.addEventListener('message', function(e) {
+    if (e.data === 'magasin-favori-ok') {
+      closeBoutiqueModal();
+      window.location.href = '/compte';   // navigation propre, pas de reload
+    }
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeBoutiqueModal();
+  });
+
+  function openAdresseModal() {
+    const m = document.getElementById('adresse-modal');
+    m.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+  function closeAdresseModal() {
+    const m = document.getElementById('adresse-modal');
+    m.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeAdresseModal();
+  });
+
   function openAvatarModal() {
     const modal = document.getElementById('avatar-modal');
     if (!modal) return;
@@ -504,6 +700,25 @@
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closeAvatarModal();
   });
+
+  function toggleVoirPlus(btn) {
+    const list = btn.closest('.collapsible-list');
+    // Mémoriser le total la première fois (avant que le span soit écrasé)
+    if (!btn.dataset.total) {
+      btn.dataset.total = btn.querySelector('span')?.textContent || '';
+    }
+    // Mémoriser la position du bouton dans le viewport avant tout changement
+    const btnTopBefore = btn.getBoundingClientRect().top;
+    const expanded = list.classList.toggle('is-expanded');
+    if (expanded) {
+      btn.textContent = 'Réduire';
+    } else {
+      btn.innerHTML = 'Voir tout (<span>' + btn.dataset.total + '</span>)';
+      // Rétablir la position du bouton : annuler le décalage provoqué par la disparition des lignes
+      const btnTopAfter = btn.getBoundingClientRect().top;
+      window.scrollBy(0, btnTopAfter - btnTopBefore);
+    }
+  }
 </script>
 </body>
 </html>

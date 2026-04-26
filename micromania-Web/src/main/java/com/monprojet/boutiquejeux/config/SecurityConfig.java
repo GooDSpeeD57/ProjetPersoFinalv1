@@ -25,6 +25,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.sameOrigin())
+            )
             .authenticationProvider(apiAuthenticationProvider)
             .addFilterBefore(apiRememberMeAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
@@ -70,7 +73,8 @@ public class SecurityConfig {
             }
 
             rememberMeCookieService.clearRememberMeCookie(response);
-            response.sendRedirect("/auth/login?logout");
+            response.sendRedirect("/");
+//            response.sendRedirect("/auth/login?logout");
         };
     }
 }

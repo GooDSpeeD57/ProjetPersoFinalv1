@@ -11,6 +11,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- DROP TABLES
 -- ============================================================
 
+DROP TABLE IF EXISTS token_blacklist;
 DROP TABLE IF EXISTS reset_password_token;
 DROP TABLE IF EXISTS paiement_transaction;
 DROP TABLE IF EXISTS precommande_ligne;
@@ -49,10 +50,12 @@ DROP TABLE IF EXISTS avis_produit;
 DROP TABLE IF EXISTS statut_avis;
 DROP TABLE IF EXISTS ligne_panier;
 DROP TABLE IF EXISTS panier;
+DROP TABLE IF EXISTS produit_screenshot;
 DROP TABLE IF EXISTS produit_video;
 DROP TABLE IF EXISTS produit_image;
 DROP TABLE IF EXISTS produit_prix;
 DROP TABLE IF EXISTS produit_variant;
+DROP TABLE IF EXISTS edition_produit;
 DROP TABLE IF EXISTS produit;
 DROP TABLE IF EXISTS categorie;
 DROP TABLE IF EXISTS adresse;
@@ -108,6 +111,11 @@ DROP TABLE IF EXISTS taux_tva;
 -- ============================================================
 -- TABLES DE REFERENCE
 -- ============================================================
+CREATE TABLE token_blacklist (
+    jti       VARCHAR(36)  NOT NULL,
+    expire_le DATETIME     NOT NULL,
+    PRIMARY KEY (jti)
+);
 
 CREATE TABLE type_fidelite (
     id_type_fidelite   BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -276,15 +284,6 @@ CREATE TABLE plateforme (
     libelle       VARCHAR(100) NOT NULL
 );
 
-CREATE TABLE type_garantie (
-    id_type_garantie BIGINT AUTO_INCREMENT PRIMARY KEY,
-    code             VARCHAR(50) NOT NULL UNIQUE,
-    description      VARCHAR(255),
-    duree_mois       INT NOT NULL,
-    prix_extension   DECIMAL(10,2) NULL,
-    CONSTRAINT chk_type_garantie_duree CHECK (duree_mois > 0)
-);
-
 CREATE TABLE etat_carte_tcg (
     id_etat_carte_tcg BIGINT AUTO_INCREMENT PRIMARY KEY,
     code              VARCHAR(50) NOT NULL UNIQUE,
@@ -401,9 +400,11 @@ CREATE TABLE client (
     date_creation                DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     date_modification            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     date_derniere_connexion		 DATETIME NULL,
+    id_magasin_favori            BIGINT NULL,
     CONSTRAINT fk_client_avatar            FOREIGN KEY (id_avatar)            REFERENCES avatar(id_avatar),
     CONSTRAINT fk_client_fidelite          FOREIGN KEY (id_type_fidelite)    REFERENCES type_fidelite(id_type_fidelite),
-    CONSTRAINT fk_client_employe_createur  FOREIGN KEY (id_employe_createur) REFERENCES employe(id_employe)
+    CONSTRAINT fk_client_employe_createur  FOREIGN KEY (id_employe_createur) REFERENCES employe(id_employe),
+    CONSTRAINT fk_client_magasin_favori    FOREIGN KEY (id_magasin_favori)   REFERENCES magasin(id_magasin)
 );
 
 CREATE TABLE planning_employe (
@@ -553,6 +554,18 @@ CREATE TABLE categorie (
     CONSTRAINT fk_categorie_type FOREIGN KEY (id_type_categorie) REFERENCES type_categorie(id_type_categorie)
 );
 
+CREATE TABLE type_garantie (
+    id_type_garantie BIGINT AUTO_INCREMENT PRIMARY KEY,
+    code             VARCHAR(50) NOT NULL UNIQUE,
+    description      VARCHAR(255),
+    duree_mois       INT NOT NULL,
+    prix_extension   DECIMAL(10,2) NULL,
+    id_categorie     BIGINT NULL,              -- null = applicable à toutes les catégories
+    CONSTRAINT chk_type_garantie_duree CHECK (duree_mois > 0),
+    CONSTRAINT fk_type_garantie_categorie FOREIGN KEY (id_categorie) REFERENCES categorie(id_categorie) ON DELETE SET NULL
+);
+CREATE INDEX idx_type_garantie_categorie ON type_garantie(id_categorie);
+
 CREATE TABLE produit (
     id_produit        BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_categorie      BIGINT NOT NULL,
@@ -577,6 +590,15 @@ CREATE TABLE produit (
     CONSTRAINT chk_produit_niveau  CHECK (niveau_acces_min IN ('NORMAL', 'PREMIUM', 'ULTIMATE'))
 );
 
+CREATE TABLE edition_produit (
+    id_edition        BIGINT AUTO_INCREMENT PRIMARY KEY,
+    code              VARCHAR(50)  NOT NULL,
+    libelle           VARCHAR(100) NOT NULL,
+    ordre_affichage   INT          NOT NULL DEFAULT 0,
+    actif             BOOLEAN      NOT NULL DEFAULT TRUE,
+    CONSTRAINT uq_edition_code UNIQUE (code)
+);
+
 CREATE TABLE produit_variant (
     id_variant             BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_produit             BIGINT NOT NULL,
@@ -587,7 +609,7 @@ CREATE TABLE produit_variant (
     id_statut_produit      BIGINT NOT NULL,
     nom_commercial         VARCHAR(255) NOT NULL,
     reference_fournisseur  VARCHAR(100) NULL,
-    edition                VARCHAR(100) NULL,
+    id_edition             BIGINT NULL,
     couleur                VARCHAR(100) NULL,
     taille                 VARCHAR(50) NULL,
     capacite_stockage      VARCHAR(100) NULL,
@@ -607,33 +629,34 @@ CREATE TABLE produit_variant (
     CONSTRAINT fk_variant_plateforme FOREIGN KEY (id_plateforme)     REFERENCES plateforme(id_plateforme),
     CONSTRAINT fk_variant_format     FOREIGN KEY (id_format_produit) REFERENCES format_produit(id_format_produit),
     CONSTRAINT fk_variant_statut     FOREIGN KEY (id_statut_produit) REFERENCES statut_produit(id_statut_produit),
-    CONSTRAINT fk_variant_tva        FOREIGN KEY (id_taux_tva)       REFERENCES taux_tva(id_taux_tva)
+    CONSTRAINT fk_variant_tva        FOREIGN KEY (id_taux_tva)       REFERENCES taux_tva(id_taux_tva),
+    CONSTRAINT fk_variant_edition    FOREIGN KEY (id_edition)        REFERENCES edition_produit(id_edition)
 );
 
 CREATE TABLE produit_prix (
     id_prix        BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_variant     BIGINT NOT NULL,
-    id_canal_vente BIGINT NOT NULL,
-    prix           DECIMAL(10,2) NOT NULL,
-    date_debut     DATETIME NOT NULL,
+    prix_neuf      DECIMAL(10,2) NULL,
+    prix_occasion  DECIMAL(10,2) NULL,
+    prix_reprise   DECIMAL(10,2) NULL,
+    prix_location  DECIMAL(10,2) NULL,
+    date_debut     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     date_fin       DATETIME NULL,
     actif          BOOLEAN NOT NULL DEFAULT TRUE,
-    CONSTRAINT fk_produit_prix_variant FOREIGN KEY (id_variant)     REFERENCES produit_variant(id_variant) ON DELETE CASCADE,
-    CONSTRAINT fk_produit_prix_canal   FOREIGN KEY (id_canal_vente) REFERENCES canal_vente(id_canal_vente),
-    CONSTRAINT chk_prix_positif CHECK (prix > 0),
-    CONSTRAINT chk_prix_dates   CHECK (date_fin IS NULL OR date_fin > date_debut)
+    CONSTRAINT fk_produit_prix_variant FOREIGN KEY (id_variant) REFERENCES produit_variant(id_variant) ON DELETE CASCADE,
+    CONSTRAINT chk_prix_dates CHECK (date_fin IS NULL OR date_fin > date_debut)
 );
 
 CREATE TABLE produit_image (
     id_image        BIGINT AUTO_INCREMENT PRIMARY KEY,
-    id_produit      BIGINT NOT NULL,
+    id_variant      BIGINT NOT NULL,
     url             VARCHAR(255) NOT NULL,
     alt             VARCHAR(255) NOT NULL DEFAULT '',
     decorative      BOOLEAN NOT NULL DEFAULT FALSE,
     principale      BOOLEAN NOT NULL DEFAULT FALSE,
     ordre_affichage INT NOT NULL DEFAULT 0,
     date_creation   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_image_produit FOREIGN KEY (id_produit) REFERENCES produit(id_produit) ON DELETE CASCADE
+    CONSTRAINT fk_image_variant FOREIGN KEY (id_variant) REFERENCES produit_variant(id_variant) ON DELETE CASCADE
 );
 
 CREATE TABLE produit_video (
@@ -648,6 +671,17 @@ CREATE TABLE produit_video (
     transcription   TEXT NULL,
     date_creation   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_video_produit FOREIGN KEY (id_produit) REFERENCES produit(id_produit) ON DELETE CASCADE
+);
+
+CREATE TABLE produit_screenshot (
+    id_screenshot   BIGINT          NOT NULL AUTO_INCREMENT,
+    id_produit      BIGINT          NOT NULL,
+    url             VARCHAR(255)    NOT NULL,
+    alt             VARCHAR(255)    NOT NULL DEFAULT '',
+    ordre_affichage INT             NOT NULL DEFAULT 0,
+    date_creation   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id_screenshot),
+    CONSTRAINT fk_screenshot_produit FOREIGN KEY (id_produit) REFERENCES produit(id_produit) ON DELETE CASCADE
 );
 
 CREATE TABLE favori_produit (
@@ -743,14 +777,16 @@ CREATE TABLE panier (
 );
 
 CREATE TABLE ligne_panier (
-    id_ligne_panier BIGINT AUTO_INCREMENT PRIMARY KEY,
-    id_panier       BIGINT NOT NULL,
-    id_variant      BIGINT NOT NULL,
-    quantite        INT NOT NULL,
-    prix_unitaire   DECIMAL(10,2) NOT NULL,
-    date_creation   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_ligne_panier_panier  FOREIGN KEY (id_panier)  REFERENCES panier(id_panier)               ON DELETE CASCADE,
-    CONSTRAINT fk_ligne_panier_variant FOREIGN KEY (id_variant) REFERENCES produit_variant(id_variant),
+    id_ligne_panier  BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id_panier        BIGINT NOT NULL,
+    id_variant       BIGINT NOT NULL,
+    quantite         INT NOT NULL,
+    prix_unitaire    DECIMAL(10,2) NOT NULL,
+    id_type_garantie BIGINT NULL,              -- garantie optionnelle souscrite sur cette ligne
+    date_creation    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ligne_panier_panier   FOREIGN KEY (id_panier)         REFERENCES panier(id_panier)               ON DELETE CASCADE,
+    CONSTRAINT fk_ligne_panier_variant  FOREIGN KEY (id_variant)        REFERENCES produit_variant(id_variant),
+    CONSTRAINT fk_ligne_panier_garantie FOREIGN KEY (id_type_garantie)  REFERENCES type_garantie(id_type_garantie) ON DELETE SET NULL,
     CONSTRAINT chk_ligne_panier_quantite CHECK (quantite > 0),
     CONSTRAINT chk_ligne_panier_prix     CHECK (prix_unitaire >= 0),
     CONSTRAINT uq_panier_variant UNIQUE (id_panier, id_variant)
@@ -915,11 +951,13 @@ CREATE TABLE bon_achat (
     utilise          BOOLEAN NOT NULL DEFAULT FALSE,
     id_facture       BIGINT NULL,
     date_creation    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    date_expiration  DATETIME NULL,
     date_utilisation DATETIME NULL,
     CONSTRAINT fk_bon_client  FOREIGN KEY (id_client)  REFERENCES client(id_client),
     CONSTRAINT fk_bon_facture FOREIGN KEY (id_facture) REFERENCES facture(id_facture),
     CONSTRAINT chk_bon_valeur CHECK (valeur > 0),
-    CONSTRAINT chk_bon_points CHECK (points_utilises > 0)
+    CONSTRAINT chk_bon_points CHECK (points_utilises > 0),
+    CONSTRAINT chk_bon_dates  CHECK (date_expiration IS NULL OR date_expiration > date_creation)
 );
 
 CREATE TABLE historique_points (
@@ -947,6 +985,8 @@ CREATE TABLE ligne_facture (
     montant_ligne     DECIMAL(10,2) NOT NULL,
     montant_ht_ligne  DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     montant_tva_ligne DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    garantie_label    VARCHAR(200)  NULL,
+    garantie_prix     DECIMAL(10,2) NULL,
     CONSTRAINT fk_ligne_facture_facture        FOREIGN KEY (id_facture)        REFERENCES facture(id_facture)             ON DELETE CASCADE,
     CONSTRAINT fk_ligne_facture_ligne_commande FOREIGN KEY (id_ligne_commande) REFERENCES ligne_commande(id_ligne_commande),
     CONSTRAINT fk_ligne_facture_variant        FOREIGN KEY (id_variant)        REFERENCES produit_variant(id_variant),
@@ -1373,6 +1413,7 @@ CREATE INDEX idx_produit_nom                     ON produit(nom);
 CREATE INDEX idx_produit_actif                   ON produit(actif, deleted);
 CREATE INDEX idx_produit_niveau                  ON produit(niveau_acces_min);
 CREATE INDEX idx_variant_produit                 ON produit_variant(id_produit);
+CREATE INDEX idx_variant_edition                 ON produit_variant(id_edition);
 CREATE INDEX idx_variant_plateforme              ON produit_variant(id_plateforme);
 CREATE INDEX idx_variant_format                  ON produit_variant(id_format_produit);
 CREATE INDEX idx_variant_statut                  ON produit_variant(id_statut_produit);
@@ -1381,10 +1422,10 @@ CREATE INDEX idx_variant_demat                   ON produit_variant(est_demat);
 CREATE INDEX idx_variant_tcg                     ON produit_variant(est_tcg_unitaire);
 CREATE INDEX idx_variant_reprise                 ON produit_variant(est_reprise);
 CREATE INDEX idx_prix_variant                    ON produit_prix(id_variant);
-CREATE INDEX idx_prix_canal                      ON produit_prix(id_canal_vente);
 CREATE INDEX idx_prix_dates                      ON produit_prix(date_debut, date_fin);
-CREATE INDEX idx_image_produit                   ON produit_image(id_produit);
+CREATE INDEX idx_image_variant                   ON produit_image(id_variant);
 CREATE INDEX idx_video_produit                   ON produit_video(id_produit);
+CREATE INDEX idx_screenshot_produit              ON produit_screenshot(id_produit, ordre_affichage);
 CREATE INDEX idx_tcg_extension_jeu               ON tcg_extension(id_tcg_jeu);
 CREATE INDEX idx_tcg_reference_extension         ON tcg_carte_reference(id_tcg_extension);
 CREATE INDEX idx_tcg_reference_nom               ON tcg_carte_reference(nom_carte);
@@ -1549,20 +1590,20 @@ JOIN produit_variant pv ON pv.id_produit        = p.id_produit
 LEFT JOIN plateforme pl ON pl.id_plateforme     = pv.id_plateforme
 JOIN format_produit fp  ON fp.id_format_produit = pv.id_format_produit
 JOIN statut_produit sp  ON sp.id_statut_produit = pv.id_statut_produit
-LEFT JOIN produit_image img ON img.id_produit   = p.id_produit AND img.principale = TRUE
+LEFT JOIN produit_image img ON img.id_variant   = pv.id_variant AND img.principale = TRUE
 WHERE p.deleted = FALSE AND p.actif = TRUE AND pv.actif = TRUE;
 
 CREATE VIEW v_prix_actuel AS
 SELECT
     pp.id_prix,
     pp.id_variant,
-    pp.id_canal_vente,
-    pp.prix,
+    pp.prix_neuf,
+    pp.prix_occasion,
+    pp.prix_reprise,
+    pp.prix_location,
     pp.date_debut,
-    pp.date_fin,
-    cv.code AS canal_vente
+    pp.date_fin
 FROM produit_prix pp
-JOIN canal_vente cv ON cv.id_canal_vente = pp.id_canal_vente
 WHERE pp.actif = TRUE
   AND pp.date_debut <= NOW()
   AND (pp.date_fin IS NULL OR pp.date_fin > NOW());
@@ -1984,10 +2025,10 @@ AFTER INSERT ON ligne_facture
 FOR EACH ROW
 BEGIN
     UPDATE facture
-    SET montant_total     = (SELECT IFNULL(SUM(montant_ligne),    0) FROM ligne_facture WHERE id_facture = NEW.id_facture),
-        montant_ht_total  = (SELECT IFNULL(SUM(montant_ht_ligne), 0) FROM ligne_facture WHERE id_facture = NEW.id_facture),
-        montant_tva_total = (SELECT IFNULL(SUM(montant_tva_ligne),0) FROM ligne_facture WHERE id_facture = NEW.id_facture),
-        montant_final     = (SELECT IFNULL(SUM(montant_ligne),    0) FROM ligne_facture WHERE id_facture = NEW.id_facture) - montant_remise
+    SET montant_total     = (SELECT IFNULL(SUM(montant_ligne + IFNULL(garantie_prix,0)),0) FROM ligne_facture WHERE id_facture = NEW.id_facture),
+        montant_ht_total  = (SELECT IFNULL(SUM(montant_ht_ligne), 0)                       FROM ligne_facture WHERE id_facture = NEW.id_facture),
+        montant_tva_total = (SELECT IFNULL(SUM(montant_tva_ligne),0)                       FROM ligne_facture WHERE id_facture = NEW.id_facture),
+        montant_final     = GREATEST(0,(SELECT IFNULL(SUM(montant_ligne + IFNULL(garantie_prix,0)),0) FROM ligne_facture WHERE id_facture = NEW.id_facture) - montant_remise)
     WHERE id_facture = NEW.id_facture;
 END$$
 
@@ -1996,10 +2037,10 @@ AFTER UPDATE ON ligne_facture
 FOR EACH ROW
 BEGIN
     UPDATE facture
-    SET montant_total     = (SELECT IFNULL(SUM(montant_ligne),    0) FROM ligne_facture WHERE id_facture = NEW.id_facture),
-        montant_ht_total  = (SELECT IFNULL(SUM(montant_ht_ligne), 0) FROM ligne_facture WHERE id_facture = NEW.id_facture),
-        montant_tva_total = (SELECT IFNULL(SUM(montant_tva_ligne),0) FROM ligne_facture WHERE id_facture = NEW.id_facture),
-        montant_final     = (SELECT IFNULL(SUM(montant_ligne),    0) FROM ligne_facture WHERE id_facture = NEW.id_facture) - montant_remise
+    SET montant_total     = (SELECT IFNULL(SUM(montant_ligne + IFNULL(garantie_prix,0)),0) FROM ligne_facture WHERE id_facture = NEW.id_facture),
+        montant_ht_total  = (SELECT IFNULL(SUM(montant_ht_ligne), 0)                       FROM ligne_facture WHERE id_facture = NEW.id_facture),
+        montant_tva_total = (SELECT IFNULL(SUM(montant_tva_ligne),0)                       FROM ligne_facture WHERE id_facture = NEW.id_facture),
+        montant_final     = GREATEST(0,(SELECT IFNULL(SUM(montant_ligne + IFNULL(garantie_prix,0)),0) FROM ligne_facture WHERE id_facture = NEW.id_facture) - montant_remise)
     WHERE id_facture = NEW.id_facture;
 END$$
 
@@ -2008,10 +2049,10 @@ AFTER DELETE ON ligne_facture
 FOR EACH ROW
 BEGIN
     UPDATE facture
-    SET montant_total     = (SELECT IFNULL(SUM(montant_ligne),    0) FROM ligne_facture WHERE id_facture = OLD.id_facture),
-        montant_ht_total  = (SELECT IFNULL(SUM(montant_ht_ligne), 0) FROM ligne_facture WHERE id_facture = OLD.id_facture),
-        montant_tva_total = (SELECT IFNULL(SUM(montant_tva_ligne),0) FROM ligne_facture WHERE id_facture = OLD.id_facture),
-        montant_final     = (SELECT IFNULL(SUM(montant_ligne),    0) FROM ligne_facture WHERE id_facture = OLD.id_facture) - montant_remise
+    SET montant_total     = (SELECT IFNULL(SUM(montant_ligne + IFNULL(garantie_prix,0)),0) FROM ligne_facture WHERE id_facture = OLD.id_facture),
+        montant_ht_total  = (SELECT IFNULL(SUM(montant_ht_ligne), 0)                       FROM ligne_facture WHERE id_facture = OLD.id_facture),
+        montant_tva_total = (SELECT IFNULL(SUM(montant_tva_ligne),0)                       FROM ligne_facture WHERE id_facture = OLD.id_facture),
+        montant_final     = GREATEST(0,(SELECT IFNULL(SUM(montant_ligne + IFNULL(garantie_prix,0)),0) FROM ligne_facture WHERE id_facture = OLD.id_facture) - montant_remise)
     WHERE id_facture = OLD.id_facture;
 END$$
 

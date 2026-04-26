@@ -19,4 +19,11 @@ public interface StockService {
     List<StockMagasinResponse> getRuptureMagasin(Long idMagasin);
 
     List<MouvementStockResponse> getMouvements(Long idVariant, Long idMagasin, Pageable pageable);
+
+    List<StockCheckoutResponse> getStockCheckout(Long idVariant);
+
+    StockEntrepotCheckoutResponse getStockEntrepotCheckout(Long idVariant);
+
+    /** Transfert atomique dépôt → magasin */
+    void transfererDepotVersMagasin(TransfertStockRequest request);
 }

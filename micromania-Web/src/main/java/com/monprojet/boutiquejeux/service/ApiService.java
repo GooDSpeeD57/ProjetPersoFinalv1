@@ -5,6 +5,8 @@ import com.monprojet.boutiquejeux.dto.api.catalog.ApiAvisClient;
 import com.monprojet.boutiquejeux.dto.api.catalog.ApiCategorie;
 import com.monprojet.boutiquejeux.dto.api.catalog.ApiProduitDetail;
 import com.monprojet.boutiquejeux.dto.api.catalog.ApiProduitSummary;
+import com.monprojet.boutiquejeux.dto.api.catalog.ApiVariantSummary;
+import com.monprojet.boutiquejeux.dto.api.referentiel.ApiEdition;
 import com.monprojet.boutiquejeux.dto.api.client.ApiAdresse;
 import com.monprojet.boutiquejeux.dto.api.client.ApiAdresseRequest;
 import com.monprojet.boutiquejeux.dto.api.client.ApiAvatar;
@@ -18,8 +20,11 @@ import com.monprojet.boutiquejeux.dto.api.common.ApiPage;
 import com.monprojet.boutiquejeux.dto.api.facture.ApiCheckoutPanierRequest;
 import com.monprojet.boutiquejeux.dto.api.facture.ApiFactureDetail;
 import com.monprojet.boutiquejeux.dto.api.facture.ApiFactureSummary;
+import com.monprojet.boutiquejeux.dto.api.garantie.ApiGarantie;
 import com.monprojet.boutiquejeux.dto.api.magasin.ApiMagasin;
 import com.monprojet.boutiquejeux.dto.api.magasin.ApiMagasinProche;
+import com.monprojet.boutiquejeux.dto.api.stock.ApiStockCheckout;
+import com.monprojet.boutiquejeux.dto.api.stock.ApiStockEntrepotCheckout;
 import com.monprojet.boutiquejeux.dto.api.panier.ApiPanier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +51,16 @@ public class ApiService {
     private final ObjectMapper objectMapper;
 
     public ApiPage<ApiProduitSummary> getProduits(int page, int size, String q, Long categorie, String niveau) {
+        return getProduits(page, size, q, categorie, niveau, null, null, null, null);
+    }
+
+    public ApiPage<ApiProduitSummary> getProduits(int page, int size, String q, Long categorie, String niveau,
+                                                   String plateforme, String famille, String etat) {
+        return getProduits(page, size, q, categorie, niveau, plateforme, famille, etat, null);
+    }
+
+    public ApiPage<ApiProduitSummary> getProduits(int page, int size, String q, Long categorie, String niveau,
+                                                   String plateforme, String famille, String etat, String tri) {
         try {
             return restClient.get()
                     .uri(uriBuilder -> {
@@ -55,6 +70,10 @@ public class ApiService {
                         if (q != null && !q.isBlank()) uriBuilder.queryParam("q", q);
                         if (categorie != null) uriBuilder.queryParam("categorie", categorie);
                         if (niveau != null && !niveau.isBlank()) uriBuilder.queryParam("niveau", niveau);
+                        if (plateforme != null && !plateforme.isBlank()) uriBuilder.queryParam("plateforme", plateforme);
+                        if (famille != null && !famille.isBlank()) uriBuilder.queryParam("famille", famille);
+                        if (etat != null && !etat.isBlank()) uriBuilder.queryParam("etat", etat);
+                        if (tri != null && !tri.isBlank()) uriBuilder.queryParam("tri", tri);
                         return uriBuilder.build();
                     })
                     .retrieve()
@@ -68,6 +87,63 @@ public class ApiService {
         }
     }
 
+
+    public ApiPage<ApiVariantSummary> getCatalogue(int page, int size, String q, Long categorie,
+                                                    String plateforme, String famille, String etat,
+                                                    String edition, String tri) {
+        try {
+            return restClient.get()
+                    .uri(uriBuilder -> {
+                        uriBuilder.path("/catalogue")
+                                .queryParam("page", page)
+                                .queryParam("size", size);
+                        if (q          != null && !q.isBlank())          uriBuilder.queryParam("q",          q);
+                        if (categorie  != null)                           uriBuilder.queryParam("categorie",  categorie);
+                        if (plateforme != null && !plateforme.isBlank())  uriBuilder.queryParam("plateforme", plateforme);
+                        if (famille    != null && !famille.isBlank())     uriBuilder.queryParam("famille",    famille);
+                        if (etat       != null && !etat.isBlank())        uriBuilder.queryParam("etat",       etat);
+                        if (edition    != null && !edition.isBlank())     uriBuilder.queryParam("edition",    edition);
+                        if (tri        != null && !tri.isBlank())         uriBuilder.queryParam("tri",        tri);
+                        return uriBuilder.build();
+                    })
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {});
+        } catch (RestClientResponseException e) {
+            log.error("getCatalogue error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return emptyPageVariant();
+        } catch (Exception e) {
+            log.error("getCatalogue error", e);
+            return emptyPageVariant();
+        }
+    }
+
+    public List<ApiEdition> getEditions() {
+        try {
+            return restClient.get()
+                    .uri("/referentiel/editions")
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {});
+        } catch (Exception e) {
+            log.error("getEditions error", e);
+            return List.of();
+        }
+    }
+
+    public List<com.monprojet.boutiquejeux.dto.api.referentiel.ApiTypeGarantie> getTypesGarantie(Long categorieId) {
+        try {
+            return restClient.get()
+                    .uri(uriBuilder -> {
+                        uriBuilder.path("/referentiel/types-garantie");
+                        if (categorieId != null) uriBuilder.queryParam("categorieId", categorieId);
+                        return uriBuilder.build();
+                    })
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<List<com.monprojet.boutiquejeux.dto.api.referentiel.ApiTypeGarantie>>() {});
+        } catch (Exception e) {
+            log.error("getTypesGarantie error", e);
+            return List.of();
+        }
+    }
 
     public ApiPage<ApiProduitSummary> getProduitsTries(int page, int size, String q, Long categorie, String niveau, String... tris) {
         try {
@@ -140,6 +216,21 @@ public class ApiService {
         } catch (Exception e) {
             log.error("getProduitDetail error", e);
             return null;
+        }
+    }
+
+    public boolean peutSoumettreAvis(String jwtToken, Long idProduit) {
+        try {
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> resp = restClient.get()
+                    .uri("/produits/{idProduit}/avis/eligible", idProduit)
+                    .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
+                    .retrieve()
+                    .body(java.util.Map.class);
+            return resp != null && Boolean.TRUE.equals(resp.get("eligible"));
+        } catch (Exception e) {
+            log.error("peutSoumettreAvis error", e);
+            return false;
         }
     }
 
@@ -346,7 +437,7 @@ public class ApiService {
             List<ApiBonAchat> bons = restClient.get().uri("/clients/me/bons-achat")
                     .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
                     .retrieve()
-                    .body(new ParameterizedTypeReference<>() {});
+                    .body(new ParameterizedTypeReference<List<ApiBonAchat>>() {});
             return bons != null ? bons : List.of();
         } catch (RestClientResponseException e) {
             log.error("getClientBonsAchat error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
@@ -359,7 +450,7 @@ public class ApiService {
             List<ApiHistoriquePoints> historique = restClient.get().uri("/clients/me/historique-points")
                     .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
                     .retrieve()
-                    .body(new ParameterizedTypeReference<>() {});
+                    .body(new ParameterizedTypeReference<List<ApiHistoriquePoints>>() {});
             return historique != null ? historique : List.of();
         } catch (RestClientResponseException e) {
             log.error("getClientHistoriquePoints error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
@@ -372,10 +463,71 @@ public class ApiService {
             return restClient.get().uri("/factures/me?page=0&size=20")
                     .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
                     .retrieve()
-                    .body(new ParameterizedTypeReference<>() {});
+                    .body(new ParameterizedTypeReference<ApiPage<ApiFactureSummary>>() {});
         } catch (RestClientResponseException e) {
             log.error("getClientFactures error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
             return emptyPage();
+        }
+    }
+
+    public List<ApiGarantie> getClientGaranties(String jwtToken) {
+        try {
+            List<ApiGarantie> list = restClient.get().uri("/clients/me/garanties")
+                    .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<List<ApiGarantie>>() {});
+            return list != null ? list : List.of();
+        } catch (RestClientResponseException e) {
+            log.error("getClientGaranties error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return List.of();
+        }
+    }
+
+    public ApiClient setMagasinFavori(String jwtToken, Long idMagasin) {
+        try {
+            return restClient.put().uri("/clients/me/magasin-favori/{id}", idMagasin)
+                    .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
+                    .retrieve()
+                    .body(ApiClient.class);
+        } catch (RestClientResponseException e) {
+            log.error("setMagasinFavori error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException(extractMessage(e));
+        }
+    }
+
+    public void removeMagasinFavori(String jwtToken) {
+        try {
+            restClient.delete().uri("/clients/me/magasin-favori")
+                    .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientResponseException e) {
+            log.error("removeMagasinFavori error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException(extractMessage(e));
+        }
+    }
+
+    public void simulerVerificationEmail(String jwtToken) {
+        try {
+            restClient.post().uri("/clients/me/verifier-email")
+                    .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientResponseException e) {
+            log.error("simulerVerificationEmail error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException(extractMessage(e));
+        }
+    }
+
+    public void simulerVerificationTelephone(String jwtToken) {
+        try {
+            restClient.post().uri("/clients/me/verifier-telephone")
+                    .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientResponseException e) {
+            log.error("simulerVerificationTelephone error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException(extractMessage(e));
         }
     }
 
@@ -457,11 +609,15 @@ public class ApiService {
     }
 
     public List<ApiMagasinProche> getMagasinsProches(String jwtToken, Long idAdresse) {
+        return getMagasinsProches(jwtToken, idAdresse, 5);
+    }
+
+    public List<ApiMagasinProche> getMagasinsProches(String jwtToken, Long idAdresse, int limit) {
         try {
             List<ApiMagasinProche> magasins = restClient.get()
                     .uri(uriBuilder -> uriBuilder.path("/magasins/proches")
                             .queryParam("idAdresse", idAdresse)
-                            .queryParam("limit", 5)
+                            .queryParam("limit", limit)
                             .build())
                     .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
                     .retrieve()
@@ -470,6 +626,39 @@ public class ApiService {
         } catch (RestClientResponseException e) {
             log.error("getMagasinsProches error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
             return List.of();
+        }
+    }
+
+    public List<ApiStockCheckout> getStockCheckout(String jwtToken, Long idVariant) {
+        try {
+            List<ApiStockCheckout> stocks = restClient.get()
+                    .uri("/stock/checkout/variant/{idVariant}", idVariant)
+                    .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {});
+            return stocks != null ? stocks : List.of();
+        } catch (RestClientResponseException e) {
+            log.error("getStockCheckout error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return List.of();
+        } catch (Exception e) {
+            log.error("getStockCheckout error", e);
+            return List.of();
+        }
+    }
+
+    public ApiStockEntrepotCheckout getStockEntrepotCheckout(String jwtToken, Long idVariant) {
+        try {
+            return restClient.get()
+                    .uri("/stock/checkout/entrepot/variant/{idVariant}", idVariant)
+                    .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
+                    .retrieve()
+                    .body(ApiStockEntrepotCheckout.class);
+        } catch (RestClientResponseException e) {
+            log.error("getStockEntrepotCheckout error {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return null;
+        } catch (Exception e) {
+            log.error("getStockEntrepotCheckout error", e);
+            return null;
         }
     }
 
@@ -497,12 +686,17 @@ public class ApiService {
         }
     }
 
-    public ApiPanier addLignePanier(String jwtToken, Long idVariant, Integer quantite) {
+    public ApiPanier addLignePanier(String jwtToken, Long idVariant, Integer quantite, Long typeGarantieId) {
         try {
+            java.util.Map<String, Object> body = new java.util.LinkedHashMap<>();
+            body.put("idVariant",      idVariant);
+            body.put("quantite",       quantite);
+            body.put("idCanalVente",   1L);
+            if (typeGarantieId != null) body.put("idTypeGarantie", typeGarantieId);
             return restClient.post().uri("/panier/lignes")
                     .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of("idVariant", idVariant, "quantite", quantite, "idCanalVente", 1L))
+                    .body(body)
                     .retrieve()
                     .body(ApiPanier.class);
         } catch (RestClientResponseException e) {
@@ -564,13 +758,13 @@ public class ApiService {
 
     public ApiFactureDetail checkoutPanier(String jwtToken,
                                            Long idAdresse,
-                                           Long idBonAchat,
+                                           List<Long> idsBonAchat,
                                            String modePaiementCode) {
         try {
             return restClient.post()
                     .uri("/factures/me/checkout")
                     .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
-                    .body(new ApiCheckoutPanierRequest(idAdresse, idBonAchat, modePaiementCode))
+                    .body(new ApiCheckoutPanierRequest(idAdresse, idsBonAchat, modePaiementCode))
                     .retrieve()
                     .body(ApiFactureDetail.class);
         } catch (RestClientResponseException e) {
@@ -581,7 +775,7 @@ public class ApiService {
 
     public ApiFactureDetail checkoutPanier(String jwtToken,
                                            Long idAdresse,
-                                           Long idBonAchat,
+                                           List<Long> idsBonAchat,
                                            String modePaiementCode,
                                            String modeLivraisonCode,
                                            Long idMagasinRetrait) {
@@ -589,7 +783,7 @@ public class ApiService {
             return restClient.post()
                     .uri("/factures/me/checkout")
                     .header(HttpHeaders.AUTHORIZATION, bearer(jwtToken))
-                    .body(new ApiCheckoutPanierRequest(idAdresse, idBonAchat, modePaiementCode, modeLivraisonCode, idMagasinRetrait))
+                    .body(new ApiCheckoutPanierRequest(idAdresse, idsBonAchat, modePaiementCode, modeLivraisonCode, idMagasinRetrait))
                     .retrieve()
                     .body(ApiFactureDetail.class);
         } catch (RestClientResponseException e) {
@@ -623,6 +817,10 @@ public class ApiService {
     }
 
     private <T> ApiPage<T> emptyPage() {
+        return new ApiPage<>(List.of(), 0, 0, 0, 0L, true, true, true);
+    }
+
+    private ApiPage<ApiVariantSummary> emptyPageVariant() {
         return new ApiPage<>(List.of(), 0, 0, 0, 0L, true, true, true);
     }
 }

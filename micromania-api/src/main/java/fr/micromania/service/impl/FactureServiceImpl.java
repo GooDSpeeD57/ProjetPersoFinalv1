@@ -8,9 +8,6 @@ import fr.micromania.entity.catalog.ProduitVariant;
 import fr.micromania.entity.commande.*;
 import fr.micromania.entity.referentiel.*;
 import fr.micromania.mapper.FactureMapper;
-import fr.micromania.entity.Client;
-import fr.micromania.entity.commande.Promotion;
-import fr.micromania.entity.commande.PromotionUsage;
 import fr.micromania.repository.*;
 import fr.micromania.service.FactureService;
 import fr.micromania.service.FideliteService;
@@ -26,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -248,13 +246,15 @@ public class FactureServiceImpl implements FactureService {
             throw new IllegalStateException("Ajoutez une adresse puis sélectionnez-la pour finaliser votre commande");
         }
 
-        Magasin magasinCheckout = "RETRAIT_MAGASIN".equals(modeLivraison)
+        Magasin magasinCheckout = ("RETRAIT_MAGASIN".equals(modeLivraison) || "LIVRAISON_MAGASIN".equals(modeLivraison))
             ? chargerMagasinRetraitOuProche(idClient, request != null ? request.idMagasinRetrait() : null, adresse)
             : resoudreMagasinPourCheckout(adresse);
 
-        BonAchat bonAchat = null;
-        if (request != null && request.idBonAchat() != null) {
-            bonAchat = chargerBonAchatDisponible(idClient, request.idBonAchat());
+        List<BonAchat> bonsAchat = new ArrayList<>();
+        if (request != null && request.idsBonAchat() != null) {
+            for (Long idBon : request.idsBonAchat()) {
+                bonsAchat.add(chargerBonAchatDisponible(idClient, idBon));
+            }
         }
 
         Facture facture = Facture.builder()
@@ -282,17 +282,22 @@ public class FactureServiceImpl implements FactureService {
                 lignePanier.getPrixUnitaire(),
                 null
             );
+            if (lignePanier.getTypeGarantie() != null) {
+                TypeGarantie tg = lignePanier.getTypeGarantie();
+                ligneFacture.setGarantieLabel(tg.getDescription() != null ? tg.getDescription() : tg.getCode());
+                ligneFacture.setGarantiePrix(tg.getPrixExtension());
+            }
             facture.getLignes().add(ligneFacture);
         }
 
         recalculerTotauxFacture(facture);
-        if (bonAchat != null) {
-            appliquerBonAchat(facture, bonAchat);
+        for (BonAchat bon : bonsAchat) {
+            appliquerBonAchat(facture, bon);
         }
 
         facture = factureRepository.save(facture);
-        if (bonAchat != null) {
-            marquerBonAchatCommeUtilise(bonAchat, facture);
+        for (BonAchat bon : bonsAchat) {
+            marquerBonAchatCommeUtilise(bon, facture);
         }
 
         fideliteService.traiterFideliteApresFacture(facture);
@@ -408,7 +413,11 @@ public class FactureServiceImpl implements FactureService {
 
     private void recalculerTotauxFacture(Facture facture) {
         BigDecimal total = facture.getLignes().stream()
-            .map(LigneFacture::getMontantLigne)
+            .map(l -> {
+                BigDecimal m = l.getMontantLigne();
+                if (l.getGarantiePrix() != null) m = m.add(l.getGarantiePrix());
+                return m;
+            })
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal totalHt = facture.getLignes().stream()
@@ -445,7 +454,6 @@ public class FactureServiceImpl implements FactureService {
     }
 
     private void appliquerBonAchat(Facture facture, BonAchat bonAchat) {
-        facture.setBonAchat(bonAchat);
         BigDecimal remiseCalculee = facture.getMontantRemise().add(bonAchat.getValeur());
         BigDecimal remisePlafonnee = remiseCalculee.min(facture.getMontantTotal());
         facture.setMontantRemise(remisePlafonnee);

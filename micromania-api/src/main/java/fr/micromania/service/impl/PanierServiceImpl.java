@@ -7,6 +7,7 @@ import fr.micromania.entity.commande.LignePanier;
 import fr.micromania.entity.commande.Panier;
 import fr.micromania.entity.referentiel.CanalVente;
 import fr.micromania.entity.referentiel.StatutPanier;
+import fr.micromania.entity.referentiel.TypeGarantie;
 import fr.micromania.mapper.PanierMapper;
 import fr.micromania.repository.CanalVenteRepository;
 import fr.micromania.repository.ClientRepository;
@@ -15,6 +16,7 @@ import fr.micromania.repository.PanierRepository;
 import fr.micromania.repository.ProduitVariantRepository;
 import fr.micromania.repository.StatutPanierRepository;
 import fr.micromania.repository.StockMagasinRepository;
+import fr.micromania.repository.TypeGarantieRepository;
 import fr.micromania.service.PanierService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,7 @@ public class PanierServiceImpl implements PanierService {
     private final StatutPanierRepository statutPanierRepository;
     private final CanalVenteRepository canalVenteRepository;
     private final StockMagasinRepository stockMagasinRepository;
+    private final TypeGarantieRepository typeGarantieRepository;
     private final PanierMapper panierMapper;
 
     @Override
@@ -61,19 +64,28 @@ public class PanierServiceImpl implements PanierService {
 
         verifierStock(variant, request.quantite());
 
+        TypeGarantie typeGarantie = null;
+        if (request.idTypeGarantie() != null) {
+            typeGarantie = typeGarantieRepository.findById(request.idTypeGarantie())
+                .orElse(null);
+        }
+        final TypeGarantie garantieFinale = typeGarantie;
+
         lignePanierRepository.findByPanierIdAndVariantId(panier.getId(), variant.getId())
             .ifPresentOrElse(
                 ligne -> {
                     ligne.setQuantite(ligne.getQuantite() + request.quantite());
+                    if (garantieFinale != null) ligne.setTypeGarantie(garantieFinale);
                     lignePanierRepository.save(ligne);
                 },
                 () -> {
-                    BigDecimal prix = resoudrePrix(variant, panier.getCanalVente().getCode());
+                    BigDecimal prix = resoudrePrix(variant);
                     LignePanier ligne = LignePanier.builder()
                         .panier(panier)
                         .variant(variant)
                         .quantite(request.quantite())
                         .prixUnitaire(prix)
+                        .typeGarantie(garantieFinale)
                         .build();
                     lignePanierRepository.save(ligne);
                     panier.getLignes().add(ligne);
@@ -182,13 +194,21 @@ public class PanierServiceImpl implements PanierService {
         return panierRepository.save(panier);
     }
 
-    private BigDecimal resoudrePrix(ProduitVariant variant, String canalCode) {
+    private BigDecimal resoudrePrix(ProduitVariant variant) {
+        String statut = variant.getStatutProduit() != null
+                ? variant.getStatutProduit().getCode().toUpperCase() : "NEUF";
         return variant.getPrix().stream()
-            .filter(p -> p.isActif() && p.getCanalVente().getCode().equals(canalCode))
-            .map(fr.micromania.entity.catalog.ProduitPrix::getPrix)
+            .filter(fr.micromania.entity.catalog.ProduitPrix::isActif)
+            .map(p -> switch (statut) {
+                case "OCCASION" -> p.getPrixOccasion();
+                case "LOCATION" -> p.getPrixLocation();
+                case "REPRISE"  -> p.getPrixReprise();
+                default         -> p.getPrixNeuf();
+            })
+            .filter(px -> px != null)
             .findFirst()
             .orElseThrow(() -> new IllegalStateException(
-                "Aucun prix actif pour variant=" + variant.getSku() + " canal=" + canalCode));
+                "Aucun prix actif pour variant=" + variant.getSku()));
     }
 
     private PanierResponse enrichirPanier(Panier panier) {
@@ -196,10 +216,15 @@ public class PanierServiceImpl implements PanierService {
         BigDecimal sousTotal = lignes.stream()
             .map(LignePanierResponse::montantLigne)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalGaranties = lignes.stream()
+            .filter(l -> l.garantiePrix() != null)
+            .map(LignePanierResponse::garantiePrix)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal total = sousTotal.add(totalGaranties);
         PanierResponse base = panierMapper.toPanierResponse(panier);
         return new PanierResponse(
             base.id(), base.statutPanier(), base.canalVente(), base.codePromo(),
-            lignes, sousTotal, BigDecimal.ZERO, sousTotal, base.dateDerniereActivite()
+            lignes, sousTotal, BigDecimal.ZERO, total, base.dateDerniereActivite()
         );
     }
 

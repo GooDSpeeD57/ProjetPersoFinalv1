@@ -5,7 +5,7 @@
 </head>
 <body>
 <div class="site-shell">
-<th:block th:replace="~{fragments/layout :: navbar}"/>
+<th:block th:replace="~{fragments/navbar :: navbar}"/>
 
 <main>
   <div class="container">
@@ -58,13 +58,23 @@
                   </tr>
                   </thead>
                   <tbody>
-                  <tr th:each="ligne : ${facture.lignes()}">
+                  <th:block th:each="ligne : ${facture.lignes()}">
+                  <tr>
                     <td th:text="${ligne.nomCommercial()}">Produit</td>
                     <td th:text="${ligne.sku()}">SKU</td>
                     <td th:text="${ligne.quantite()}">1</td>
                     <td th:text="${#numbers.formatDecimal(ligne.prixUnitaire(),1,2) + ' €'}">10.00 €</td>
                     <td th:text="${#numbers.formatDecimal(ligne.montantLigne(),1,2) + ' €'}">10.00 €</td>
                   </tr>
+                  <tr th:if="${ligne.garantiePrix() != null}"
+                      style="font-size:0.85rem;color:var(--accent-soft,#8b5cf6)">
+                    <td>🛡 <span th:text="${ligne.garantieLabel() != null ? ligne.garantieLabel() : 'Garantie'}"></span></td>
+                    <td>—</td>
+                    <td>1</td>
+                    <td th:text="${#numbers.formatDecimal(ligne.garantiePrix(),1,2) + ' €'}"></td>
+                    <td th:text="${#numbers.formatDecimal(ligne.garantiePrix(),1,2) + ' €'}"></td>
+                  </tr>
+                  </th:block>
                   </tbody>
                 </table>
               </div>
@@ -87,8 +97,7 @@
   </div>
 </main>
 
-<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/footer :: footer}"/>
 </div>
-<th:block th:replace="~{fragments/layout :: scripts}"/>
 </body>
 </html>

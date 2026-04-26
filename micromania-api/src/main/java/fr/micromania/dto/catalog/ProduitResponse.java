@@ -18,9 +18,12 @@ public record ProduitResponse(
     String niveauAccesMin,
     String langue,
     boolean misEnAvant,
+    boolean estPreCommande,
     CodeDescriptionDto categorie,
     List<ProduitVariantResponse> variants,
     List<ProduitImageDto> images,
+    List<ScreenshotDto> screenshots,
+    List<ProduitVideoResponse> videos,
     Double noteMoyenne,
     long nbAvis,
     List<AvisProduitPublicResponse> avis

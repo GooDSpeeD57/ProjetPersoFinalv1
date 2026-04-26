@@ -1,7 +1,9 @@
 package com.monprojet.boutiquejeux.dto.api.catalog;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record ApiProduitVariant(
         Long id,
         String sku,
@@ -10,7 +12,7 @@ public record ApiProduitVariant(
         ApiPlateforme plateforme,
         String formatProduit,
         String statutProduit,
-        String edition,
+        ApiEditionRef edition,
         String couleur,
         String langueVente,
         boolean scelle,
@@ -19,7 +21,9 @@ public record ApiProduitVariant(
         boolean estReprise,
         boolean necessiteNumeroSerie,
         ApiTauxTva tauxTva,
-        BigDecimal prixWeb,
-        BigDecimal prixMagasin,
+        BigDecimal prixNeuf,
+        BigDecimal prixOccasion,
+        BigDecimal prixReprise,
+        BigDecimal prixLocation,
         boolean actif
 ) {}

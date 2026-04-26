@@ -24,6 +24,7 @@ public class MagasinController {
 
     @GetMapping
     String index(@RequestParam(required = false) String q,
+                 @RequestParam(required = false, defaultValue = "false") boolean popup,
                  HttpSession session,
                  Model model) {
 
@@ -31,11 +32,25 @@ public class MagasinController {
         boolean hasSearch = !recherche.isBlank();
         List<ApiMagasin> magasins = hasSearch ? apiService.getMagasins(recherche) : List.of();
 
+        // récupère l'id du magasin favori actuel (si connecté)
+        Long magasinFavoriId = null;
+        if (session.getAttribute("jwt") != null) {
+            try {
+                var client = apiService.getClientMe((String) session.getAttribute("jwt"));
+                if (client != null && client.magasinFavori() != null) {
+                    magasinFavoriId = client.magasinFavori().id();
+                }
+            } catch (Exception ignored) {}
+        }
+
         model.addAttribute("magasins", magasins);
         model.addAttribute("q", recherche);
         model.addAttribute("hasSearch", hasSearch);
         model.addAttribute("selectedMagasinId", session.getAttribute("selectedMagasinId"));
-        return "magasins/index";
+        model.addAttribute("magasinFavoriId", magasinFavoriId);
+        model.addAttribute("popup", popup);
+        model.addAttribute("estConnecte", session.getAttribute("jwt") != null);
+        return popup ? "magasins/popup" : "magasins/index";
     }
 
     @PostMapping("/{idMagasin}/selection")

@@ -31,11 +31,11 @@ public class Employe {
     @Column(name = "mot_de_passe", nullable = false, length = 255)
     private String motDePasse;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "id_role", nullable = false)
     private Role role;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "id_magasin", nullable = false)
     private Magasin magasin;
 

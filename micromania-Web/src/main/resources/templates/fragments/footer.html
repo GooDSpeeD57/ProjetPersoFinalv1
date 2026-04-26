@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<th:block th:fragment="footer">
+<footer>
+
+  <div class="footer-body">
+
+    <div class="footer-brand-col">
+      <a th:href="@{/}" class="footer-logo">MICROMANIA</a>
+      <p class="footer-tagline">Votre spécialiste jeux vidéo,<br>consoles et culture pop.</p>
+      <form class="footer-newsletter" onsubmit="return false">
+        <label class="footer-newsletter-label" for="footerEmail">Newsletter</label>
+        <div class="footer-newsletter-row">
+          <input id="footerEmail" type="email" placeholder="votre@email.com" class="footer-newsletter-input"/>
+          <button type="submit" class="btn btn-primary btn-sm">OK</button>
+        </div>
+        <p class="footer-newsletter-note">Uniquement utilisé pour les offres MICROMANIA.</p>
+      </form>
+    </div>
+
+    <div class="footer-links-grid">
+      <div class="footer-col">
+        <h3 class="footer-col-title">Consoles</h3>
+        <ul class="footer-col-list">
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='consoles')}">Toutes les consoles</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='consoles',plateforme='ps4')}">Consoles Playstation 4</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='consoles',plateforme='ps5')}">Consoles Playstation 5</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='consoles',plateforme='switch')}">Consoles Switch</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='consoles',plateforme='switch2')}">Consoles Switch 2</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='consoles',plateforme='XBOX_ONE')}">Consoles Xbox One</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='consoles',plateforme='XBOX_SERIES')}">Consoles Xbox Series S/X</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h3 class="footer-col-title">Jeux vidéo</h3>
+        <ul class="footer-col-list">
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='jeux')}">Tous les jeux</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='jeux',plateforme='ps4')}">Jeux Playstation 4</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='jeux',plateforme='ps5')}">Jeux Playstation 5</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='jeux',plateforme='switch')}">Jeux Switch</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='jeux',plateforme='switch2')}">Jeux Switch 2</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='jeux',plateforme='XBOX_ONE')}">Jeux Xbox One</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='jeux',plateforme='XBOX_SERIES')}">Jeux Xbox Series S/X</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='jeux',plateforme='pc')}">Jeux PC</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h3 class="footer-col-title" >Accessoires</h3>
+        <ul class="footer-col-list">
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='accessoires')}">Tous les accessoires</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='accessoires',plateforme='ps4')}">Accessoires Playstation 4</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='accessoires',plateforme='ps5')}">Accessoires Playstation 5</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='accessoires',plateforme='switch')}">Accessoires Switch</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='accessoires',plateforme='switch2')}">Accessoires Switch 2</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='accessoires',plateforme='XBOX_ONE')}">Jeux Xbox One</a></li>
+          <li><a th:href="@{/catalogue(univers='jeux-video',famille='accessoires',plateforme='XBOX_SERIES')}">Jeux Xbox Series S/X</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h3 class="footer-col-title" >Occasion</h3>
+        <ul class="footer-col-list">
+          <li><a th:href="@{/catalogue(univers='occasion')}">Tous les articles</a></li>
+          <li><a th:href="@{/catalogue(univers='occasion',famille='jeux')}">Jeux d'occasion</a></li>
+          <li><a th:href="@{/catalogue(univers='occasion',famille='consoles')}">Consoles d'occasion</a></li>
+          <li><a th:href="@{/catalogue(univers='occasion',famille='accessoires')}">Accessoires d'occasion</a></li>
+        </ul>
+
+      <h3 class="footer-col-title" style="margin-top:1.5rem">Pop Culture</h3>
+        <ul class="footer-col-list">
+          <li><a th:href="@{/catalogue(univers='tcg')}">Cartes à collectionner</a></li>
+          <li><a th:href="@{/catalogue(univers='tcg',licence='pokemon')}">Cartes Pokémon</a></li>
+          <li><a th:href="@{/catalogue(univers='tcg',licence='lorcana')}">Cartes Lorcana</a></li>
+          <li><a th:href="@{/catalogue(univers='tcg',licence='yugioh')}">Yu-Gi-Oh!</a></li>
+          <li><a th:href="@{/catalogue(univers='tcg',licence='magic')}">Magic</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h3 class="footer-col-title">Mon compte</h3>
+        <ul class="footer-col-list">
+          <li><a th:href="@{/compte}">Mon profil</a></li>
+          <li><a th:href="@{/compte/commandes}">Mes commandes</a></li>
+          <li><a th:href="@{/panier}">Mon panier</a></li>
+          <li><a th:href="@{/magasins}">Nos magasins</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-social-bar">
+    <div class="footer-social-links">
+      <a href="https://www.facebook.com/micromania" target="_blank" rel="noopener" aria-label="Facebook" class="footer-social-link">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+      </a>
+      <a href="https://twitter.com/micromania_fr" target="_blank" rel="noopener" aria-label="X / Twitter" class="footer-social-link">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4l16 16M20 4 4 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </a>
+      <a href="https://www.instagram.com/micromania_fr" target="_blank" rel="noopener" aria-label="Instagram" class="footer-social-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+      </a>
+      <a href="https://www.twitch.tv/micromania" target="_blank" rel="noopener" aria-label="Twitch" class="footer-social-link">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>
+      </a>
+      <a href="https://www.youtube.com/@Micromania" target="_blank" rel="noopener" aria-label="YouTube" class="footer-social-link">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.95C5.12 20 12 20 12 20s6.88 0 8.59-.47a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="white"/></svg>
+      </a>
+      <a href="https://www.tiktok.com/@micromania_fr" target="_blank" rel="noopener" aria-label="TikTok" class="footer-social-link">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.85a8.15 8.15 0 0 0 4.77 1.52V6.93a4.85 4.85 0 0 1-1-.24z"/></svg>
+      </a>
+    </div>
+    <div class="footer-payment-badges">
+      <span class="footer-pay-badge">VISA</span>
+      <span class="footer-pay-badge">Mastercard</span>
+      <span class="footer-pay-badge">PayPal</span>
+      <span class="footer-pay-badge">Apple Pay</span>
+      <span class="footer-pay-badge">Google Pay</span>
+    </div>
+  </div>
+
+  <div class="footer-legal-bar">
+    <span>© 2025 MICROMANIA-ZING — Tous droits réservés</span>
+    <div class="footer-legal-links">
+      <a href="#">CGV</a>
+      <a href="#">Mentions légales</a>
+      <a href="#">Vie privée</a>
+      <a href="#">Accessibilité</a>
+      <a href="#">Plan du site</a>
+      <a href="#">Système PEGI</a>
+      <a href="#" onclick="localStorage.removeItem('cookieConsent'); location.reload();">Gérer les cookies</a>
+    </div>
+  </div>
+</footer>
+
+  <div th:replace="~{fragments/cookie :: cookieBanner}"></div>
+  <script th:src="@{/js/main.js}"></script>
+
+</th:block>
+</html>

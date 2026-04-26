@@ -5,7 +5,7 @@
 </head>
 <body>
 <div class="site-shell">
-<th:block th:replace="~{fragments/layout :: navbar}"/>
+<th:block th:replace="~{fragments/navbar :: navbar}"/>
 
 <main>
   <div class="container">
@@ -41,7 +41,15 @@
                 </form>
               </div>
             </div>
-            <div class="cart-item-price" th:text="${#numbers.formatDecimal(item.montantLigne(), 1, 2)} + ' €'"></div>
+            <div class="cart-item-price">
+              <span th:text="${#numbers.formatDecimal(item.montantLigne(), 1, 2)} + ' €'"></span>
+              <div class="cart-item-garantie"
+                   th:if="${item.garantieLabel() != null and item.garantiePrix() != null}">
+                <span class="cart-garantie-icon">🛡</span>
+                <span th:text="${item.garantieLabel()}"></span>
+                <span th:text="${'+' + #numbers.formatDecimal(item.garantiePrix(), 1, 2) + ' €'}"></span>
+              </div>
+            </div>
             <form th:action="@{/panier/retirer}" method="post" style="margin:0">
               <input type="hidden" name="produitId" th:value="${item.idVariant()}"/>
               <input type="hidden" name="idLigne" th:value="${item.id()}"/>
@@ -62,7 +70,13 @@
           </div>
           <div class="summary-row"><span>Articles</span><span th:text="${#numbers.formatDecimal(apiPanier.sousTotal(),1,2) + ' €'}"></span></div>
           <div class="summary-row"><span>Remise</span><span th:text="${#numbers.formatDecimal(apiPanier.remise(),1,2) + ' €'}"></span></div>
-          <div class="summary-row total"><span>Total</span><span th:text="${#numbers.formatDecimal(apiPanier.total(),1,2) + ' €'}"></span></div>
+          <th:block th:each="item : ${apiPanier.lignes()}" th:if="${item.garantieLabel() != null and item.garantiePrix() != null}">
+            <div class="summary-row summary-row-garantie">
+              <span>🛡 <span th:text="${item.garantieLabel()}"></span></span>
+              <span th:text="${#numbers.formatDecimal(item.garantiePrix(), 1, 2) + ' €'}"></span>
+            </div>
+          </th:block>
+          <div class="summary-row total"><span>Total</span><span th:text="${#numbers.formatDecimal(apiPanier.total(), 1, 2) + ' €'}"></span></div>
           <a class="btn btn-primary btn-full" th:href="@{/panier/checkout}" style="margin-top:1rem">Passer au checkout</a>
           <div style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-dim)">Paiement fictif, facturation réelle côté projet.</div>
         </div>
@@ -92,7 +106,15 @@
                 </form>
               </div>
             </div>
-            <div class="cart-item-price" th:text="${#numbers.formatDecimal(item.prix * item.quantite, 1, 2)} + ' €'"></div>
+            <div class="cart-item-price">
+              <span th:text="${#numbers.formatDecimal(item.prix * item.quantite, 1, 2)} + ' €'"></span>
+              <div class="cart-item-garantie"
+                   th:if="${item.garantieLabel != null and item.garantiePrix != null}">
+                <span class="cart-garantie-icon">🛡</span>
+                <span th:text="${item.garantieLabel}"></span>
+                <span th:text="${'+' + #numbers.formatDecimal(item.garantiePrix, 1, 2) + ' €'}"></span>
+              </div>
+            </div>
             <form th:action="@{/panier/retirer}" method="post" style="margin:0">
               <input type="hidden" name="produitId" th:value="${item.produitId}"/>
               <button type="submit" style="background:transparent;border:none;color:var(--text-dim);cursor:pointer;font-size:1.2rem;transition:color 0.2s">✕</button>
@@ -111,6 +133,12 @@
             Récapitulatif
           </div>
           <div class="summary-row"><span>Articles (<span th:text="${totalQuantite}">0</span>)</span><span th:text="${#numbers.formatDecimal(totalPrix, 1, 2)} + ' €'"></span></div>
+          <th:block th:each="item : ${panier}" th:if="${item.garantieLabel != null and item.garantiePrix != null}">
+            <div class="summary-row summary-row-garantie">
+              <span>🛡 <span th:text="${item.garantieLabel}"></span></span>
+              <span th:text="${#numbers.formatDecimal(item.garantiePrix, 1, 2)} + ' €'"></span>
+            </div>
+          </th:block>
           <div class="summary-row"><span>Livraison</span><span style="color:var(--success)">Gratuite</span></div>
           <div class="summary-row total"><span>Total</span><span th:text="${#numbers.formatDecimal(totalPrix, 1, 2)} + ' €'"></span></div>
           <form th:action="@{/panier/valider}" method="post" style="margin-top:1rem">
@@ -123,8 +151,7 @@
   </div>
 </main>
 
-<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/footer :: footer}"/>
 </div>
-<th:block th:replace="~{fragments/layout :: scripts}"/>
 </body>
 </html>

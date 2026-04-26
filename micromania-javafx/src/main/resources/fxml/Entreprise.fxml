@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.monprojet.boutiquejeux.controller.EntrepriseController"
+      spacing="14" styleClass="view-container">
+    <padding><Insets top="18" bottom="18" left="18" right="18"/></padding>
+
+    <Label text="🏢 Gestion d'entreprise" styleClass="page-title"/>
+    <Separator/>
+
+    <TabPane VBox.vgrow="ALWAYS" styleClass="tab-pane-dark" tabClosingPolicy="UNAVAILABLE">
+
+        <!-- ══════════════════════════════════════════════════════
+             ONGLET 1 — EMPLOYÉS
+        ══════════════════════════════════════════════════════ -->
+        <Tab text="👥  Employés">
+            <HBox spacing="14" VBox.vgrow="ALWAYS">
+
+                <!-- ── Colonne gauche : liste ── -->
+                <VBox spacing="10" prefWidth="420" minWidth="380">
+
+                    <HBox spacing="8" alignment="CENTER_LEFT">
+                        <TextField fx:id="rechercheEmployeField"
+                                   promptText="Rechercher un employé…"
+                                   styleClass="text-field-dark" prefWidth="220"
+                                   onAction="#handleRechercheEmploye"/>
+                        <Button text="🔍" onAction="#handleRechercheEmploye" styleClass="btn-secondary"/>
+                        <Button text="🔄" onAction="#handleRefreshEmployes"  styleClass="btn-secondary"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <ProgressIndicator fx:id="spinnerEmployes" maxWidth="24" maxHeight="24" visible="false"/>
+                    </HBox>
+
+                    <TableView fx:id="tableEmployes" VBox.vgrow="ALWAYS" styleClass="table-dark">
+                        <columns>
+                            <TableColumn fx:id="colEmpNom"     text="Nom"       prefWidth="130" minWidth="130"/>
+                            <TableColumn fx:id="colEmpEmail"   text="Email"     prefWidth="170" minWidth="170"/>
+                            <TableColumn fx:id="colEmpRole"    text="Rôle"      prefWidth="70" minWidth="70"/>
+                            <TableColumn fx:id="colEmpMagasin" text="Boutique"  prefWidth="100" minWidth="100"/>
+                            <TableColumn fx:id="colEmpActif"   text="Actif"     prefWidth="44" minWidth="44"/>
+                        </columns>
+                    </TableView>
+
+                    <HBox spacing="8">
+                        <Button fx:id="btnNouvelEmploye" text="➕ Nouveau"
+                                onAction="#handleNouvelEmploye"
+                                styleClass="btn-primary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="btnSupprimerEmploye" text="🗑 Supprimer"
+                                onAction="#handleSupprimerEmploye"
+                                styleClass="btn-danger" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                    </HBox>
+                </VBox>
+
+                <!-- ── Colonne droite : formulaire ── -->
+                <VBox HBox.hgrow="ALWAYS" spacing="10">
+                    <HBox alignment="CENTER_LEFT" spacing="10">
+                        <Label fx:id="labelTitreEmploye" text="Sélectionnez un employé"
+                               styleClass="section-title" HBox.hgrow="ALWAYS"/>
+                    </HBox>
+
+                    <ScrollPane fitToWidth="true" styleClass="scroll-dark" VBox.vgrow="ALWAYS">
+                        <VBox spacing="12" styleClass="card">
+                            <padding><Insets top="14" bottom="14" left="14" right="14"/></padding>
+
+                            <GridPane hgap="12" vgap="10">
+                                <columnConstraints>
+                                    <ColumnConstraints prefWidth="110" minWidth="110"/>
+                                    <ColumnConstraints hgrow="ALWAYS"/>
+                                    <ColumnConstraints prefWidth="110" minWidth="110"/>
+                                    <ColumnConstraints hgrow="ALWAYS"/>
+                                </columnConstraints>
+
+                                <!-- Nom / Prénom -->
+                                <Label text="Nom *" styleClass="field-label"
+                                       GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                                <TextField fx:id="empNomField" promptText="Dupont"
+                                           styleClass="text-field-dark"
+                                           GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                                <Label text="Prénom *" styleClass="field-label"
+                                       GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+                                <TextField fx:id="empPrenomField" promptText="Jean"
+                                           styleClass="text-field-dark"
+                                           GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+                                <!-- Email / Téléphone -->
+                                <Label text="Email *" styleClass="field-label"
+                                       GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                                <TextField fx:id="empEmailField" promptText="jean@micromania.fr"
+                                           styleClass="text-field-dark"
+                                           GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                                <Label text="Téléphone" styleClass="field-label"
+                                       GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+                                <TextField fx:id="empTelField" promptText="06 00 00 00 00"
+                                           styleClass="text-field-dark"
+                                           GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+
+                                <!-- Rôle / Boutique -->
+                                <Label text="Rôle *" styleClass="field-label"
+                                       GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                                <ComboBox fx:id="empRoleCb" maxWidth="Infinity" promptText="— Choisir —"
+                                          GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                                <Label text="Boutique *" styleClass="field-label"
+                                       GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+                                <ComboBox fx:id="empMagasinCb" maxWidth="Infinity" promptText="— Choisir —"
+                                          GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+
+                                <!-- Date embauche / Actif -->
+                                <Label text="Embauche" styleClass="field-label"
+                                       GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                                <DatePicker fx:id="empDateEmbauche" maxWidth="Infinity"
+                                            styleClass="date-picker-dark"
+                                            GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                                <Label text="Statut" styleClass="field-label"
+                                       GridPane.rowIndex="3" GridPane.columnIndex="2"/>
+                                <CheckBox fx:id="empActifCheck" text="Actif"
+                                          styleClass="checkbox-dark" selected="true"
+                                          GridPane.rowIndex="3" GridPane.columnIndex="3"/>
+                            </GridPane>
+
+                            <Separator/>
+
+                            <!-- Mot de passe (création obligatoire, modification optionnelle) -->
+                            <Label text="Mot de passe" styleClass="field-label"/>
+                            <Label fx:id="labelMdpHint"
+                                   text="(Laisser vide pour ne pas modifier)"
+                                   style="-fx-font-size:11;-fx-text-fill:#888;"/>
+                            <PasswordField fx:id="empMdpField"
+                                           promptText="Minimum 8 caractères"
+                                           styleClass="text-field-dark"/>
+
+                            <Separator/>
+
+                            <HBox spacing="10">
+                                <Button fx:id="btnEnregistrerEmploye" text="💾 Enregistrer"
+                                        onAction="#handleEnregistrerEmploye"
+                                        styleClass="btn-success" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                                <Button text="✖ Annuler" onAction="#handleAnnulerEmploye"
+                                        styleClass="btn-secondary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                            </HBox>
+                        </VBox>
+                    </ScrollPane>
+                </VBox>
+            </HBox>
+        </Tab>
+
+        <!-- ══════════════════════════════════════════════════════
+             ONGLET 2 — BOUTIQUES
+        ══════════════════════════════════════════════════════ -->
+        <Tab text="🏪  Boutiques">
+            <HBox spacing="14" VBox.vgrow="ALWAYS">
+
+                <!-- ── Colonne gauche : liste ── -->
+                <VBox spacing="10" prefWidth="380" minWidth="340">
+
+                    <HBox spacing="8" alignment="CENTER_LEFT">
+                        <Label text="Toutes les boutiques" styleClass="section-title" HBox.hgrow="ALWAYS"/>
+                        <Button text="🔄" onAction="#handleRefreshMagasins" styleClass="btn-secondary"/>
+                        <ProgressIndicator fx:id="spinnerMagasins" maxWidth="24" maxHeight="24" visible="false"/>
+                    </HBox>
+
+                    <TableView fx:id="tableMagasins" VBox.vgrow="ALWAYS" styleClass="table-dark">
+                        <columns>
+                            <TableColumn fx:id="colMagNom"  text="Nom"        prefWidth="160" minWidth="160"/>
+                            <TableColumn fx:id="colMagTel"  text="Téléphone"  prefWidth="110" minWidth="110"/>
+                            <TableColumn fx:id="colMagMail" text="Email"      prefWidth="160" minWidth="160"/>
+                            <TableColumn fx:id="colMagActif" text="Actif"     prefWidth="44" minWidth="44"/>
+                        </columns>
+                    </TableView>
+
+                    <HBox spacing="8">
+                        <Button fx:id="btnNouvelMagasin" text="➕ Nouveau"
+                                onAction="#handleNouvelMagasin"
+                                styleClass="btn-primary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="btnSupprimerMagasin" text="⛔ Désactiver"
+                                onAction="#handleSupprimerMagasin"
+                                styleClass="btn-danger" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                    </HBox>
+                </VBox>
+
+                <!-- ── Colonne droite : formulaire ── -->
+                <VBox HBox.hgrow="ALWAYS" spacing="10">
+                    <HBox alignment="CENTER_LEFT" spacing="10">
+                        <Label fx:id="labelTitreMagasin" text="Sélectionnez une boutique"
+                               styleClass="section-title" HBox.hgrow="ALWAYS"/>
+                    </HBox>
+
+                    <VBox spacing="12" styleClass="card" VBox.vgrow="ALWAYS">
+                        <padding><Insets top="14" bottom="14" left="14" right="14"/></padding>
+
+                        <GridPane hgap="12" vgap="10">
+                            <columnConstraints>
+                                <ColumnConstraints prefWidth="110" minWidth="110"/>
+                                <ColumnConstraints hgrow="ALWAYS"/>
+                            </columnConstraints>
+
+                            <Label text="Nom *" styleClass="field-label"
+                                   GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                            <TextField fx:id="magNomField" promptText="Micromania Paris"
+                                       styleClass="text-field-dark"
+                                       GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                            <Label text="Téléphone" styleClass="field-label"
+                                   GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                            <TextField fx:id="magTelField" promptText="01 00 00 00 00"
+                                       styleClass="text-field-dark"
+                                       GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                            <Label text="Email" styleClass="field-label"
+                                   GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                            <TextField fx:id="magEmailField" promptText="paris@micromania.fr"
+                                       styleClass="text-field-dark"
+                                       GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+
+                            <Label text="Statut" styleClass="field-label"
+                                   GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                            <CheckBox fx:id="magActifCheck" text="Boutique active"
+                                      styleClass="checkbox-dark" selected="true"
+                                      GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                        </GridPane>
+
+                        <Separator/>
+
+                        <HBox spacing="10">
+                            <Button fx:id="btnEnregistrerMagasin" text="💾 Enregistrer"
+                                    onAction="#handleEnregistrerMagasin"
+                                    styleClass="btn-success" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                            <Button text="✖ Annuler" onAction="#handleAnnulerMagasin"
+                                    styleClass="btn-secondary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                        </HBox>
+                    </VBox>
+                </VBox>
+            </HBox>
+        </Tab>
+
+        <!-- ══════════════════════════════════════════════════════
+             ONGLET 3 — RÔLES
+        ══════════════════════════════════════════════════════ -->
+        <Tab text="🔑  Rôles">
+            <VBox spacing="14">
+                <padding><Insets top="12" bottom="12" left="12" right="12"/></padding>
+
+                <Label text="Liste des rôles disponibles" styleClass="section-title"/>
+                <Label text="Les rôles sont gérés en base de données. Cette liste est en lecture seule."
+                       style="-fx-font-size:11;-fx-text-fill:#888;" wrapText="true"/>
+
+                <TableView fx:id="tableRoles" prefHeight="280" styleClass="table-dark">
+                    <columns>
+                        <TableColumn fx:id="colRoleId"      text="ID"      prefWidth="50" minWidth="50"/>
+                        <TableColumn fx:id="colRoleCode"    text="Code"    prefWidth="180" minWidth="180"/>
+                        <TableColumn fx:id="colRoleLibelle" text="Libellé" prefWidth="260" minWidth="260"/>
+                    </columns>
+                </TableView>
+
+                <Button text="🔄 Rafraîchir" onAction="#handleRefreshRoles" styleClass="btn-secondary"/>
+            </VBox>
+        </Tab>
+
+    </TabPane>
+</VBox>

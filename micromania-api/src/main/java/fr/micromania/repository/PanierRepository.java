@@ -16,6 +16,7 @@ public interface PanierRepository extends JpaRepository<Panier, Long> {
         SELECT p FROM Panier p
         LEFT JOIN FETCH p.lignes l
         LEFT JOIN FETCH l.variant
+        LEFT JOIN FETCH l.typeGarantie
         WHERE p.client.id = :idClient
           AND p.canalVente.code = :canal
           AND p.statutPanier.code = 'ACTIF'

@@ -11,11 +11,17 @@ public record SetPrixRequest(
     @NotNull
     Long idVariant,
 
-    @NotNull
-    Long idCanalVente,
+    @DecimalMin("0.01")
+    BigDecimal prixNeuf,
 
-    @NotNull @DecimalMin("0.01")
-    BigDecimal prix,
+    @DecimalMin("0.01")
+    BigDecimal prixOccasion,
+
+    @DecimalMin("0.01")
+    BigDecimal prixReprise,
+
+    @DecimalMin("0.01")
+    BigDecimal prixLocation,
 
     @NotNull
     LocalDateTime dateDebut,

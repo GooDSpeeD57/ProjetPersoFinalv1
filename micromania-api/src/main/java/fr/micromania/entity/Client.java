@@ -1,6 +1,7 @@
 package fr.micromania.entity;
 
 import fr.micromania.entity.referentiel.TypeFidelite;
+import fr.micromania.entity.Magasin;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -99,6 +100,10 @@ public class Client {
 
     @Column(name = "doit_definir_mot_de_passe", nullable = false)
     private boolean doitDefinirMotDePasse = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_magasin_favori")
+    private Magasin magasinFavori;
 
     @Column(name = "demande_suppression", nullable = false)
     private boolean demandeSuppression = false;

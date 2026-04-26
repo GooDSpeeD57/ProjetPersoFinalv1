@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.monprojet.boutiquejeux.controller.GarantiesController"
+      spacing="16" styleClass="view-container">
+    <padding><Insets top="20" bottom="20" left="20" right="20"/></padding>
+
+    <Label text="🛡️ Garanties client" styleClass="page-title"/>
+    <Separator/>
+
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <TextField fx:id="rechercheClientField" promptText="Email, pseudo ou nom du client…" styleClass="text-field-dark" prefWidth="340"/>
+        <Button text="🔍 Rechercher" onAction="#handleRechercheClient" styleClass="btn-secondary"/>
+        <ProgressIndicator fx:id="spinner" maxWidth="26" maxHeight="26"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="labelNbGaranties" styleClass="field-label"/>
+    </HBox>
+
+    <Label fx:id="labelClient" text="Aucun client sélectionné" styleClass="info-label"/>
+
+    <TableView fx:id="tableGaranties" VBox.vgrow="ALWAYS" styleClass="table-dark">
+        <columns>
+            <TableColumn fx:id="colProduit"   text="Produit"         prefWidth="250" minWidth="250"/>
+            <TableColumn fx:id="colDateAchat" text="Date d'achat"    prefWidth="120" minWidth="120"/>
+            <TableColumn fx:id="colDuree"     text="Durée"           prefWidth="80" minWidth="80"/>
+            <TableColumn fx:id="colDateFin"   text="Fin de garantie" prefWidth="130" minWidth="130"/>
+            <TableColumn fx:id="colStatut"    text="Statut"          prefWidth="120" minWidth="120"/>
+        </columns>
+    </TableView>
+</VBox>

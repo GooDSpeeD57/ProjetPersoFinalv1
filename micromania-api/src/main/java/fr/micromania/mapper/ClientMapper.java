@@ -11,16 +11,17 @@ import java.util.List;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.WARN)
 public interface ClientMapper {
 
-    @Mapping(target = "typeFidelite",       source = "typeFidelite.code")
-    @Mapping(target = "numeroCarteFidelite", source = "numeroCarteFidelite")
-    @Mapping(target = "soldePoints",        ignore = true)
-    @Mapping(target = "avatar",             source = "avatar")
-    @Mapping(target = "telephoneVerifie",   source = "telephoneVerifie")
+    @Mapping(target = "typeFidelite",         source = "typeFidelite.code")
+    @Mapping(target = "numeroCarteFidelite",  source = "numeroCarteFidelite")
+    @Mapping(target = "soldePoints",          ignore = true)
+    @Mapping(target = "avatar",               source = "avatar")
+    @Mapping(target = "telephoneVerifie",     source = "telephoneVerifie")
     @Mapping(target = "dateDerniereConnexion", source = "dateDerniereConnexion")
-    @Mapping(target = "ultimateDateDebut", ignore = true)
-    @Mapping(target = "ultimateDateFin", ignore = true)
-    @Mapping(target = "ultimateActif", ignore = true)
+    @Mapping(target = "ultimateDateDebut",    ignore = true)
+    @Mapping(target = "ultimateDateFin",      ignore = true)
+    @Mapping(target = "ultimateActif",        ignore = true)
     @Mapping(target = "prixAbonnementUltimate", ignore = true)
+    @Mapping(target = "magasinFavori",        ignore = true)
     ClientResponse toResponse(Client client);
 
     default ClientResponse toResponse(Client client, PointsFidelite points) {
@@ -33,7 +34,7 @@ public interface ClientMapper {
                 base.avatar(), base.emailVerifie(), base.telephoneVerifie(),
                 base.compteActive(), base.dateDerniereConnexion(),
                 base.dateCreation(),
-                null, null, false, null
+                null, null, false, null, null
         );
     }
 

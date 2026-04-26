@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<ScrollPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.monprojet.boutiquejeux.controller.CreerClientController"
+            fitToWidth="true" styleClass="scroll-dark">
+<VBox spacing="20" styleClass="view-container">
+    <padding><Insets top="30" bottom="30" left="30" right="30"/></padding>
+
+    <Label text="👤 Créer un compte client" styleClass="page-title"/>
+    <Separator/>
+
+    <GridPane hgap="20" vgap="14">
+        <columnConstraints>
+            <ColumnConstraints percentWidth="50"/>
+            <ColumnConstraints percentWidth="50"/>
+        </columnConstraints>
+
+        <!-- Pseudo -->
+        <VBox spacing="6" GridPane.columnIndex="0" GridPane.rowIndex="0">
+            <Label text="Pseudo *" styleClass="field-label"/>
+            <TextField fx:id="pseudoField" promptText="ex: gamer42" styleClass="text-field-dark"/>
+        </VBox>
+
+        <!-- Téléphone -->
+        <VBox spacing="6" GridPane.columnIndex="1" GridPane.rowIndex="0">
+            <Label text="Téléphone" styleClass="field-label"/>
+            <TextField fx:id="telephoneField" promptText="0612345678" styleClass="text-field-dark"/>
+        </VBox>
+
+        <!-- Prénom -->
+        <VBox spacing="6" GridPane.columnIndex="0" GridPane.rowIndex="1">
+            <Label text="Prénom *" styleClass="field-label"/>
+            <TextField fx:id="prenomField" promptText="Jean" styleClass="text-field-dark"/>
+        </VBox>
+
+        <!-- Nom -->
+        <VBox spacing="6" GridPane.columnIndex="1" GridPane.rowIndex="1">
+            <Label text="Nom *" styleClass="field-label"/>
+            <TextField fx:id="nomField" promptText="Dupont" styleClass="text-field-dark"/>
+        </VBox>
+
+        <!-- Email -->
+        <VBox spacing="6" GridPane.columnIndex="0" GridPane.rowIndex="2">
+            <Label text="Email *" styleClass="field-label"/>
+            <TextField fx:id="emailField" promptText="jean.dupont@mail.fr" styleClass="text-field-dark"/>
+        </VBox>
+
+        <!-- Date de naissance -->
+        <VBox spacing="6" GridPane.columnIndex="1" GridPane.rowIndex="2">
+            <Label text="Date de naissance * (18 ans min)" styleClass="field-label"/>
+            <DatePicker fx:id="dateNaissancePicker" styleClass="date-picker-dark" maxWidth="Infinity"/>
+        </VBox>
+
+        <!-- Mot de passe -->
+        <VBox spacing="6" GridPane.columnIndex="0" GridPane.rowIndex="3" GridPane.columnSpan="2">
+            <Label text="Mot de passe * (8 car. min, maj, min, chiffre, spécial)" styleClass="field-label"/>
+            <PasswordField fx:id="passwordField" promptText="••••••••" styleClass="text-field-dark"/>
+        </VBox>
+    </GridPane>
+
+    <!-- RGPD -->
+    <CheckBox fx:id="rgpdCheck" text="✅ Le client accepte la politique de confidentialité et le traitement de ses données (RGPD)"
+              styleClass="checkbox-dark" wrapText="true"/>
+
+    <!-- Résultat -->
+    <Label fx:id="resultLabel" wrapText="true" styleClass="result-label"/>
+
+    <!-- Boutons -->
+    <HBox spacing="12">
+        <StackPane HBox.hgrow="ALWAYS">
+            <Button fx:id="btnCreer" text="Créer le compte" onAction="#handleCreer"
+                    styleClass="btn-primary" maxWidth="Infinity"/>
+            <ProgressIndicator fx:id="spinner" maxWidth="28" maxHeight="28" StackPane.alignment="CENTER_RIGHT">
+                <StackPane.margin><Insets right="10"/></StackPane.margin>
+            </ProgressIndicator>
+        </StackPane>
+        <Button text="Réinitialiser" onAction="#handleReset" styleClass="btn-secondary" prefWidth="140"/>
+    </HBox>
+</VBox>
+</ScrollPane>

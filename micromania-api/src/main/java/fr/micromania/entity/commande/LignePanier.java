@@ -1,6 +1,7 @@
 package fr.micromania.entity.commande;
 
 import fr.micromania.entity.catalog.ProduitVariant;
+import fr.micromania.entity.referentiel.TypeGarantie;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -30,6 +31,11 @@ public class LignePanier {
 
     @Column(name = "prix_unitaire", nullable = false, precision = 10, scale = 2)
     private BigDecimal prixUnitaire;
+
+    /** Garantie optionnelle souscrite sur cette ligne — null si aucune. */
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "id_type_garantie", nullable = true)
+    private TypeGarantie typeGarantie;
 
     @Column(name = "date_creation", nullable = false, updatable = false)
     private LocalDateTime dateCreation;

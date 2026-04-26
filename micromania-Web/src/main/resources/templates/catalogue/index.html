@@ -5,256 +5,162 @@
 </head>
 <body>
 <div class="site-shell">
-<th:block th:replace="~{fragments/layout :: navbar}"/>
+<th:block th:replace="~{fragments/navbar :: navbar}"/>
 
 <main>
   <div class="container">
-    <div class="section-label">// STOCK DISPONIBLE</div>
-    <div class="section-title" th:text="${catalogueTitre}">Catalogue</div>
-    <p class="catalogue-intro" th:text="${catalogueIntro}">Recherche libre sur l'ensemble du catalogue.</p>
-
-    <div class="catalogue-context-switch" th:if="${!vueJeuxVideo and !vueOccasion and !vueTcg}">
-      <a class="context-switch-card" th:href="@{/catalogue(univers='jeux-video')}">
-        <span class="context-switch-kicker">Menu principal</span>
-        <strong>Jeux vidéo</strong>
-        <span>Plateformes, jeux, consoles et état.</span>
-      </a>
-      <a class="context-switch-card" th:href="@{/catalogue(univers='occasion')}">
-        <span class="context-switch-kicker">Menu principal</span>
-        <strong>Occasion</strong>
-        <span>Uniquement les offres d'occasion.</span>
-      </a>
-      <a class="context-switch-card" th:href="@{/catalogue(univers='tcg')}">
-        <span class="context-switch-kicker">Menu principal</span>
-        <strong>TCG</strong>
-        <span>Licences et formats cartes à collectionner.</span>
-      </a>
-    </div>
 
     <form id="filter-form" th:action="@{/catalogue}" method="get">
       <input type="hidden" name="page" value="0"/>
       <input type="hidden" name="univers" th:value="${univers}"/>
 
-      <div class="filters-bar catalogue-search-bar">
-        <input class="form-control" type="text" name="q"
+      <div class="h-filter-bar">
+
+        <input class="form-control h-filter-search-input" type="text" name="q"
                th:value="${q}" placeholder="Rechercher un jeu, une console..."/>
-        <select class="form-control form-control-select" name="niveau" onchange="autoSubmitFilter()">
-          <option value="">Tous les niveaux</option>
-          <option value="NORMAL" th:selected="${niveau == 'NORMAL'}">Normal</option>
-          <option value="PREMIUM" th:selected="${niveau == 'PREMIUM'}">Premium</option>
-          <option value="ULTIMATE" th:selected="${niveau == 'ULTIMATE'}">Ultimate</option>
-        </select>
-        <button type="submit" class="btn btn-primary">🔍 Filtrer</button>
-        <a th:if="${resetVersUnivers != null}" th:href="@{/catalogue(univers=${resetVersUnivers})}" class="btn btn-secondary">Réinitialiser</a>
-        <a th:if="${resetVersUnivers == null}" th:href="@{/catalogue}" class="btn btn-secondary">Réinitialiser</a>
-      </div>
 
-      <div class="catalogue-filter-panel" th:if="${vueJeuxVideo or vueOccasion or vueTcg}">
-        <div class="catalogue-filter-context">
-          <div>
-            <div class="catalogue-filter-kicker">Vue active</div>
-            <div class="catalogue-filter-current" th:text="${catalogueTitre}">Jeux vidéo</div>
-          </div>
-          <div class="catalogue-filter-note" th:if="${vueOccasion}">Les cartes affichent uniquement le prix occasion.</div>
-          <div class="catalogue-filter-note" th:if="${vueTcg}">La navigation se fait par licence et format, sans doublon avec le menu principal.</div>
-          <div class="catalogue-filter-note" th:if="${vueJeuxVideo}">Le menu principal porte l'univers ; ici on affine seulement la sélection.</div>
-        </div>
+        <th:block th:if="${!vueTcg}">
+          <select class="form-control form-control-select h-filter-select"
+                  name="plateforme" onchange="autoSubmitFilter()">
+            <option value="" th:selected="${plateforme == null or plateforme.isBlank()}">Tous les supports</option>
+            <option value="ps4"         th:selected="${plateforme == 'ps4'}">PS4</option>
+            <option value="ps5"         th:selected="${plateforme == 'ps5'}">PS5</option>
+            <option value="xbox"        th:selected="${plateforme == 'xbox'}">Xbox / Xbox One</option>
+            <option value="xbox-series" th:selected="${plateforme == 'xbox-series'}">Xbox Series X</option>
+            <option value="switch"      th:selected="${plateforme == 'switch'}">Switch</option>
+            <option value="switch2"     th:selected="${plateforme == 'switch2'}">Switch 2</option>
+            <option value="pc"          th:selected="${plateforme == 'pc'}">PC</option>
+          </select>
 
-        <th:block th:if="${vueJeuxVideo or vueOccasion}">
-          <div class="catalogue-filter-row">
-            <div class="catalogue-filter-title" th:text="${vueOccasion} ? 'Plateformes occasion' : 'Plateformes'">Plateformes</div>
-            <div class="catalogue-filter-chips">
-              <label class="filter-chip" th:classappend="${plateforme == null or plateforme.isBlank()} ? 'is-active'">
-                <input type="radio" name="plateforme" value="" th:checked="${plateforme == null or plateforme.isBlank()}" onchange="autoSubmitFilter()">
-                <span>Toutes</span>
-              </label>
-              <label class="filter-chip" th:classappend="${plateforme == 'ps5'} ? 'is-active'">
-                <input type="radio" name="plateforme" value="ps5" th:checked="${plateforme == 'ps5'}" onchange="autoSubmitFilter()">
-                <span>PlayStation 5</span>
-              </label>
-              <label class="filter-chip" th:classappend="${plateforme == 'xbox'} ? 'is-active'">
-                <input type="radio" name="plateforme" value="xbox" th:checked="${plateforme == 'xbox'}" onchange="autoSubmitFilter()">
-                <span>Xbox</span>
-              </label>
-              <label class="filter-chip" th:classappend="${plateforme == 'nintendo'} ? 'is-active'">
-                <input type="radio" name="plateforme" value="nintendo" th:checked="${plateforme == 'nintendo'}" onchange="autoSubmitFilter()">
-                <span>Nintendo</span>
-              </label>
-              <label class="filter-chip" th:classappend="${plateforme == 'pc'} ? 'is-active'">
-                <input type="radio" name="plateforme" value="pc" th:checked="${plateforme == 'pc'}" onchange="autoSubmitFilter()">
-                <span>PC</span>
-              </label>
-            </div>
-          </div>
+          <select class="form-control form-control-select h-filter-select"
+                  name="famille" onchange="autoSubmitFilter()">
+            <option value="" th:selected="${famille == null or famille.isBlank()}">Tous les types</option>
+            <option value="jeux"          th:selected="${famille == 'jeux'}">Jeux</option>
+            <option value="consoles"      th:selected="${famille == 'consoles'}">Consoles</option>
+            <option value="accessoires"   th:selected="${famille == 'accessoires'}">Accessoires</option>
+            <option value="cartes-cadeau" th:selected="${famille == 'cartes-cadeau'}">Cartes Cadeau</option>
+          </select>
 
-          <div class="catalogue-filter-row">
-            <div class="catalogue-filter-title">Type</div>
-            <div class="catalogue-filter-chips">
-              <label class="filter-chip" th:classappend="${famille == null or famille.isBlank()} ? 'is-active'">
-                <input type="radio" name="famille" value="" th:checked="${famille == null or famille.isBlank()}" onchange="autoSubmitFilter()">
-                <span>Tout</span>
-              </label>
-              <label class="filter-chip" th:classappend="${famille == 'jeux'} ? 'is-active'">
-                <input type="radio" name="famille" value="jeux" th:checked="${famille == 'jeux'}" onchange="autoSubmitFilter()">
-                <span>Jeux</span>
-              </label>
-              <label class="filter-chip" th:classappend="${famille == 'consoles'} ? 'is-active'">
-                <input type="radio" name="famille" value="consoles" th:checked="${famille == 'consoles'}" onchange="autoSubmitFilter()">
-                <span>Consoles</span>
-              </label>
-            </div>
-          </div>
+          <select class="form-control form-control-select h-filter-select"
+                  name="etat" onchange="autoSubmitFilter()" th:if="${!vueOccasion and !vueJeuxVideo}">
+            <option value="" th:selected="${etat == null or etat.isBlank()}">Neuf &amp; Occasion</option>
+            <option value="neuf"     th:selected="${etat == 'neuf'}">Neuf</option>
+            <option value="occasion" th:selected="${etat == 'occasion'}">Occasion</option>
+            <option value="location" th:selected="${etat == 'location'}">Location</option>
+          </select>
 
-          <div class="catalogue-filter-row" th:if="${vueJeuxVideo}">
-            <div class="catalogue-filter-title">État</div>
-            <div class="catalogue-filter-chips">
-              <label class="filter-chip" th:classappend="${etat == null or etat.isBlank()} ? 'is-active'">
-                <input type="radio" name="etat" value="" th:checked="${etat == null or etat.isBlank()}" onchange="autoSubmitFilter()">
-                <span>Tout</span>
-              </label>
-              <label class="filter-chip" th:classappend="${etat == 'neuf'} ? 'is-active'">
-                <input type="radio" name="etat" value="neuf" th:checked="${etat == 'neuf'}" onchange="autoSubmitFilter()">
-                <span>Neuf</span>
-              </label>
-              <label class="filter-chip" th:classappend="${etat == 'occasion'} ? 'is-active'">
-                <input type="radio" name="etat" value="occasion" th:checked="${etat == 'occasion'}" onchange="autoSubmitFilter()">
-                <span>Occasion</span>
-              </label>
-            </div>
-          </div>
+          <select class="form-control form-control-select h-filter-select"
+                  name="edition" onchange="autoSubmitFilter()" th:if="${editions != null and !editions.isEmpty()}">
+            <option value="" th:selected="${edition == null or edition.isBlank()}">Toutes les éditions</option>
+            <option th:each="ed : ${editions}"
+                    th:value="${ed.code()}"
+                    th:text="${ed.libelle()}"
+                    th:selected="${edition == ed.code()}"></option>
+          </select>
         </th:block>
 
         <th:block th:if="${vueTcg}">
-          <div class="catalogue-filter-row">
-            <div class="catalogue-filter-title">Licences</div>
-            <div class="catalogue-filter-chips">
-              <label class="filter-chip" th:classappend="${licence == null or licence.isBlank()} ? 'is-active'">
-                <input type="radio" name="licence" value="" th:checked="${licence == null or licence.isBlank()}" onchange="autoSubmitFilter()">
-                <span>Toutes</span>
-              </label>
-              <label class="filter-chip" th:classappend="${licence == 'pokemon'} ? 'is-active'">
-                <input type="radio" name="licence" value="pokemon" th:checked="${licence == 'pokemon'}" onchange="autoSubmitFilter()">
-                <span>Pokémon</span>
-              </label>
-              <label class="filter-chip" th:classappend="${licence == 'yugioh'} ? 'is-active'">
-                <input type="radio" name="licence" value="yugioh" th:checked="${licence == 'yugioh'}" onchange="autoSubmitFilter()">
-                <span>Yu-Gi-Oh!</span>
-              </label>
-              <label class="filter-chip" th:classappend="${licence == 'magic'} ? 'is-active'">
-                <input type="radio" name="licence" value="magic" th:checked="${licence == 'magic'}" onchange="autoSubmitFilter()">
-                <span>Magic</span>
-              </label>
-              <label class="filter-chip" th:classappend="${licence == 'lorcana'} ? 'is-active'">
-                <input type="radio" name="licence" value="lorcana" th:checked="${licence == 'lorcana'}" onchange="autoSubmitFilter()">
-                <span>Lorcana</span>
-              </label>
-            </div>
-          </div>
-
-          <div class="catalogue-filter-row">
-            <div class="catalogue-filter-title">Formats</div>
-            <div class="catalogue-filter-chips">
-              <label class="filter-chip" th:classappend="${format == null or format.isBlank()} ? 'is-active'">
-                <input type="radio" name="format" value="" th:checked="${format == null or format.isBlank()}" onchange="autoSubmitFilter()">
-                <span>Tous</span>
-              </label>
-              <label class="filter-chip" th:classappend="${format == 'boosters'} ? 'is-active'">
-                <input type="radio" name="format" value="boosters" th:checked="${format == 'boosters'}" onchange="autoSubmitFilter()">
-                <span>Boosters</span>
-              </label>
-              <label class="filter-chip" th:classappend="${format == 'coffrets'} ? 'is-active'">
-                <input type="radio" name="format" value="coffrets" th:checked="${format == 'coffrets'}" onchange="autoSubmitFilter()">
-                <span>Coffrets</span>
-              </label>
-              <label class="filter-chip" th:classappend="${format == 'accessoires'} ? 'is-active'">
-                <input type="radio" name="format" value="accessoires" th:checked="${format == 'accessoires'}" onchange="autoSubmitFilter()">
-                <span>Accessoires</span>
-              </label>
-            </div>
-          </div>
+          <select class="form-control form-control-select h-filter-select"
+                  name="licence" onchange="autoSubmitFilter()">
+            <option value="" th:selected="${licence == null or licence.isBlank()}">Toutes les licences</option>
+            <option value="pokemon" th:selected="${licence == 'pokemon'}">Pokémon</option>
+            <option value="yugioh"  th:selected="${licence == 'yugioh'}">Yu-Gi-Oh!</option>
+            <option value="magic"   th:selected="${licence == 'magic'}">Magic</option>
+            <option value="lorcana" th:selected="${licence == 'lorcana'}">Lorcana</option>
+          </select>
+          <select class="form-control form-control-select h-filter-select"
+                  name="format" onchange="autoSubmitFilter()">
+            <option value="" th:selected="${format == null or format.isBlank()}">Tous les formats</option>
+            <option value="boosters"    th:selected="${format == 'boosters'}">Boosters</option>
+            <option value="coffrets"    th:selected="${format == 'coffrets'}">Coffrets</option>
+            <option value="accessoires" th:selected="${format == 'accessoires'}">Accessoires</option>
+          </select>
         </th:block>
+
+        <select class="form-control form-control-select h-filter-select"
+                name="tri" onchange="autoSubmitFilter()">
+          <option value="" th:selected="${tri == null or tri.isBlank()}">Trier par</option>
+          <option value="nouveautes" th:selected="${tri == 'nouveautes'}">Nouveautés</option>
+          <option value="prix_asc"   th:selected="${tri == 'prix_asc'}">Prix croissant</option>
+          <option value="prix_desc"  th:selected="${tri == 'prix_desc'}">Prix décroissant</option>
+          <option value="note"       th:selected="${tri == 'note'}">Meilleure note</option>
+          <option value="ventes"     th:selected="${tri == 'ventes'}">Top des ventes</option>
+          <option value="sortie_desc" th:selected="${tri == 'sortie_desc'}">Date de sortie (récent → ancien)</option>
+          <option value="sortie_asc"  th:selected="${tri == 'sortie_asc'}">Date de sortie (ancien → récent)</option>
+        </select>
+
+        <a th:if="${resetVersUnivers != null}"
+           th:href="@{/catalogue(univers=${resetVersUnivers})}"
+           class="btn btn-secondary btn-sm" style="white-space:nowrap">Réinitialiser</a>
+        <a th:unless="${resetVersUnivers != null}"
+           th:href="@{/catalogue}"
+           class="btn btn-secondary btn-sm" style="white-space:nowrap">Réinitialiser</a>
+
       </div>
     </form>
 
-    <div class="catalogue-active-filters"
-         th:if="${(plateforme != null and !plateforme.isBlank()) or (famille != null and !famille.isBlank()) or ((etat != null and !etat.isBlank()) and !vueOccasion) or (licence != null and !licence.isBlank()) or (format != null and !format.isBlank())}">
-      <span class="active-filter-tag" th:if="${plateforme == 'ps5'}">PlayStation 5</span>
-      <span class="active-filter-tag" th:if="${plateforme == 'xbox'}">Xbox</span>
-      <span class="active-filter-tag" th:if="${plateforme == 'nintendo'}">Nintendo</span>
-      <span class="active-filter-tag" th:if="${plateforme == 'pc'}">PC</span>
-      <span class="active-filter-tag" th:if="${famille == 'jeux'}">Jeux</span>
-      <span class="active-filter-tag" th:if="${famille == 'consoles'}">Consoles</span>
-      <span class="active-filter-tag" th:if="${etat == 'neuf' and !vueOccasion}">Neuf</span>
-      <span class="active-filter-tag" th:if="${etat == 'occasion' and !vueOccasion}">Occasion</span>
-      <span class="active-filter-tag" th:if="${licence == 'pokemon'}">Pokémon</span>
-      <span class="active-filter-tag" th:if="${licence == 'yugioh'}">Yu-Gi-Oh!</span>
-      <span class="active-filter-tag" th:if="${licence == 'magic'}">Magic</span>
-      <span class="active-filter-tag" th:if="${licence == 'lorcana'}">Lorcana</span>
-      <span class="active-filter-tag" th:if="${format == 'boosters'}">Boosters</span>
-      <span class="active-filter-tag" th:if="${format == 'coffrets'}">Coffrets</span>
-      <span class="active-filter-tag" th:if="${format == 'accessoires'}">Accessoires</span>
-    </div>
-
     <div class="products-grid" th:if="${produits != null and produits.content() != null and !produits.content().isEmpty()}">
-      <div class="product-card" th:each="p : ${produits.content()}">
-        <div class="product-img">
-          <img th:if="${p.imageUrl() != null}"
-               th:src="${#strings.replace(@environment.getProperty('api.base-url'), '/api/v1', '') + p.imageUrl()}"
-               th:alt="${p.imageAlt() != null ? p.imageAlt() : p.nom()}"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
-          <span th:if="${p.imageUrl() == null}">🎮</span>
-          <span th:if="${p.misEnAvant()}" class="product-badge badge-premium">MISE EN AVANT</span>
+      <th:block th:each="p : ${produits.content()}">
+
+        <!-- 1 carte = 1 variant -->
+        <div class="product-card"
+             th:attr="data-href=@{/catalogue/{id}(id=${p.idProduit()},v=${p.id()})}">
+
+          <!-- Badge état -->
+          <div th:if="${p.statutProduit() != null}"
+               th:classappend="${'OCCASION'.equalsIgnoreCase(p.statutProduit())} ? 'product-etat-banner banner-occasion' : 'product-etat-banner banner-neuf'"
+               th:text="${'OCCASION'.equalsIgnoreCase(p.statutProduit()) ? 'Occasion' : p.statutProduit()}"></div>
+
+          <div class="product-img">
+            <img th:if="${p.imageUrl() != null}"
+                 th:src="${#strings.replace(@environment.getProperty('api.base-url'), '/api/v1', '') + p.imageUrl()}"
+                 th:alt="${p.imageAlt() != null ? p.imageAlt() : p.nom()}"
+                 onerror="this.style.display='none'"/>
+            <span th:if="${p.imageUrl() == null}">🎮</span>
+            <span th:if="${p.misEnAvant()}"   class="product-badge badge-premium">Mise en avant</span>
+            <span th:if="${p.estPreCommande()}" class="product-badge badge-precommande">Précommande</span>
+          </div>
+
+          <div class="product-body">
+            <!-- Plateforme + édition comme sous-titre -->
+            <div class="product-platform">
+              <span th:text="${p.plateforme() != null ? p.plateforme() : p.categorie()}"></span>
+              <span th:if="${p.edition() != null and !p.edition().isBlank()}"
+                    style="color:var(--text-dim);font-size:.8em;" th:text="' · ' + ${p.edition()}"></span>
+            </div>
+            <div class="product-name" th:text="${p.nom()}"></div>
+
+            <div class="product-rating" th:if="${p.noteMoyenne() != null and p.nbAvis() > 0}">
+              <div class="rating-stars" aria-hidden="true">
+                <th:block th:each="i : ${#numbers.sequence(1, 5)}">
+                  <span th:text="${i <= T(java.lang.Math).round(p.noteMoyenne()) ? '★' : '☆'}"></span>
+                </th:block>
+              </div>
+              <span class="rating-meta"
+                    th:text="${#numbers.formatDecimal(p.noteMoyenne(),1,1) + ' / 5 · ' + p.nbAvis() + ' avis'}"></span>
+            </div>
+            <div class="product-rating product-rating-empty"
+                 th:if="${p.noteMoyenne() == null or p.nbAvis() == 0}">Pas encore d'avis</div>
+
+            <div class="product-price">
+              <span th:if="${p.prix() != null}"
+                    th:text="${#numbers.formatDecimal(p.prix(),1,2) + ' €'}"></span>
+              <span th:if="${p.prix() == null}" style="color:var(--text-dim);font-size:.85em">Prix non renseigné</span>
+            </div>
+
+            <div class="product-actions" onclick="event.stopPropagation()">
+              <form th:action="@{/panier/ajouter}" method="post">
+                <input type="hidden" name="produitId"  th:value="${p.idProduit()}"/>
+                <input type="hidden" name="produitNom" th:value="${p.nom()}"/>
+                <input type="hidden" name="idVariant"  th:value="${p.id()}"/>
+                <button type="submit" class="btn btn-sm btn-primary">+ Panier</button>
+              </form>
+              <a class="btn btn-sm btn-secondary" th:href="@{/catalogue/{id}(id=${p.idProduit()})}">Détail</a>
+            </div>
+          </div>
         </div>
-        <div class="product-body">
-          <div class="product-platform" th:text="${p.categorie()}"></div>
-          <div class="product-name" th:text="${p.nom()}"></div>
 
-          <div class="product-rating" th:if="${p.noteMoyenne() != null and p.nbAvis() > 0}">
-            <div class="rating-stars" aria-hidden="true">
-              <th:block th:each="i : ${#numbers.sequence(1, 5)}">
-                <span th:text="${i <= T(java.lang.Math).round(p.noteMoyenne()) ? '★' : '☆'}"></span>
-              </th:block>
-            </div>
-            <span class="rating-meta"
-                  th:text="${#numbers.formatDecimal(p.noteMoyenne(),1,1) + ' / 5 · ' + p.nbAvis() + ' avis'}"></span>
-          </div>
-          <div class="product-rating product-rating-empty" th:if="${p.noteMoyenne() == null or p.nbAvis() == 0}">
-            Pas encore d'avis
-          </div>
-
-          <div class="product-price" th:if="${vueOccasion or etat == 'occasion'}">
-            <div th:if="${p.prixOccasion() != null}">
-              Occasion :
-              <span th:text="${#numbers.formatDecimal(p.prixOccasion(),1,2) + ' €'}"></span>
-            </div>
-            <div th:if="${p.prixOccasion() == null}">N/A</div>
-          </div>
-
-          <div class="product-price" th:if="${!vueOccasion and etat == 'neuf'}">
-            <div th:if="${p.prixNeuf() != null}">
-              Neuf :
-              <span th:text="${#numbers.formatDecimal(p.prixNeuf(),1,2) + ' €'}"></span>
-            </div>
-            <div th:if="${p.prixNeuf() == null}">N/A</div>
-          </div>
-
-          <div class="product-price" th:if="${!vueOccasion and (etat == null or etat.isBlank())}">
-            <div th:if="${p.prixNeuf() != null}">
-              Neuf :
-              <span th:text="${#numbers.formatDecimal(p.prixNeuf(),1,2) + ' €'}"></span>
-            </div>
-            <div th:if="${p.prixOccasion() != null}">
-              Occasion :
-              <span th:text="${#numbers.formatDecimal(p.prixOccasion(),1,2) + ' €'}"></span>
-            </div>
-            <div th:if="${p.prixNeuf() == null and p.prixOccasion() == null}">N/A</div>
-          </div>
-
-          <div class="product-actions">
-            <a class="btn btn-sm btn-secondary" th:href="@{/catalogue/{id}(id=${p.id()})}">Détail</a>
-          </div>
-        </div>
-      </div>
+      </th:block>
     </div>
 
     <div th:if="${produits == null or produits.content() == null or produits.content().isEmpty()}"
@@ -264,20 +170,19 @@
 
     <div class="pagination" th:if="${produits != null and produits.totalPages() > 1}">
       <a class="page-link" th:classappend="${produits.first()} ? 'disabled'"
-         th:href="@{/catalogue(page=${produits.number() - 1}, q=${q}, categorie=${categorie}, niveau=${niveau}, univers=${univers}, plateforme=${plateforme}, famille=${famille}, etat=${etat}, licence=${licence}, format=${format})}">◀</a>
+         th:href="@{/catalogue(page=${produits.number() - 1}, q=${q}, categorie=${categorie}, niveau=${niveau}, univers=${univers}, plateforme=${plateforme}, famille=${famille}, etat=${etat}, licence=${licence}, format=${format}, tri=${tri})}">◀</a>
       <th:block th:each="i : ${#numbers.sequence(0, produits.totalPages() - 1)}">
         <a class="page-link" th:classappend="${i == produits.number()} ? 'active'"
-           th:href="@{/catalogue(page=${i}, q=${q}, categorie=${categorie}, niveau=${niveau}, univers=${univers}, plateforme=${plateforme}, famille=${famille}, etat=${etat}, licence=${licence}, format=${format})}"
+           th:href="@{/catalogue(page=${i}, q=${q}, categorie=${categorie}, niveau=${niveau}, univers=${univers}, plateforme=${plateforme}, famille=${famille}, etat=${etat}, licence=${licence}, format=${format}, tri=${tri})}"
            th:text="${i + 1}"></a>
       </th:block>
       <a class="page-link" th:classappend="${produits.last()} ? 'disabled'"
-         th:href="@{/catalogue(page=${produits.number() + 1}, q=${q}, categorie=${categorie}, niveau=${niveau}, univers=${univers}, plateforme=${plateforme}, famille=${famille}, etat=${etat}, licence=${licence}, format=${format})}">▶</a>
+         th:href="@{/catalogue(page=${produits.number() + 1}, q=${q}, categorie=${categorie}, niveau=${niveau}, univers=${univers}, plateforme=${plateforme}, famille=${famille}, etat=${etat}, licence=${licence}, format=${format}, tri=${tri})}">▶</a>
     </div>
   </div>
 </main>
 
-<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/footer :: footer}"/>
 </div>
-<th:block th:replace="~{fragments/layout :: scripts}"/>
 </body>
 </html>

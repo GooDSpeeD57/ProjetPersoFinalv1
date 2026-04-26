@@ -12,6 +12,7 @@ import com.monprojet.boutiquejeux.dto.api.client.ApiUpdateClientRequest;
 import com.monprojet.boutiquejeux.dto.api.common.ApiPage;
 import com.monprojet.boutiquejeux.dto.api.facture.ApiFactureDetail;
 import com.monprojet.boutiquejeux.dto.api.facture.ApiFactureSummary;
+import com.monprojet.boutiquejeux.dto.api.garantie.ApiGarantie;
 import com.monprojet.boutiquejeux.service.ApiService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +49,7 @@ class CompteController {
         List<ApiBonAchat> bons = api.getClientBonsAchat(jwt);
         List<ApiHistoriquePoints> historiquePoints = api.getClientHistoriquePoints(jwt);
         List<ApiAvatar> avatars = api.getAvatars(jwt);
+        List<ApiGarantie> garanties = api.getClientGaranties(jwt);
 
         model.addAttribute("client", client);
         model.addAttribute("points", points);
@@ -59,6 +61,7 @@ class CompteController {
         model.addAttribute("historiquePoints", historiquePoints != null ? historiquePoints : List.of());
         model.addAttribute("typeAdresseOptions", List.of("DOMICILE", "LIVRAISON", "FACTURATION"));
         model.addAttribute("avatars", avatars != null ? avatars : List.of());
+        model.addAttribute("garanties", garanties);
         return "compte/index";
     }
 
@@ -181,6 +184,77 @@ class CompteController {
             redirect.addFlashAttribute("errorMessage", e.getMessage());
         }
         return "redirect:/compte#adresses";
+    }
+
+    @PostMapping("/magasin-favori/{idMagasin}")
+    String setMagasinFavori(@PathVariable Long idMagasin,
+                            @RequestParam(required = false, defaultValue = "false") boolean popup,
+                            HttpSession session,
+                            RedirectAttributes redirect) {
+        String jwt = (String) session.getAttribute("jwt");
+        if (jwt == null) return "redirect:/auth/login";
+        try {
+            api.setMagasinFavori(jwt, idMagasin);
+            if (popup) return "redirect:/compte/magasin-favori/popup-ok";
+            redirect.addFlashAttribute("successMessage", "Votre boutique favorite a été enregistrée.");
+        } catch (RuntimeException e) {
+            redirect.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/compte";
+    }
+
+    @GetMapping("/magasin-favori/popup-ok")
+    org.springframework.http.ResponseEntity<String> magasinFavoriPopupOk() {
+        String html = """
+            <!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+            <body><script>
+              window.parent.postMessage('magasin-favori-ok', window.location.origin);
+            </script></body></html>
+            """;
+        return org.springframework.http.ResponseEntity.ok()
+            .contentType(org.springframework.http.MediaType.TEXT_HTML)
+            .body(html);
+    }
+
+    @PostMapping("/magasin-favori/supprimer")
+    String removeMagasinFavori(HttpSession session, RedirectAttributes redirect) {
+        String jwt = (String) session.getAttribute("jwt");
+        if (jwt == null) return "redirect:/auth/login";
+        try {
+            api.removeMagasinFavori(jwt);
+            redirect.addFlashAttribute("successMessage", "Boutique favorite retirée.");
+        } catch (RuntimeException e) {
+            redirect.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/compte";
+    }
+
+    @PostMapping("/verifier-email")
+    String verifierEmail(HttpSession session, RedirectAttributes redirect) {
+        String jwt = (String) session.getAttribute("jwt");
+        if (jwt == null) return "redirect:/auth/login";
+        try {
+            api.simulerVerificationEmail(jwt);
+            redirect.addFlashAttribute("successMessage",
+                    "✅ Un e-mail de vérification a été envoyé (simulation). Votre adresse e-mail est maintenant vérifiée.");
+        } catch (RuntimeException e) {
+            redirect.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/compte#infos";
+    }
+
+    @PostMapping("/verifier-telephone")
+    String verifierTelephone(HttpSession session, RedirectAttributes redirect) {
+        String jwt = (String) session.getAttribute("jwt");
+        if (jwt == null) return "redirect:/auth/login";
+        try {
+            api.simulerVerificationTelephone(jwt);
+            redirect.addFlashAttribute("successMessage",
+                    "✅ Un SMS de vérification a été envoyé (simulation). Votre numéro de téléphone est maintenant vérifié.");
+        } catch (RuntimeException e) {
+            redirect.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/compte#infos";
     }
 
     @PostMapping("/ultimate/subscribe")

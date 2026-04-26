@@ -9,13 +9,16 @@ import fr.micromania.dto.client.UpdateClientRequest;
 import fr.micromania.entity.AbonnementClient;
 import fr.micromania.entity.Avatar;
 import fr.micromania.entity.Client;
+import fr.micromania.entity.Magasin;
 import fr.micromania.entity.PointsFidelite;
 import fr.micromania.entity.referentiel.TypeFidelite;
 import fr.micromania.mapper.AuthMapper;
 import fr.micromania.mapper.ClientMapper;
 import fr.micromania.repository.AbonnementClientRepository;
+import fr.micromania.repository.AdresseRepository;
 import fr.micromania.repository.AvatarRepository;
 import fr.micromania.repository.ClientRepository;
+import fr.micromania.repository.MagasinRepository;
 import fr.micromania.repository.PointsFideliteRepository;
 import fr.micromania.repository.StatutAbonnementRepository;
 import fr.micromania.repository.TypeFideliteRepository;
@@ -50,6 +53,8 @@ public class ClientServiceImpl implements ClientService {
     private final TypeFideliteRepository typeFideliteRepository;
     private final AbonnementClientRepository abonnementClientRepository;
     private final StatutAbonnementRepository statutAbonnementRepository;
+    private final MagasinRepository magasinRepository;
+    private final AdresseRepository adresseRepository;
 
     @Override
     @Transactional
@@ -157,6 +162,7 @@ public class ClientServiceImpl implements ClientService {
         if (request.telephone() != null && !request.telephone().equals(client.getTelephone())) {
             validerUniciteTelephone(request.telephone());
             client.setTelephone(request.telephone());
+            client.setTelephoneVerifie(false);
         }
         if (request.nom() != null) client.setNom(request.nom());
         if (request.prenom() != null) client.setPrenom(request.prenom());
@@ -187,6 +193,31 @@ public class ClientServiceImpl implements ClientService {
         client.setTokenVerificationEmail(null);
         client.setTokenVerificationExpireLe(null);
         client.setCompteActive(true);
+        clientRepository.save(client);
+    }
+
+    @Override
+    @Transactional
+    public void simulerVerificationEmail(Long idClient) {
+        Client client = clientRepository.findByIdAndDeletedFalse(idClient)
+            .orElseThrow(() -> new EntityNotFoundException("Client introuvable : " + idClient));
+        client.setEmailVerifie(true);
+        client.setDateVerificationEmail(LocalDateTime.now());
+        client.setTokenVerificationEmail(null);
+        client.setTokenVerificationExpireLe(null);
+        client.setCompteActive(true);
+        clientRepository.save(client);
+    }
+
+    @Override
+    @Transactional
+    public void simulerVerificationTelephone(Long idClient) {
+        Client client = clientRepository.findByIdAndDeletedFalse(idClient)
+            .orElseThrow(() -> new EntityNotFoundException("Client introuvable : " + idClient));
+        client.setTelephoneVerifie(true);
+        client.setDateVerificationTelephone(LocalDateTime.now());
+        client.setTokenVerificationTelephone(null);
+        client.setTokenVerificationTelephoneExpireLe(null);
         clientRepository.save(client);
     }
 
@@ -279,6 +310,15 @@ public class ClientServiceImpl implements ClientService {
     }
 
 
+    @Override
+    public ClientResponse identifierParIdentite(String nom, String prenom, LocalDate dateNaissance) {
+        Client client = clientRepository
+            .findByNomIgnoreCaseAndPrenomIgnoreCaseAndDateNaissanceAndDeletedFalse(nom, prenom, dateNaissance)
+            .orElseThrow(() -> new EntityNotFoundException("Aucun client trouvé pour cette identité"));
+        PointsFidelite points = pointsRepository.findByClientId(client.getId()).orElse(null);
+        return enrichirClientResponse(client, points);
+    }
+
     private ClientResponse enrichirClientResponse(Client client, PointsFidelite points) {
         ClientResponse base = clientMapper.toResponse(client, points);
         AbonnementClient dernierAbonnement = abonnementClientRepository.findTopByClientIdOrderByDateFinDesc(client.getId())
@@ -287,6 +327,24 @@ public class ClientServiceImpl implements ClientService {
             .findTopByClientIdAndStatutAbonnementCodeAndDateFinGreaterThanEqualOrderByDateFinDesc(
                 client.getId(), "ACTIF", LocalDate.now())
             .orElse(null);
+
+        ClientResponse.MagasinBrefDto magasinBref = null;
+        if (client.getMagasinFavori() != null) {
+            Magasin m = client.getMagasinFavori();
+            String ville = adresseRepository.findFirstByMagasinIdAndEstDefautTrue(m.getId())
+                .or(() -> adresseRepository.findByMagasinId(m.getId()).stream().findFirst())
+                .map(a -> a.getCodePostal() + " " + a.getVille())
+                .orElse(null);
+            String adresseComplete = adresseRepository.findFirstByMagasinIdAndEstDefautTrue(m.getId())
+                .or(() -> adresseRepository.findByMagasinId(m.getId()).stream().findFirst())
+                .map(a -> {
+                    String l1 = a.getRue() != null ? a.getRue() : "";
+                    String l2 = (a.getCodePostal() != null ? a.getCodePostal() : "") + " " + (a.getVille() != null ? a.getVille() : "");
+                    return (l1 + " • " + l2).trim();
+                })
+                .orElse(null);
+            magasinBref = new ClientResponse.MagasinBrefDto(m.getId(), m.getNom(), m.getTelephone(), ville, adresseComplete);
+        }
 
         return new ClientResponse(
             base.id(),
@@ -308,8 +366,33 @@ public class ClientServiceImpl implements ClientService {
             dernierAbonnement != null ? dernierAbonnement.getDateDebut() : null,
             dernierAbonnement != null ? dernierAbonnement.getDateFin() : null,
             abonnementActif != null,
-            typeFideliteRepository.findByCode("ULTIMATE").map(TypeFidelite::getPrixAbonnement).orElse(null)
+            typeFideliteRepository.findByCode("ULTIMATE").map(TypeFidelite::getPrixAbonnement).orElse(null),
+            magasinBref
         );
+    }
+
+    @Override
+    @Transactional
+    public ClientResponse setMagasinFavori(Long idClient, Long idMagasin) {
+        Client client = clientRepository.findByIdAndDeletedFalse(idClient)
+            .orElseThrow(() -> new EntityNotFoundException("Client introuvable : " + idClient));
+        Magasin magasin = magasinRepository.findByIdAndActifTrue(idMagasin)
+            .orElseThrow(() -> new EntityNotFoundException("Magasin introuvable : " + idMagasin));
+        client.setMagasinFavori(magasin);
+        client = clientRepository.save(client);
+        PointsFidelite points = pointsRepository.findByClientId(idClient).orElse(null);
+        return enrichirClientResponse(client, points);
+    }
+
+    @Override
+    @Transactional
+    public ClientResponse removeMagasinFavori(Long idClient) {
+        Client client = clientRepository.findByIdAndDeletedFalse(idClient)
+            .orElseThrow(() -> new EntityNotFoundException("Client introuvable : " + idClient));
+        client.setMagasinFavori(null);
+        client = clientRepository.save(client);
+        PointsFidelite points = pointsRepository.findByClientId(idClient).orElse(null);
+        return enrichirClientResponse(client, points);
     }
 
     private Client synchroniserStatutUltimate(Client client) {

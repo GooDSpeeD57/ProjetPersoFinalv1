@@ -38,7 +38,7 @@ spring:
 
 app:
   media:
-    images-path: ${APP_IMAGES_PATH:./media/images}
+    images-path: ${APP_IMAGES_PATH:C:/Users/GooDSpeeD/Desktop/Projet final v1/.claude/worktrees/sad-cori/media/images}
   jwt:
     secret: ${JWT_SECRET:MISSING_JWT_SECRET_SET_ENV_VAR_MIN_32_CHARS_______________________}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
@@ -80,6 +80,8 @@ spring:
     password: Root
 
   jpa:
+    hibernate:
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:

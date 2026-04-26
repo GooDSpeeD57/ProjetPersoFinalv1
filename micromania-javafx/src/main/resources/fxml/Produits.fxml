@@ -1,0 +1,577 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.monprojet.boutiquejeux.controller.ProduitCrudController"
+      spacing="14" styleClass="view-container">
+    <padding><Insets top="18" bottom="18" left="18" right="18"/></padding>
+
+    <Label text="🎮 Catalogue produits" styleClass="page-title"/>
+    <Separator/>
+
+    <HBox spacing="14" VBox.vgrow="ALWAYS">
+
+        <!-- ══ COLONNE GAUCHE : liste produits ══ -->
+        <VBox spacing="10" prefWidth="460">
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <TextField fx:id="rechercheField" promptText="Rechercher…"
+                           styleClass="text-field-dark" prefWidth="230"
+                           onAction="#handleRecherche"/>
+                <Button text="🔍" onAction="#handleRecherche" styleClass="btn-secondary"/>
+                <Button text="🔄" onAction="#handleRefresh"   styleClass="btn-secondary"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <ProgressIndicator fx:id="spinnerListe" maxWidth="24" maxHeight="24"/>
+            </HBox>
+
+            <TableView fx:id="tableProduits" VBox.vgrow="ALWAYS" styleClass="table-dark">
+                <columns>
+                    <TableColumn fx:id="colNom"     text="Nom"      prefWidth="165" minWidth="165"/>
+                    <TableColumn fx:id="colCat"     text="Catég."   prefWidth="85" minWidth="85"/>
+                    <TableColumn fx:id="colPegi"    text="PEGI"     prefWidth="40" minWidth="40"/>
+                    <TableColumn fx:id="colPrixN"   text="Prix N"   prefWidth="60" minWidth="60"/>
+                    <TableColumn fx:id="colPrixO"   text="Prix O"   prefWidth="60" minWidth="60"/>
+                    <TableColumn fx:id="colVedette" text="★"        prefWidth="26" minWidth="26"/>
+                    <TableColumn fx:id="colPreco"   text="Préco"    prefWidth="42" minWidth="42"/>
+                </columns>
+            </TableView>
+
+            <HBox spacing="8">
+                <Button fx:id="btnNouveau"   text="➕ Nouveau"   onAction="#handleNouveau"
+                        styleClass="btn-primary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                <Button fx:id="btnSupprimer" text="🗑 Supprimer" onAction="#handleSupprimer"
+                        styleClass="btn-danger"  maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+            </HBox>
+        </VBox>
+
+        <!-- ══ COLONNE DROITE : tabs ══ -->
+        <VBox HBox.hgrow="ALWAYS" spacing="8">
+
+            <!-- En-tête : titre + spinner -->
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label fx:id="labelTitreForm" text="Sélectionnez un produit"
+                       styleClass="section-title" HBox.hgrow="ALWAYS"/>
+                <ProgressIndicator fx:id="spinnerForm" maxWidth="22" maxHeight="22"/>
+            </HBox>
+
+            <TabPane VBox.vgrow="ALWAYS" styleClass="tab-pane-dark" tabClosingPolicy="UNAVAILABLE">
+
+                <!-- ─────────────── TAB 1 : INFORMATIONS ─────────────── -->
+                <Tab text="📋  Informations">
+                    <ScrollPane fitToWidth="true" styleClass="scroll-dark">
+                        <VBox spacing="12" styleClass="card">
+                            <padding><Insets top="14" bottom="14" left="14" right="14"/></padding>
+
+                            <GridPane hgap="10" vgap="10">
+                                <columnConstraints>
+                                    <ColumnConstraints prefWidth="115" minWidth="115"/>
+                                    <ColumnConstraints hgrow="ALWAYS"/>
+                                    <ColumnConstraints prefWidth="115" minWidth="115"/>
+                                    <ColumnConstraints hgrow="ALWAYS"/>
+                                </columnConstraints>
+
+                                <Label text="Nom *" styleClass="field-label"
+                                       GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                                <TextField fx:id="nomField" promptText="ex : The Legend of Zelda"
+                                           styleClass="text-field-dark"
+                                           GridPane.rowIndex="0" GridPane.columnIndex="1"
+                                           GridPane.columnSpan="3"/>
+
+                                <Label text="Slug *" styleClass="field-label"
+                                       GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                                <TextField fx:id="slugField" promptText="ex : zelda-botw"
+                                           styleClass="text-field-dark"
+                                           GridPane.rowIndex="1" GridPane.columnIndex="1"
+                                           GridPane.columnSpan="3"/>
+
+                                <Label text="Catégorie *" styleClass="field-label"
+                                       GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                                <ComboBox fx:id="categorieCb" maxWidth="Infinity"
+                                          GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                                <Label text="PEGI" styleClass="field-label"
+                                       GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+                                <ComboBox fx:id="pegiCb" maxWidth="Infinity"
+                                          GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+
+                                <Label text="Éditeur" styleClass="field-label"
+                                       GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                                <TextField fx:id="editeurField" styleClass="text-field-dark"
+                                           GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                                <Label text="Constructeur" styleClass="field-label"
+                                       GridPane.rowIndex="3" GridPane.columnIndex="2"/>
+                                <TextField fx:id="constructeurField" styleClass="text-field-dark"
+                                           GridPane.rowIndex="3" GridPane.columnIndex="3"/>
+
+                                <Label text="Marque" styleClass="field-label"
+                                       GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                                <TextField fx:id="marqueField" styleClass="text-field-dark"
+                                           GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                                <Label text="Date sortie" styleClass="field-label"
+                                       GridPane.rowIndex="4" GridPane.columnIndex="2"/>
+                                <DatePicker fx:id="dateSortiePicker" styleClass="date-picker-dark"
+                                            maxWidth="Infinity"
+                                            GridPane.rowIndex="4" GridPane.columnIndex="3"/>
+
+                                <Label text="Accès min *" styleClass="field-label"
+                                       GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+                                <ComboBox fx:id="niveauAccesCb" maxWidth="Infinity"
+                                          GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+                                <Label text="Langue *" styleClass="field-label"
+                                       GridPane.rowIndex="5" GridPane.columnIndex="2"/>
+                                <ComboBox fx:id="langueCb" maxWidth="Infinity"
+                                          GridPane.rowIndex="5" GridPane.columnIndex="3"/>
+
+                                <Label text="Options" styleClass="field-label"
+                                       GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+                                <HBox spacing="16" alignment="CENTER_LEFT"
+                                      GridPane.rowIndex="6" GridPane.columnIndex="1"
+                                      GridPane.columnSpan="3">
+                                    <CheckBox fx:id="checkMisEnAvant"  text="⭐ Mis en avant" styleClass="checkbox-dark"/>
+                                    <CheckBox fx:id="checkPreCommande" text="🕐 Précommande"  styleClass="checkbox-dark"/>
+                                </HBox>
+                            </GridPane>
+
+                            <Separator/>
+
+                            <Label text="Description" styleClass="field-label"/>
+                            <TextArea fx:id="descriptionArea"
+                                      promptText="Description complète du produit…"
+                                      styleClass="text-area-dark" prefRowCount="5" wrapText="true"/>
+
+                            <Label text="Résumé court (500 car. max)" styleClass="field-label"/>
+                            <TextField fx:id="resumeCourtField"
+                                       promptText="Accroche courte affichée dans les listes…"
+                                       styleClass="text-field-dark"/>
+
+                        </VBox>
+                    </ScrollPane>
+                </Tab>
+
+                <!-- ─────────────── TAB 2 : VARIANTS / PLATEFORMES ─────────────── -->
+                <Tab text="🎮  Variants">
+                    <VBox spacing="10" styleClass="card">
+                        <padding><Insets top="14" bottom="14" left="14" right="14"/></padding>
+
+                        <!-- Variants existants -->
+                        <Label text="Variants existants" styleClass="section-title"/>
+                        <TableView fx:id="tableVariants" prefHeight="120" styleClass="table-dark">
+                            <columns>
+                                <TableColumn fx:id="colVSku"      text="SKU"        prefWidth="110" minWidth="110"/>
+                                <TableColumn fx:id="colVNom"      text="Nom comm."  prefWidth="140" minWidth="140"/>
+                                <TableColumn fx:id="colVPlatf"    text="Support"    prefWidth="65" minWidth="65"/>
+                                <TableColumn fx:id="colVStatut"   text="État"       prefWidth="65" minWidth="65"/>
+                                <TableColumn fx:id="colVPrixWeb"  text="Neuf (€)"   prefWidth="68" minWidth="68"/>
+                                <TableColumn fx:id="colVPrixMag"  text="Occ. (€)"   prefWidth="68" minWidth="68"/>
+                                <TableColumn fx:id="colVPrixRep"  text="Reprise (€)" prefWidth="78" minWidth="78"/>
+                                <TableColumn fx:id="colVActif"    text="Actif"      prefWidth="44" minWidth="44"/>
+                            </columns>
+                        </TableView>
+
+                        <!-- Carte édition du variant sélectionné -->
+                        <VBox fx:id="cardEditVariant" spacing="8" styleClass="card"
+                              style="-fx-border-color:#3a3a5c;-fx-border-radius:4;">
+                            <padding><Insets top="10" bottom="10" left="10" right="10"/></padding>
+
+                            <HBox alignment="CENTER_LEFT" spacing="8">
+                                <Label text="✏️  Modifier le variant sélectionné"
+                                       styleClass="section-title" HBox.hgrow="ALWAYS"/>
+                                <Label fx:id="labelEditVariant" text="— sélectionnez une ligne —"
+                                       style="-fx-font-size:11;-fx-text-fill:#aaa;"/>
+                            </HBox>
+
+                            <GridPane hgap="10" vgap="6">
+                                <columnConstraints>
+                                    <ColumnConstraints prefWidth="100" minWidth="100"/>
+                                    <ColumnConstraints hgrow="ALWAYS"/>
+                                    <ColumnConstraints prefWidth="100" minWidth="100"/>
+                                    <ColumnConstraints hgrow="ALWAYS"/>
+                                </columnConstraints>
+
+                                <Label text="Nom comm." styleClass="field-label"
+                                       GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                                <TextField fx:id="editVNomField" promptText="Nom commercial…"
+                                           styleClass="text-field-dark"
+                                           GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                                <Label text="Édition" styleClass="field-label"
+                                       GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+                                <ComboBox fx:id="editVEditionCb" maxWidth="Infinity"
+                                          GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+                                <Label text="Prix Neuf (€)" styleClass="field-label"
+                                       GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                                <TextField fx:id="editVPrixWebField" promptText="0.00"
+                                           styleClass="text-field-dark"
+                                           GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                                <Label text="Prix Occasion (€)" styleClass="field-label"
+                                       GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+                                <TextField fx:id="editVPrixMagField" promptText="0.00"
+                                           styleClass="text-field-dark"
+                                           GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+
+                                <Label text="Prix Reprise (€)" styleClass="field-label"
+                                       GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                                <TextField fx:id="editVPrixRepriseField" promptText="0.00"
+                                           styleClass="text-field-dark"
+                                           GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                                <Label text="Prix Location (€)" styleClass="field-label"
+                                       GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+                                <TextField fx:id="editVPrixLocationField" promptText="0.00"
+                                           styleClass="text-field-dark"
+                                           GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+
+                                <Label text="Plateforme" styleClass="field-label"
+                                       GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                                <ComboBox fx:id="editVPlatfCb" maxWidth="Infinity"
+                                          GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                                <Label text="Statut" styleClass="field-label"
+                                       GridPane.rowIndex="3" GridPane.columnIndex="2"/>
+                                <ComboBox fx:id="editVStatutCb" maxWidth="Infinity"
+                                          GridPane.rowIndex="3" GridPane.columnIndex="3"/>
+                            </GridPane>
+
+                            <HBox spacing="8">
+                                <Button text="💾 Sauvegarder" onAction="#handleSauvegarderVariant"
+                                        styleClass="btn-primary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                                <Button text="✗ Désactiver" onAction="#handleDesactiverVariant"
+                                        styleClass="btn-danger"/>
+                                <Button text="✔ Réactiver" onAction="#handleReactiverVariant"
+                                        styleClass="btn-success"/>
+                            </HBox>
+                        </VBox>
+
+                        <Separator/>
+
+                        <!-- Générateur de variants -->
+                        <Label text="⚡ Générer des variants" styleClass="section-title"/>
+
+                        <HBox spacing="12">
+
+                            <!-- Plateformes multi-sélection -->
+                            <VBox spacing="4" prefWidth="175" minWidth="150">
+                                <Label text="Plateformes *" styleClass="field-label"/>
+                                <Label text="Ctrl+clic = sélection multiple"
+                                       style="-fx-font-size:10;-fx-text-fill:#888;"/>
+                                <ListView fx:id="listePlatformes" VBox.vgrow="ALWAYS"
+                                          prefHeight="115" styleClass="table-dark"/>
+                            </VBox>
+
+                            <!-- Paramètres de génération -->
+                            <VBox spacing="8" HBox.hgrow="ALWAYS">
+
+                                <HBox spacing="16" alignment="CENTER_LEFT">
+                                    <Label text="Statut(s) *" styleClass="field-label" minWidth="80"/>
+                                    <CheckBox fx:id="checkStatutNeuf"     text="NEUF"
+                                              styleClass="checkbox-dark" selected="true"/>
+                                    <CheckBox fx:id="checkStatutOccasion" text="OCCASION"
+                                              styleClass="checkbox-dark"/>
+                                </HBox>
+
+                                <VBox spacing="4">
+                                    <Label text="Éditions" styleClass="field-label"/>
+                                    <Label text="Ctrl+clic = sélection multiple (vide = sans édition)"
+                                           style="-fx-font-size:10;-fx-text-fill:#888;"/>
+                                    <ListView fx:id="listeEditions" prefHeight="90"
+                                              styleClass="table-dark"/>
+                                </VBox>
+
+                                <GridPane hgap="10" vgap="6">
+                                    <columnConstraints>
+                                        <ColumnConstraints prefWidth="90" minWidth="90"/>
+                                        <ColumnConstraints hgrow="ALWAYS"/>
+                                        <ColumnConstraints prefWidth="90" minWidth="90"/>
+                                        <ColumnConstraints hgrow="ALWAYS"/>
+                                    </columnConstraints>
+
+                                    <Label text="Prix Neuf (€)" styleClass="field-label"
+                                           GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                                    <TextField fx:id="platPrixWebField" promptText="0.00"
+                                               styleClass="text-field-dark"
+                                               GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                                    <Label text="Prix Occasion (€)" styleClass="field-label"
+                                           GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+                                    <TextField fx:id="platPrixMagField" promptText="0.00"
+                                               styleClass="text-field-dark"
+                                               GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+                                    <Label text="Prix Reprise (€)" styleClass="field-label"
+                                           GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                                    <TextField fx:id="platPrixRepriseField" promptText="0.00"
+                                               styleClass="text-field-dark"
+                                               GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                                    <Label text="Prix Location (€)" styleClass="field-label"
+                                           GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+                                    <TextField fx:id="platPrixLocationField" promptText="0.00"
+                                               styleClass="text-field-dark"
+                                               GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+
+                                    <Label text="Format *" styleClass="field-label"
+                                           GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                                    <ComboBox fx:id="comboFormatNouv" maxWidth="Infinity"
+                                              GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                                    <Label text="Nom comm." styleClass="field-label"
+                                           GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+                                    <TextField fx:id="platNomField" promptText="Optionnel (auto-généré)"
+                                               styleClass="text-field-dark"
+                                               GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+                                </GridPane>
+
+                                <HBox spacing="8" alignment="CENTER_LEFT">
+                                    <Label text="Image URL" styleClass="field-label" minWidth="80"/>
+                                    <TextField fx:id="platImgUrlField"
+                                               promptText="URL jaquette (commune à toutes les combinaisons)"
+                                               styleClass="text-field-dark" HBox.hgrow="ALWAYS"/>
+                                </HBox>
+
+                            </VBox>
+                        </HBox>
+
+                        <!-- Table variants en attente (mode NOUVEAU) -->
+                        <TableView fx:id="tablePending" prefHeight="100" styleClass="table-dark">
+                            <columns>
+                                <TableColumn fx:id="colPVPlatf"   text="Plateforme" prefWidth="80" minWidth="80"/>
+                                <TableColumn fx:id="colPVStatut"  text="Statut"     prefWidth="68" minWidth="68"/>
+                                <TableColumn fx:id="colPVEdition" text="Édition"    prefWidth="75" minWidth="75"/>
+                                <TableColumn fx:id="colPVNom"     text="Nom comm."  prefWidth="130" minWidth="130"/>
+                                <TableColumn fx:id="colPVPrixW"   text="Web"        prefWidth="58" minWidth="58"/>
+                                <TableColumn fx:id="colPVPrixM"   text="Mag."       prefWidth="52" minWidth="52"/>
+                                <TableColumn fx:id="colPVImg"     text="Image"      prefWidth="105" minWidth="105"/>
+                            </columns>
+                        </TableView>
+
+                        <HBox spacing="8">
+                            <Button text="⚡ Générer les combinaisons" onAction="#handleAjouterVariant"
+                                    styleClass="btn-secondary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                            <Button text="🗑 Retirer la sélection" onAction="#handleRetirerVariant"
+                                    styleClass="btn-danger"/>
+                        </HBox>
+                    </VBox>
+                </Tab>
+
+                <!-- ─────────────── TAB 3 : IMAGES ─────────────── -->
+                <Tab text="🖼️  Images">
+                    <VBox spacing="12" styleClass="card">
+                        <padding><Insets top="14" bottom="14" left="14" right="14"/></padding>
+
+                        <!-- Tableau des images existantes -->
+                        <Label text="Images du variant sélectionné" styleClass="section-title"/>
+                        <Label text="ℹ️  Sélectionnez d'abord un variant dans l'onglet Variants"
+                               style="-fx-font-size:11;-fx-text-fill:#aaa;" wrapText="true"/>
+                        <TableView fx:id="tableImages" prefHeight="160" styleClass="table-dark">
+                            <columns>
+                                <TableColumn fx:id="colImgPrincip" text="★"       prefWidth="30" minWidth="30"/>
+                                <TableColumn fx:id="colImgVariant" text="Variant"  prefWidth="100" minWidth="100"/>
+                                <TableColumn fx:id="colImgUrl"     text="Fichier"  prefWidth="230" minWidth="230"/>
+                                <TableColumn fx:id="colImgAlt"     text="Alt"      prefWidth="140" minWidth="140"/>
+                            </columns>
+                        </TableView>
+
+                        <!-- Édition de l'image sélectionnée -->
+                        <VBox fx:id="cardEditImage" spacing="6"
+                              style="-fx-border-color:#3a3a5c;-fx-border-radius:4;-fx-padding:8;">
+                            <Label text="✏️  Modifier l'image sélectionnée" styleClass="section-title"/>
+                            <GridPane hgap="10" vgap="6">
+                                <columnConstraints>
+                                    <ColumnConstraints prefWidth="80" minWidth="80"/>
+                                    <ColumnConstraints hgrow="ALWAYS"/>
+                                    <ColumnConstraints prefWidth="80" minWidth="80"/>
+                                    <ColumnConstraints hgrow="ALWAYS"/>
+                                </columnConstraints>
+                                <Label text="URL" styleClass="field-label"
+                                       GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                                <TextField fx:id="editImgUrlField" promptText="Chemin ou URL de l'image"
+                                           styleClass="text-field-dark"
+                                           GridPane.rowIndex="0" GridPane.columnIndex="1"
+                                           GridPane.columnSpan="3"/>
+                                <Label text="Texte alt" styleClass="field-label"
+                                       GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                                <TextField fx:id="editImgAltField" promptText="Description accessibilité"
+                                           styleClass="text-field-dark"
+                                           GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                                <CheckBox fx:id="editImgPrincipale" text="⭐ Image principale"
+                                          styleClass="checkbox-dark"
+                                          GridPane.rowIndex="1" GridPane.columnIndex="2"
+                                          GridPane.columnSpan="2"/>
+                            </GridPane>
+                            <Button text="💾 Enregistrer les modifications"
+                                    onAction="#handleModifierImage"
+                                    styleClass="btn-primary" maxWidth="Infinity"/>
+                        </VBox>
+
+                        <Separator/>
+
+                        <!-- Formulaire d'ajout avec sélecteur de fichier -->
+                        <Label text="➕ Ajouter une image" styleClass="section-title"/>
+
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+
+                            <!-- Aperçu miniature -->
+                            <VBox alignment="CENTER" minWidth="110" maxWidth="110" spacing="4">
+                                <ImageView fx:id="previewImage" fitWidth="100" fitHeight="100"
+                                           preserveRatio="true" styleClass="img-preview"
+                                           style="-fx-border-color:#3a3a5c;-fx-border-width:1;"/>
+                                <Label text="Aperçu" style="-fx-font-size:10;-fx-text-fill:#888;"/>
+                            </VBox>
+
+                            <!-- Champs -->
+                            <VBox spacing="8" HBox.hgrow="ALWAYS">
+
+                                <!-- Sélecteur de fichier -->
+                                <HBox spacing="8" alignment="CENTER_LEFT">
+                                    <Button text="📁 Choisir un fichier…"
+                                            onAction="#handleChoisirImage"
+                                            styleClass="btn-secondary"/>
+                                    <Label fx:id="labelImageSelectee"
+                                           text="Aucun fichier sélectionné"
+                                           style="-fx-font-size:11;-fx-text-fill:#aaa;"
+                                           HBox.hgrow="ALWAYS" wrapText="true"/>
+                                </HBox>
+
+                                <!-- Alt -->
+                                <HBox spacing="8" alignment="CENTER_LEFT">
+                                    <Label text="Texte alt" styleClass="field-label" minWidth="80"/>
+                                    <TextField fx:id="imgAltField"
+                                               promptText="Description de l'image (ex : Jaquette PS5)"
+                                               styleClass="text-field-dark" HBox.hgrow="ALWAYS"/>
+                                </HBox>
+
+                                <!-- Options -->
+                                <CheckBox fx:id="checkImgPrincipale"
+                                          text="⭐ Image principale (jaquette)"
+                                          styleClass="checkbox-dark"/>
+
+                                <!-- Boutons action -->
+                                <HBox spacing="8">
+                                    <Button text="⬆️ Uploader &amp; associer au variant"
+                                            onAction="#handleAjouterImage"
+                                            styleClass="btn-success"
+                                            maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                                    <Button text="🗑 Supprimer la sélection"
+                                            onAction="#handleSupprimerImage"
+                                            styleClass="btn-danger"/>
+                                </HBox>
+                            </VBox>
+                        </HBox>
+
+                        <Label text="ℹ️  Sélectionnez un variant (onglet Variants) avant d'uploader. L'image sera automatiquement placée dans le bon dossier selon le type et la plateforme."
+                               styleClass="field-label" wrapText="true"/>
+                    </VBox>
+                </Tab>
+
+                <!-- ─────────────── TAB 4 : SCREENSHOTS ─────────────── -->
+                <Tab text="📸  Screenshots">
+                    <VBox spacing="12" styleClass="card">
+
+                        <!-- Tableau des screenshots existants -->
+                        <TableView fx:id="tableScreenshots" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="colSsOrdre"  text="Ordre" prefWidth="60" minWidth="60"/>
+                                <TableColumn fx:id="colSsUrl"    text="URL"   prefWidth="320" minWidth="320"/>
+                                <TableColumn fx:id="colSsAlt"    text="Alt"   prefWidth="200" minWidth="200"/>
+                            </columns>
+                        </TableView>
+
+                        <!-- Bouton supprimer -->
+                        <HBox spacing="8">
+                            <Button text="🗑️  Supprimer" onAction="#handleSupprimerScreenshot"
+                                    styleClass="btn-danger"/>
+                        </HBox>
+
+                        <!-- Formulaire upload nouveau screenshot -->
+                        <VBox spacing="6" style="-fx-border-color:#3a3a5c;-fx-border-radius:4;-fx-padding:8;">
+                            <Label text="➕  Ajouter un screenshot" styleClass="section-title"/>
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <Button text="📂  Choisir un fichier…" onAction="#handleChoisirScreenshot"/>
+                                <Label fx:id="labelScreenshotSelectionne" text="Aucun fichier sélectionné"
+                                       styleClass="field-label"/>
+                            </HBox>
+                            <ImageView fx:id="previewScreenshot" fitWidth="240" fitHeight="135"
+                                       preserveRatio="true"/>
+                            <HBox spacing="8" alignment="CENTER_LEFT">
+                                <Label text="Alt :" styleClass="field-label" prefWidth="60"/>
+                                <TextField fx:id="ssAltField" promptText="Texte alternatif" prefWidth="220"/>
+                                <Label text="Ordre :" styleClass="field-label"/>
+                                <TextField fx:id="ssOrdreField" promptText="0" prefWidth="60"/>
+                            </HBox>
+                            <Button text="⬆️  Uploader le screenshot" onAction="#handleUploadScreenshot"
+                                    styleClass="btn-primary"/>
+                        </VBox>
+
+                    </VBox>
+                </Tab>
+
+                <!-- ─────────────── TAB 5 : VIDÉOS ─────────────── -->
+                <Tab text="🎬  Vidéos">
+                    <VBox spacing="12" styleClass="card">
+
+                        <!-- Tableau des vidéos existantes -->
+                        <TableView fx:id="tableVideos" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="colVidOrdre"  text="Ordre"  prefWidth="55" minWidth="55"/>
+                                <TableColumn fx:id="colVidTitre"  text="Titre"  prefWidth="200" minWidth="200"/>
+                                <TableColumn fx:id="colVidUrl"    text="URL"    prefWidth="280" minWidth="280"/>
+                                <TableColumn fx:id="colVidLangue" text="Langue" prefWidth="65" minWidth="65"/>
+                            </columns>
+                        </TableView>
+
+                        <!-- Bouton supprimer -->
+                        <HBox spacing="8">
+                            <Button text="🗑️  Supprimer" onAction="#handleSupprimerVideo"
+                                    styleClass="btn-danger"/>
+                        </HBox>
+
+                        <!-- Formulaire ajout / édition vidéo -->
+                        <VBox fx:id="cardEditVideo" spacing="6"
+                              style="-fx-border-color:#3a3a5c;-fx-border-radius:4;-fx-padding:8;">
+                            <Label text="➕  Ajouter / Modifier une vidéo" styleClass="section-title"/>
+
+                            <GridPane hgap="10" vgap="6">
+                                <columnConstraints>
+                                    <ColumnConstraints prefWidth="90"/>
+                                    <ColumnConstraints hgrow="ALWAYS"/>
+                                </columnConstraints>
+
+                                <Label text="URL YouTube :" styleClass="field-label" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                                <TextField fx:id="vidUrlField" promptText="https://www.youtube.com/watch?v=..."
+                                           GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                                <Label text="Titre :" styleClass="field-label" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                                <TextField fx:id="vidTitreField" promptText="Titre de la vidéo"
+                                           GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                                <Label text="Ordre :" styleClass="field-label" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                                <TextField fx:id="vidOrdreField" promptText="0" prefWidth="80"
+                                           GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+
+                                <Label text="Langue :" styleClass="field-label" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                                <TextField fx:id="vidLangueField" promptText="fr" prefWidth="80"
+                                           GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                            </GridPane>
+
+                            <HBox spacing="8">
+                                <Button text="💾  Enregistrer la vidéo" onAction="#handleSauvegarderVideo"
+                                        styleClass="btn-primary"/>
+                                <Button text="✕  Annuler" onAction="#handleAnnulerVideo"/>
+                            </HBox>
+                        </VBox>
+
+                    </VBox>
+                </Tab>
+
+            </TabPane>
+
+            <!-- ── Pied de page : boutons toujours visibles quel que soit l'onglet actif ── -->
+            <Separator/>
+            <HBox spacing="10">
+                <Button fx:id="btnEnregistrer" text="💾 Enregistrer le produit"
+                        onAction="#handleEnregistrer"
+                        styleClass="btn-success" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                <Button fx:id="btnAnnuler" text="✖ Annuler"
+                        onAction="#handleAnnuler"
+                        styleClass="btn-secondary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+            </HBox>
+        </VBox>
+    </HBox>
+</VBox>

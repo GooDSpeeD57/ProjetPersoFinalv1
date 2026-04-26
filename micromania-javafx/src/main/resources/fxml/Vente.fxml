@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.control.cell.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.monprojet.boutiquejeux.controller.VenteController"
+      spacing="14" styleClass="view-container">
+    <fx:define>
+        <ToggleGroup fx:id="typeVenteGroup"/>
+    </fx:define>
+    <padding><Insets top="18" bottom="18" left="18" right="18"/></padding>
+
+    <Label text="🛒 Vente en magasin" styleClass="page-title"/>
+    <Separator/>
+
+    <HBox spacing="14" VBox.vgrow="ALWAYS">
+
+        <!-- ══ COLONNE GAUCHE ══ -->
+        <VBox spacing="12" prefWidth="530" HBox.hgrow="ALWAYS">
+
+            <!-- Identification client -->
+            <VBox styleClass="card" spacing="10">
+                <Label text="👤 Identification client" styleClass="section-title"/>
+                <GridPane hgap="10" vgap="8">
+                    <columnConstraints>
+                        <ColumnConstraints prefWidth="70"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                        <ColumnConstraints prefWidth="70"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                    </columnConstraints>
+                    <Label text="Nom :"     styleClass="field-label" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                    <TextField fx:id="nomClientField" promptText="Dupont" styleClass="text-field-dark"
+                               GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                    <Label text="Prénom :"  styleClass="field-label" GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+                    <TextField fx:id="prenomClientField" promptText="Jean" styleClass="text-field-dark"
+                               GridPane.columnIndex="3" GridPane.rowIndex="0"/>
+                    <Label text="Né(e) le :" styleClass="field-label" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                    <DatePicker fx:id="dateNaissanceField" styleClass="date-picker-dark"
+                                GridPane.columnIndex="1" GridPane.rowIndex="1" GridPane.columnSpan="2"/>
+                    <Button text="🔍 Identifier" onAction="#handleRechercheClient"
+                            styleClass="btn-primary" GridPane.columnIndex="3" GridPane.rowIndex="1"
+                            maxWidth="Infinity"/>
+                </GridPane>
+
+                <!-- Carte client — reste visible jusqu'à fin de vente ou clic "Changer" -->
+                <VBox fx:id="carteClient" styleClass="client-card" spacing="6" visible="false" managed="false">
+                    <HBox alignment="CENTER_LEFT" spacing="10">
+                        <Label fx:id="labelClientNom" styleClass="client-name" HBox.hgrow="ALWAYS"/>
+                        <Button text="✖ Changer" onAction="#handleChangerClient"
+                                styleClass="btn-secondary"/>
+                    </HBox>
+                    <Label fx:id="labelClientEmail" styleClass="field-label"/>
+                    <HBox spacing="20">
+                        <Label fx:id="labelClientPoints"   styleClass="badge-points"/>
+                        <Label fx:id="labelClientFidelite" styleClass="badge-fidelite"/>
+                    </HBox>
+                    <!-- Bons d'achat -->
+                    <HBox spacing="10" alignment="CENTER_LEFT" fx:id="zoneBons" visible="false" managed="false">
+                        <Label text="🎟 Bon d'achat :" styleClass="field-label"/>
+                        <ComboBox fx:id="comboBonAchat" HBox.hgrow="ALWAYS" maxWidth="Infinity"
+                                  promptText="Sélectionner un bon…"/>
+                    </HBox>
+                </VBox>
+            </VBox>
+
+            <!-- Catalogue POS -->
+            <VBox styleClass="card" spacing="10" VBox.vgrow="ALWAYS">
+                <Label text="📦 Catalogue" styleClass="section-title"/>
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <RadioButton fx:id="radioNeuf"     text="Neuf"     toggleGroup="$typeVenteGroup" selected="true" styleClass="radio-dark"/>
+                    <RadioButton fx:id="radioOccasion" text="Occasion" toggleGroup="$typeVenteGroup" styleClass="radio-dark"/>
+                    <RadioButton fx:id="radioLocation" text="Location" toggleGroup="$typeVenteGroup" styleClass="radio-dark"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <TextField fx:id="rechercheProduitField" promptText="Produit, SKU…"
+                               styleClass="text-field-dark" prefWidth="200"/>
+                    <Button text="🔍" onAction="#handleRechercheProduit" styleClass="btn-secondary"/>
+                </HBox>
+                <TableView fx:id="tableProduits" VBox.vgrow="ALWAYS" styleClass="table-dark">
+                    <columns>
+                        <TableColumn fx:id="colNom"        text="Produit"     prefWidth="180" minWidth="180"/>
+                        <TableColumn fx:id="colPlateforme" text="Support"     prefWidth="85" minWidth="85"/>
+                        <TableColumn fx:id="colEdition"    text="Édition"     prefWidth="75" minWidth="75"/>
+                        <TableColumn fx:id="colStock"      text="Dispo"       prefWidth="55" minWidth="55"/>
+                        <TableColumn fx:id="colPrix"       text="Prix"        prefWidth="80" minWidth="80"/>
+                    </columns>
+                </TableView>
+                <Button text="➕ Ajouter au panier" onAction="#handleAjouterPanier"
+                        styleClass="btn-primary" maxWidth="Infinity"/>
+            </VBox>
+        </VBox>
+
+        <!-- ══ COLONNE DROITE ══ -->
+        <VBox spacing="12" prefWidth="380">
+
+            <!-- Panier -->
+            <VBox styleClass="card" spacing="8" VBox.vgrow="ALWAYS">
+                <Label text="🛒 Panier" styleClass="section-title"/>
+                <TableView fx:id="tablePanier" VBox.vgrow="ALWAYS" styleClass="table-dark" editable="true">
+                    <columns>
+                        <TableColumn fx:id="colPanierNom"        text="Produit"   prefWidth="115" minWidth="115"/>
+                        <TableColumn fx:id="colPanierPlateforme" text="Support"   prefWidth="55" minWidth="55"/>
+                        <TableColumn fx:id="colPanierType"       text="État"      prefWidth="60" minWidth="60"/>
+                        <TableColumn fx:id="colPanierQte"        text="Qté"       prefWidth="38" minWidth="38"/>
+                        <TableColumn fx:id="colPanierPrix"       text="Prix"      prefWidth="65" minWidth="65"/>
+                        <TableColumn fx:id="colPanierGarantie"   text="Garantie+" prefWidth="65" minWidth="65"/>
+                    </columns>
+                </TableView>
+                <Button text="🗑 Retirer" onAction="#handleRetirerPanier"
+                        styleClass="btn-danger" maxWidth="Infinity"/>
+                <Label fx:id="labelTotal" text="Total : 0,00 €" styleClass="total-label"/>
+            </VBox>
+
+            <!-- Paiement -->
+            <VBox styleClass="card" spacing="10">
+                <Label text="💳 Paiement" styleClass="section-title"/>
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Mode :" styleClass="field-label"/>
+                    <ComboBox fx:id="comboPaiement" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <CheckBox fx:id="checkPointsFidelite"
+                          text="Utiliser les points fidélité (100 pts min)"
+                          styleClass="checkbox-dark"/>
+                <Label fx:id="labelPointsUtilises" styleClass="field-label"/>
+                <StackPane>
+                    <Button fx:id="btnValiderVente" text="✅ Valider la vente"
+                            onAction="#handleValiderVente"
+                            styleClass="btn-success" maxWidth="Infinity"/>
+                    <ProgressIndicator fx:id="spinner" maxWidth="28" maxHeight="28"
+                                       StackPane.alignment="CENTER_RIGHT">
+                        <StackPane.margin><Insets right="10"/></StackPane.margin>
+                    </ProgressIndicator>
+                </StackPane>
+            </VBox>
+        </VBox>
+    </HBox>
+</VBox>

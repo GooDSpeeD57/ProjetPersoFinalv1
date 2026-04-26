@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.monprojet.boutiquejeux.controller.RechercheController"
+      spacing="16" styleClass="view-container">
+    <fx:define>
+        <ToggleGroup fx:id="modeGroup"/>
+    </fx:define>
+    <padding><Insets top="20" bottom="20" left="20" right="20"/></padding>
+
+    <Label text="🔍 Recherche universelle" styleClass="page-title"/>
+    <Separator/>
+
+    <HBox spacing="14" alignment="CENTER_LEFT">
+        <RadioButton fx:id="radioClient"  text="👤 Client"  styleClass="radio-dark" toggleGroup="$modeGroup" selected="true"/>
+        <RadioButton fx:id="radioProduit" text="🎮 Produit" styleClass="radio-dark" toggleGroup="$modeGroup"/>
+        <TextField fx:id="rechercheField" promptText="Rechercher…" styleClass="text-field-dark" prefWidth="360" HBox.hgrow="ALWAYS"/>
+        <Button text="🔍 Rechercher" onAction="#handleRecherche" styleClass="btn-secondary"/>
+        <ProgressIndicator fx:id="spinner" maxWidth="26" maxHeight="26"/>
+    </HBox>
+
+    <HBox spacing="16" VBox.vgrow="ALWAYS">
+
+        <!-- Table clients -->
+        <TableView fx:id="tableClients" VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS" styleClass="table-dark">
+            <columns>
+                <TableColumn fx:id="colCPseudo"  text="Pseudo"    prefWidth="100" minWidth="100"/>
+                <TableColumn fx:id="colCNom"     text="Nom"       prefWidth="160" minWidth="160"/>
+                <TableColumn fx:id="colCEmail"   text="Email"     prefWidth="200" minWidth="200"/>
+                <TableColumn fx:id="colCTel"     text="Téléphone" prefWidth="120" minWidth="120"/>
+                <TableColumn fx:id="colCPoints"  text="Points"    prefWidth="70" minWidth="70"/>
+                <TableColumn fx:id="colCFidelite" text="Fidélité" prefWidth="100" minWidth="100"/>
+            </columns>
+        </TableView>
+
+        <!-- Table produits -->
+        <TableView fx:id="tableProduits" VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS" styleClass="table-dark" visible="false" managed="false">
+            <columns>
+                <TableColumn fx:id="colPNom"   text="Produit" prefWidth="280" minWidth="280"/>
+                <TableColumn fx:id="colPGenre" text="Genre"   prefWidth="140" minWidth="140"/>
+                <TableColumn fx:id="colPPrix"  text="Prix"    prefWidth="90" minWidth="90"/>
+                <TableColumn fx:id="colPType"  text="Type"    prefWidth="90" minWidth="90"/>
+            </columns>
+        </TableView>
+
+        <!-- Détail client -->
+        <VBox styleClass="card" spacing="12" prefWidth="280">
+            <Label text="Détail client" styleClass="section-title"/>
+            <Label text="Nom :"         styleClass="field-label"/> <Label fx:id="labelDetailNom"          styleClass="info-label"/>
+            <Label text="Email :"       styleClass="field-label"/> <Label fx:id="labelDetailEmail"        styleClass="info-label"/>
+            <Label text="Téléphone :"   styleClass="field-label"/> <Label fx:id="labelDetailTel"          styleClass="info-label"/>
+            <Label text="Points :"      styleClass="field-label"/> <Label fx:id="labelDetailPoints"       styleClass="info-label"/>
+            <Label text="Fidélité :"    styleClass="field-label"/> <Label fx:id="labelDetailFidelite"     styleClass="info-label"/>
+            <Label text="Carte n° :"    styleClass="field-label"/> <Label fx:id="labelDetailCarteFidelite" styleClass="info-label" wrapText="true"/>
+        </VBox>
+    </HBox>
+</VBox>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane styleClass="root-dark" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/17.0.12" fx:controller="com.monprojet.boutiquejeux.controller.MainController">
+
+    <!-- SIDEBAR -->
+    <left>
+        <VBox prefWidth="220" spacing="4" styleClass="sidebar">
+            <padding><Insets bottom="20" left="12" right="12" top="20" /></padding>
+
+            <!-- Logo + infos employé -->
+            <Label styleClass="sidebar-logo" text="🎮 BoutiqueJeux" />
+            <Separator styleClass="sep" />
+            <Label fx:id="labelEmploye" styleClass="sidebar-employe" />
+            <Label fx:id="labelRole" styleClass="sidebar-role" />
+            <Label fx:id="labelMagasin" styleClass="sidebar-magasin" />
+            <Separator styleClass="sep" />
+
+            <!-- Navigation -->
+            <Button fx:id="btnDashboard" maxWidth="Infinity" onAction="#handleDashboard" styleClass="nav-btn" text="🏠  Tableau de bord" />
+            <Button fx:id="btnCreerClient" maxWidth="Infinity" onAction="#handleCreerClient" styleClass="nav-btn" text="👤  Créer un client" />
+            <Button fx:id="btnVente" maxWidth="Infinity" onAction="#handleVente" styleClass="nav-btn" text="🛒  Vente" />
+            <Button fx:id="btnReprise" maxWidth="Infinity" onAction="#handleReprise" styleClass="nav-btn" text="♻  Reprise produit" />
+            <Button fx:id="btnStock" maxWidth="Infinity" onAction="#handleStock" styleClass="nav-btn" text="📦  Stock" />
+            <Button fx:id="btnProduits" maxWidth="Infinity" onAction="#handleProduits" styleClass="nav-btn" text="🎮  Catalogue produits" />
+            <Button fx:id="btnGaranties" maxWidth="Infinity" onAction="#handleGaranties" styleClass="nav-btn" text="🛡  Garanties" />
+            <Button fx:id="btnRecherche" maxWidth="Infinity" onAction="#handleRecherche" styleClass="nav-btn" text="🔍  Recherche" />
+            <Button fx:id="btnPlanning"   maxWidth="Infinity" onAction="#handlePlanning"   styleClass="nav-btn" text="📅  Planning" />
+            <Button fx:id="btnEntreprise" maxWidth="Infinity" onAction="#handleEntreprise" styleClass="nav-btn" text="🏢  Entreprise" />
+            <Button fx:id="btnDepot"      maxWidth="Infinity" onAction="#handleDepot"      styleClass="nav-btn" text="🏭  Dépôt &amp; Logistique" />
+
+            <Region VBox.vgrow="ALWAYS" />
+            <Button maxWidth="Infinity" onAction="#handleLogout" styleClass="btn-danger" text="🚪  Déconnexion" />
+        </VBox>
+    </left>
+
+    <!-- CONTENU PRINCIPAL -->
+    <center>
+        <StackPane fx:id="contentArea" styleClass="content-area" />
+    </center>
+</BorderPane>

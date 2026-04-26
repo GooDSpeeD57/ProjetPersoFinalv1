@@ -11,5 +11,7 @@ public record ApiLigneFacture(
     BigDecimal tauxTvaApplique,
     BigDecimal montantLigne,
     BigDecimal montantHtLigne,
-    BigDecimal montantTvaLigne
+    BigDecimal montantTvaLigne,
+    String garantieLabel,
+    BigDecimal garantiePrix
 ) {}

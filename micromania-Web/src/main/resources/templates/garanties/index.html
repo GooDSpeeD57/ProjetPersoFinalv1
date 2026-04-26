@@ -5,7 +5,7 @@
 </head>
 <body>
 <div class="site-shell">
-<th:block th:replace="~{fragments/layout :: navbar}"/>
+<th:block th:replace="~{fragments/navbar :: navbar}"/>
 
 <main>
   <div class="container">
@@ -141,7 +141,7 @@
                 <td style="font-family:var(--font-head);font-size:0.8rem;color:var(--accent)"
                     th:text="${g.numeroSerie}"></td>
                 <td th:text="${g.produit}"></td>
-                <td th:text="${g.client ?: g.clientEmail ?: '—'}"></td>
+                th:text="${garantieResultat.client != null ? garantieResultat.client : '—'}"
                 <td th:text="${g.dateDebut}"></td>
                 <td th:text="${g.dateFin}"></td>
                 <td>
@@ -177,8 +177,7 @@
   </div>
 </main>
 
-<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/footer :: footer}"/>
 </div>
-<th:block th:replace="~{fragments/layout :: scripts}"/>
 </body>
 </html>

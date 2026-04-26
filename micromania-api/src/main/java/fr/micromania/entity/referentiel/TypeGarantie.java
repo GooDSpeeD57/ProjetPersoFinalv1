@@ -1,5 +1,6 @@
 package fr.micromania.entity.referentiel;
 
+import fr.micromania.entity.catalog.Categorie;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -25,4 +26,9 @@ public class TypeGarantie {
 
     @Column(name = "prix_extension", precision = 10, scale = 2)
     private BigDecimal prixExtension;
+
+    /** Catégorie concernée — null = applicable à toutes les catégories. */
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "id_categorie", nullable = true)
+    private Categorie categorie;
 }

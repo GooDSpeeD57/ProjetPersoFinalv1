@@ -57,11 +57,26 @@ public class FideliteServiceImpl implements FideliteService {
         int pointsAvantBon20 = pointsCycleBon20 == 0 ? SEUIL_BON_20 : SEUIL_BON_20 - pointsCycleBon20;
         int progressionBon20Percent = calculerPourcentage(pointsCycleBon20, SEUIL_BON_20);
 
+        String codeFidelite = client.getTypeFidelite().getCode();
+        BigDecimal pointsParEuroBase = client.getTypeFidelite().getPointsParEuro();
+        List<FideliteDetailResponse.RatioDetail> ratios = ratioPointsRepository
+            .findAllByTypeFideliteCode(codeFidelite)
+            .stream()
+            .map(r -> new FideliteDetailResponse.RatioDetail(
+                r.getTypeCategorie().getCode(),
+                r.getTypeCategorie().getDescription() != null
+                    ? r.getTypeCategorie().getDescription()
+                    : r.getTypeCategorie().getCode(),
+                r.getRatio()))
+            .toList();
+
         return new FideliteDetailResponse(
             points.getSoldePoints(),
             points.getTotalAchatsAnnuel(),
             points.getDateDebutPeriode(),
-            client.getTypeFidelite().getCode(),
+            codeFidelite,
+            pointsParEuroBase,
+            ratios,
             SEUIL_BON_10,
             pointsCycleBon10,
             pointsAvantBon10,
@@ -110,7 +125,7 @@ public class FideliteServiceImpl implements FideliteService {
 
         points.setSoldePoints(points.getSoldePoints() + pointsGagnes);
         BigDecimal totalAchatsActuel = points.getTotalAchatsAnnuel() != null ? points.getTotalAchatsAnnuel() : BigDecimal.ZERO;
-        points.setTotalAchatsAnnuel(totalAchatsActuel.add(facture.getMontantHtTotal()));
+        points.setTotalAchatsAnnuel(totalAchatsActuel.add(facture.getMontantFinal()));
         pointsRepository.save(points);
 
         historiquePointsRepository.save(HistoriquePoints.builder()
@@ -230,6 +245,7 @@ public class FideliteServiceImpl implements FideliteService {
             bon.getPointsUtilises(),
             bon.isUtilise(),
             bon.getDateCreation(),
+            bon.getDateExpiration(),
             bon.getDateUtilisation(),
             bon.getFacture() != null ? bon.getFacture().getId() : null
         );

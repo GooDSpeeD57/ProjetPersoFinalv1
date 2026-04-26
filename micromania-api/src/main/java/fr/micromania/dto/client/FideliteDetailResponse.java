@@ -2,12 +2,15 @@ package fr.micromania.dto.client;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 public record FideliteDetailResponse(
     int soldePoints,
     BigDecimal totalAchatsAnnuel,
     LocalDate dateDebutPeriode,
     String typeFidelite,
+    BigDecimal pointsParEuroBase,
+    List<RatioDetail> ratiosParCategorie,
     int seuilBon10,
     int pointsCycleBon10,
     int pointsAvantBon10,
@@ -17,4 +20,6 @@ public record FideliteDetailResponse(
     int pointsAvantBon20,
     int progressionBon20Percent,
     int totalPointsGagnes
-) {}
+) {
+    public record RatioDetail(String categorieCode, String categorieDescription, BigDecimal ratio) {}
+}

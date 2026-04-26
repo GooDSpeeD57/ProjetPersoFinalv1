@@ -5,7 +5,7 @@
 </head>
 <body>
 <div class="site-shell">
-<th:block th:replace="~{fragments/layout :: navbar}"/>
+<th:block th:replace="~{fragments/navbar :: navbar}"/>
 
 <main>
   <div class="container">
@@ -20,11 +20,26 @@
           <div class="card-header">// INFORMATIONS FACTURE</div>
           <div class="card-body">
             <div class="info-row"><span class="label">Référence</span><span th:text="${facture.referenceFacture()}">FAC-XXXX</span></div>
-            <div class="info-row"><span class="label">Date</span><span th:text="${facture.dateFacture() != null ? #temporals.format(facture.dateFacture(), 'dd/MM/yyyy HH:mm') : '—'}">01/01/2026</span></div>
+            <div class="info-row">
+              <span class="label">Date</span>
+              <span th:if="${facture.dateFacture() != null}">
+                <span th:text="${#temporals.format(facture.dateFacture(), 'dd/MM/yyyy')}"></span>
+                <span style="color:var(--text-dim);font-size:0.85rem" th:text="${' à ' + #temporals.format(facture.dateFacture(), 'HH:mm')}"></span>
+              </span>
+              <span th:unless="${facture.dateFacture() != null}">—</span>
+            </div>
             <div class="info-row"><span class="label">Statut</span><span th:text="${facture.statutFacture()}">EMISE</span></div>
-            <div class="info-row"><span class="label">Contexte</span><span th:text="${facture.contexteVente()}">EN_LIGNE</span></div>
+            <div class="info-row">
+              <span class="label">Contexte</span>
+              <span th:if="${facture.contexteVente() != null and (#strings.contains(facture.contexteVente(),'LIGNE') or #strings.contains(facture.contexteVente(),'WEB'))}">🌐 En ligne</span>
+              <span th:unless="${facture.contexteVente() != null and (#strings.contains(facture.contexteVente(),'LIGNE') or #strings.contains(facture.contexteVente(),'WEB'))}"
+                    th:text="${facture.contexteVente() != null ? facture.contexteVente() : '—'}"></span>
+            </div>
             <div class="info-row"><span class="label">Paiement</span><span th:text="${facture.modePaiement()}">CB</span></div>
-            <div class="info-row"><span class="label">Magasin</span><span th:text="${facture.magasin()}">Magasin</span></div>
+            <div class="info-row" th:if="${facture.magasin() != null and !#strings.isEmpty(facture.magasin())}">
+              <span class="label">Retrait en magasin</span>
+              <span th:text="${facture.magasin()}">Nom du magasin</span>
+            </div>
             <div class="info-row"><span class="label">Client</span><span th:text="${facture.nomClientAffiche()}">Nom Client</span></div>
             <div class="info-row"><span class="label">Email</span><span th:text="${facture.emailClientAffiche()}">email@example.com</span></div>
           </div>
@@ -74,8 +89,7 @@
   </div>
 </main>
 
-<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/footer :: footer}"/>
 </div>
-<th:block th:replace="~{fragments/layout :: scripts}"/>
 </body>
 </html>

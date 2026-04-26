@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<th:block th:fragment="navbar">
+<div class="viewport-top-mask" aria-hidden="true"></div>
+<header class="site-header">
+<nav class="navbar">
+
+  <a class="navbar-brand" th:href="@{/}">MICRO<span>MANIA</span></a>
+
+  <ul class="navbar-nav">
+    <li class="nav-item-mega">
+      <div class="nav-mega-trigger-row">
+        <a class="nav-link nav-link-mega" th:href="@{/catalogue(univers='jeux-video',etat='neuf')}">Jeux vidéo</a>
+        <button class="nav-mega-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Ouvrir le menu Jeux vidéo">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="mega-menu mega-menu--center" role="menu">
+        <div class="mega-menu-inner">
+          <div class="mega-menu-sidebar">
+            <div class="mega-menu-sidebar-kicker">UNIVERS GAMING</div>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-premium"  th:href="@{/catalogue(univers='jeux-video',tri='date')}">Exclus Premium</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-boosters" th:href="@{/catalogue(univers='jeux-video',tri='ventes')}">Jeux vidéo imports</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-coffrets" th:href="@{/catalogue(univers='jeux-video',tri='nouveautes')}">Calendrier des sorties</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-premium"  th:href="@{/catalogue(univers='jeux-video',exclus='premium')}">Bons plans</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-boosters" th:href="@{/catalogue(univers='jeux-video',format='boosters')}">Payez en 2x</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-coffrets" th:href="@{/catalogue(univers='jeux-video',format='coffrets')}">Fix &amp; Clean</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-decks"    th:href="@{/catalogue(univers='jeux-video',format='decks')}">Top des ventes</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-displays" th:href="@{/catalogue(univers='jeux-video',format='displays')}">Toutes les prochaines sorties</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-pokemon"  th:href="@{/catalogue(univers='jeux-video',format='packs')}">Nos packs</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-premium"  th:href="@{/catalogue(univers='jeux-video',exclus='premium')}">Extension de garantie</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-boosters" th:href="@{/catalogue(univers='jeux-video',format='boosters')}">Louez votre console</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-coffrets" th:href="@{/catalogue(univers='jeux-video',format='coffrets')}">Louez vos jeux vidéo</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-decks"    th:href="@{/catalogue(univers='jeux-video',format='decks')}">Réparez votre console</a>
+          </div>
+
+          <div class="mega-menu-cols">
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--playstation">Playstation 5</div>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps5',famille='jeux',etat='neuf',tri='date')}">Prochaines sorties Ps 5</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps5',etat='neuf',tri='sortie')}">Nouveautés Playstation 5</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps5',famille='jeux',etat='neuf')}">Jeux Playstation 5</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps5',famille='consoles',etat='neuf')}">Consoles Playstation 5</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps5',famille='accessoires',etat='neuf')}">Accessoires Playstation 5</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps5',famille='accessoires',etat='neuf')}">Playstation VR 2</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--nintendo">Nintendo Switch 2</div>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='switch2',famille='jeux',etat='neuf')}">Prochaines sorties Switch 2</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='switch2',etat='neuf')}">Nouveautés Switch 2</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='switch2',famille='jeux',etat='neuf')}">Jeux Switch 2</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='switch2',famille='console',etat='neuf')}">Consoles Switch 2</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='switch2',famille='accessoire',etat='neuf')}">Accessoires Switch 2</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--microsoft">Microsoft Xbox</div>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='XBOX_SERIES',famille='jeux',etat='neuf')}">Nouveautés Xbox</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='XBOX_SERIES',famille='jeux',etat='neuf')}">Prochaines sorties Xbox</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='XBOX_SERIES',famille='jeux',etat='neuf')}">Jeux Xbox</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='XBOX_SERIES',famille='console',etat='neuf')}">Consoles Xbox Series S/X</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='XBOX_SERIES',famille='accessoire',etat='neuf')}">Accessoires Xbox Series S/X</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='XBOX_SERIES',famille='console',etat='neuf')}">ASUS ROG xbox Ally</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--hightech">Retro/High-Tech</div>
+              <a th:href="@{/catalogue(univers='tcg',licence='magic',format='boosters')}">jeux rétro</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='magic',format='decks')}">Mini Console</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='magic',format='coffrets')}">Casque micro</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='magic',format='displays')}">Casque VR</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='magic',format='accessoires')}">Micros et Caméras</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='magic',format='accessoires')}">TV et Ecran</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--playstation">Playstation 4</div>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps4',famille='jeux',etat='neuf')}">Nouveautés Playstation 4</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps4',famille='jeux',etat='neuf')}">Prochaines sorties Playstation 4</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps4',famille='jeux',etat='neuf')}">Jeux Playstation 4</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps4',famille='consoles',etat='neuf')}">Consoles Playstation 4</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps4',famille='accessoires',etat='neuf')}">Accessoires Playstation 4</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='ps4',famille='accessoires',etat='neuf')}">Playstation VR</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--nintendo">Nintendo Switch</div>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='switch2',famille='jeux',etat='neuf')}">Nouveautés Switch</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='switch2',famille='jeux',etat='neuf')}">Prochaines sorties Switch</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='switch2',famille='jeux',etat='neuf')}">Jeux Switch</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='switch2',famille='console',etat='neuf')}">Consoles Switch</a>
+              <a th:href="@{/catalogue(univers='jeux-video',plateforme='switch2',famille='accessoire',etat='neuf')}">Accessoires Switch</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--pc">Pc</div>
+              <a th:href="@{/catalogue(univers='tcg',licence='starwars')}">Nouveautés PC</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='dragonball')}">Jeux PC</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='naruto')}">Accessoires PC</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='altered')}">Cartes Prépayé </a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--numerique">Numerique</div>
+              <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='sleeves')}">Cartes Prépayées</a>
+              <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='deckbox')}">Abonnement</a>
+              <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='classeurs')}">Dirvertissment &amp; services</a>
+              <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='protections')}">Monnaie In-Game</a>
+              <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='rangement')}">DLC &amp; Extensions</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="mega-menu-logo-strip">
+          <a class="mega-menu-logo-pill mega-menu-logo-residentevil"   th:href="@{/catalogue(univers='jeux-video',licence='residentevil')}">Resident Evil</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-halo"     th:href="@{/catalogue(univers='jeux-video',licence='halo')}">Halo</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-finalfantasy"   th:href="@{/catalogue(univers='jeux-video',licence='finalFantasy')}">Final Fantasy</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-pokemon"    th:href="@{/catalogue(univers='jeux-video',licence='pokemon')}">Pokémon</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-zelda"  th:href="@{/catalogue(univers='jeux-video',licence='zelda')}">Zelda</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-animalcrossing" th:href="@{/catalogue(univers='jeux-video',licence='animalcrossing')}">Animal Crossing</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-forzahorizon"  th:href="@{/catalogue(univers='jeux-video',licence='Forza Horizon')}">Forza Horizon</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-more"      th:href="@{/catalogue(univers='jeux-video')}">VOIR TOUTES LES LICENCES →</a>
+        </div>
+      </div>
+    </li>
+
+    <li class="nav-item-mega">
+      <div class="nav-mega-trigger-row">
+        <a class="nav-link nav-link-mega" th:href="@{/catalogue(univers='tcg')}">Univers TCG</a>
+        <button class="nav-mega-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Ouvrir le menu TCG">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="mega-menu mega-menu--center" role="menu">
+        <div class="mega-menu-inner">
+          <div class="mega-menu-sidebar">
+            <div class="mega-menu-sidebar-kicker">CARTES &amp; COLLECTION</div>
+            <a class="mega-menu-sidebar-link" th:href="@{/catalogue(univers='tcg',tri='date')}">Prochaines Sorties Cartes</a>
+            <a class="mega-menu-sidebar-link" th:href="@{/catalogue(univers='tcg',tri='ventes')}">Top des ventes TCG</a>
+            <a class="mega-menu-sidebar-link" th:href="@{/catalogue(univers='tcg',tri='nouveautes')}">Nouveautés TCG</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-premium"  th:href="@{/catalogue(univers='tcg',exclus='premium')}">Exclus Premium</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-boosters" th:href="@{/catalogue(univers='tcg',format='boosters')}">Tous les Boosters</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-coffrets" th:href="@{/catalogue(univers='tcg',format='coffrets')}">Tous les Coffrets</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-decks"    th:href="@{/catalogue(univers='tcg',format='decks')}">Tous les Decks</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-displays" th:href="@{/catalogue(univers='tcg',format='displays')}">Tous les Displays</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-pokemon"  th:href="@{/catalogue(univers='tcg',licence='pokemon',format='packs')}">Packs de Cartes Pokémon</a>
+          </div>
+
+          <div class="mega-menu-cols">
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--pokemon">POKÉMON</div>
+              <a th:href="@{/catalogue(univers='tcg',licence='pokemon',format='boosters')}">Booster Pokémon</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='pokemon',format='decks')}">Deck Pokémon</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='pokemon',format='coffrets')}">Coffret Pokémon</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='pokemon',format='etb')}">ETB Pokémon</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='pokemon',format='accessoires')}">Accessoires Pokémon</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--onepiece">ONE PIECE</div>
+              <a th:href="@{/catalogue(univers='tcg',licence='one_piece',format='boosters')}">Boosters One Piece</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='one_piece',format='displays')}">Box de Boosters One Piece</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='one_piece',format='accessoires')}">Accessoires One Piece</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--lorcana">DISNEY LORCANA</div>
+              <a th:href="@{/catalogue(univers='tcg',licence='lorcana',format='boosters')}">Booster Lorcana</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='lorcana',format='decks')}">Deck Lorcana</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='lorcana',format='coffrets')}">Coffret Lorcana</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='lorcana',format='displays')}">Display Lorcana</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='lorcana',format='accessoires')}">Accessoires Lorcana</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--magic">MAGIC</div>
+              <a th:href="@{/catalogue(univers='tcg',licence='magic',format='boosters')}">Booster Magic</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='magic',format='decks')}">Deck Magic</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='magic',format='coffrets')}">Coffret &amp; Bundle Magic</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='magic',format='displays')}">Display Magic</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='magic',format='accessoires')}">Accessoires Magic</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--yugioh">YU-GI-OH!</div>
+              <a th:href="@{/catalogue(univers='tcg',licence='yugioh',format='boosters')}">Booster Yu-Gi-Oh! TCG</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='yugioh',format='decks')}">Deck Yu-Gi-Oh! TCG</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='yugioh',format='coffrets')}">Coffret Yu-Gi-Oh! TCG</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='yugioh',format='displays')}">Display Yu-Gi-Oh! TCG</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='yugioh',format='accessoires')}">Accessoires Yu-Gi-Oh! TCG</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title">UNIVERS TCG</div>
+              <a th:href="@{/catalogue(univers='tcg',format='packs')}">Pack de cartes</a>
+              <a th:href="@{/catalogue(univers='tcg',format='mystery')}">Mystery Pack</a>
+              <a th:href="@{/catalogue(univers='tcg',format='import')}">Cartes Import</a>
+
+              <div class="mega-menu-title" style="margin-top:1rem">AUTRES LICENCES</div>
+              <a th:href="@{/catalogue(univers='tcg',licence='dragonball')}">Dragon Ball Z</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='naruto')}">Naruto Mythos</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='starwars')}">Star Wars</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='altered')}">Altered</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title">ACCESSOIRES TCG</div>
+              <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='sleeves')}">Sleeves &amp; Toploaders</a>
+              <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='deckbox')}">Deckbox &amp; Tapis de jeu</a>
+              <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='classeurs')}">Classeurs et Portfolio</a>
+              <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='protections')}">Protections Booster &amp; Display</a>
+              <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='rangement')}">Boîtes de rangement</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="mega-menu-logo-strip">
+          <a class="mega-menu-logo-pill mega-menu-logo-pokemon"   th:href="@{/catalogue(univers='tcg',licence='pokemon')}">Pokémon</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-magic"     th:href="@{/catalogue(univers='tcg',licence='magic')}">Magic</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-lorcana"   th:href="@{/catalogue(univers='tcg',licence='lorcana')}">Lorcana</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-yugioh"    th:href="@{/catalogue(univers='tcg',licence='yugioh')}">Yu-Gi-Oh!</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-onepiece"  th:href="@{/catalogue(univers='tcg',licence='one_piece')}">One Piece</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-dragonball" th:href="@{/catalogue(univers='tcg',licence='dragonball')}">Dragon Ball Z</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-starwars"  th:href="@{/catalogue(univers='tcg',licence='starwars')}">Star Wars</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-more"      th:href="@{/catalogue(univers='tcg')}">VOIR TOUTES LES LICENCES →</a>
+        </div>
+      </div>
+    </li>
+
+  <li class="nav-item-mega">
+    <div class="nav-mega-trigger-row">
+      <a class="nav-link nav-link-mega" th:href="@{/catalogue(univers='produitdérivé')}">Produit Dérivé</a>
+      <button class="nav-mega-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Ouvrir le menu TCG">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="mega-menu mega-menu--center" role="menu">
+      <div class="mega-menu-inner">
+        <div class="mega-menu-sidebar">
+          <div class="mega-menu-sidebar-kicker">CARTES &amp; COLLECTION</div>
+          <a class="mega-menu-sidebar-link" th:href="@{/catalogue(univers='tcg',tri='date')}">Prochaines Sorties Cartes</a>
+          <a class="mega-menu-sidebar-link" th:href="@{/catalogue(univers='tcg',tri='ventes')}">Top des ventes TCG</a>
+          <a class="mega-menu-sidebar-link" th:href="@{/catalogue(univers='tcg',tri='nouveautes')}">Nouveautés TCG</a>
+          <a class="mega-menu-sidebar-link mega-menu-sidebar-premium"  th:href="@{/catalogue(univers='tcg',exclus='premium')}">Exclus Premium</a>
+          <a class="mega-menu-sidebar-link mega-menu-sidebar-boosters" th:href="@{/catalogue(univers='tcg',format='boosters')}">Tous les Boosters</a>
+          <a class="mega-menu-sidebar-link mega-menu-sidebar-coffrets" th:href="@{/catalogue(univers='tcg',format='coffrets')}">Tous les Coffrets</a>
+          <a class="mega-menu-sidebar-link mega-menu-sidebar-decks"    th:href="@{/catalogue(univers='tcg',format='decks')}">Tous les Decks</a>
+          <a class="mega-menu-sidebar-link mega-menu-sidebar-displays" th:href="@{/catalogue(univers='tcg',format='displays')}">Tous les Displays</a>
+          <a class="mega-menu-sidebar-link mega-menu-sidebar-pokemon"  th:href="@{/catalogue(univers='tcg',licence='pokemon',format='packs')}">Packs de Cartes Pokémon</a>
+        </div>
+
+        <div class="mega-menu-cols">
+          <div class="mega-menu-column">
+            <div class="mega-menu-title mega-menu-title--pokemon">POKÉMON</div>
+            <a th:href="@{/catalogue(univers='tcg',licence='pokemon',format='boosters')}">Booster Pokémon</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='pokemon',format='decks')}">Deck Pokémon</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='pokemon',format='coffrets')}">Coffret Pokémon</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='pokemon',format='etb')}">ETB Pokémon</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='pokemon',format='accessoires')}">Accessoires Pokémon</a>
+          </div>
+
+          <div class="mega-menu-column">
+            <div class="mega-menu-title mega-menu-title--onepiece">ONE PIECE</div>
+            <a th:href="@{/catalogue(univers='tcg',licence='one_piece',format='boosters')}">Boosters One Piece</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='one_piece',format='displays')}">Box de Boosters One Piece</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='one_piece',format='accessoires')}">Accessoires One Piece</a>
+          </div>
+
+          <div class="mega-menu-column">
+            <div class="mega-menu-title mega-menu-title--lorcana">DISNEY LORCANA</div>
+            <a th:href="@{/catalogue(univers='tcg',licence='lorcana',format='boosters')}">Booster Lorcana</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='lorcana',format='decks')}">Deck Lorcana</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='lorcana',format='coffrets')}">Coffret Lorcana</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='lorcana',format='displays')}">Display Lorcana</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='lorcana',format='accessoires')}">Accessoires Lorcana</a>
+          </div>
+
+          <div class="mega-menu-column">
+            <div class="mega-menu-title mega-menu-title--magic">MAGIC</div>
+            <a th:href="@{/catalogue(univers='tcg',licence='magic',format='boosters')}">Booster Magic</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='magic',format='decks')}">Deck Magic</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='magic',format='coffrets')}">Coffret &amp; Bundle Magic</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='magic',format='displays')}">Display Magic</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='magic',format='accessoires')}">Accessoires Magic</a>
+          </div>
+
+          <div class="mega-menu-column">
+            <div class="mega-menu-title mega-menu-title--yugioh">YU-GI-OH!</div>
+            <a th:href="@{/catalogue(univers='tcg',licence='yugioh',format='boosters')}">Booster Yu-Gi-Oh! TCG</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='yugioh',format='decks')}">Deck Yu-Gi-Oh! TCG</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='yugioh',format='coffrets')}">Coffret Yu-Gi-Oh! TCG</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='yugioh',format='displays')}">Display Yu-Gi-Oh! TCG</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='yugioh',format='accessoires')}">Accessoires Yu-Gi-Oh! TCG</a>
+          </div>
+
+          <div class="mega-menu-column">
+            <div class="mega-menu-title">UNIVERS TCG</div>
+            <a th:href="@{/catalogue(univers='tcg',format='packs')}">Pack de cartes</a>
+            <a th:href="@{/catalogue(univers='tcg',format='mystery')}">Mystery Pack</a>
+            <a th:href="@{/catalogue(univers='tcg',format='import')}">Cartes Import</a>
+
+            <div class="mega-menu-title" style="margin-top:1rem">AUTRES LICENCES</div>
+            <a th:href="@{/catalogue(univers='tcg',licence='dragonball')}">Dragon Ball Z</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='naruto')}">Naruto Mythos</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='starwars')}">Star Wars</a>
+            <a th:href="@{/catalogue(univers='tcg',licence='altered')}">Altered</a>
+          </div>
+
+          <div class="mega-menu-column">
+            <div class="mega-menu-title">ACCESSOIRES TCG</div>
+            <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='sleeves')}">Sleeves &amp; Toploaders</a>
+            <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='deckbox')}">Deckbox &amp; Tapis de jeu</a>
+            <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='classeurs')}">Classeurs et Portfolio</a>
+            <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='protections')}">Protections Booster &amp; Display</a>
+            <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='rangement')}">Boîtes de rangement</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="mega-menu-logo-strip">
+        <a class="mega-menu-logo-pill mega-menu-logo-pokemon"   th:href="@{/catalogue(univers='tcg',licence='pokemon')}">Pokémon</a>
+        <a class="mega-menu-logo-pill mega-menu-logo-magic"     th:href="@{/catalogue(univers='tcg',licence='magic')}">Magic</a>
+        <a class="mega-menu-logo-pill mega-menu-logo-lorcana"   th:href="@{/catalogue(univers='tcg',licence='lorcana')}">Lorcana</a>
+        <a class="mega-menu-logo-pill mega-menu-logo-yugioh"    th:href="@{/catalogue(univers='tcg',licence='yugioh')}">Yu-Gi-Oh!</a>
+        <a class="mega-menu-logo-pill mega-menu-logo-onepiece"  th:href="@{/catalogue(univers='tcg',licence='one_piece')}">One Piece</a>
+        <a class="mega-menu-logo-pill mega-menu-logo-dragonball" th:href="@{/catalogue(univers='tcg',licence='dragonball')}">Dragon Ball Z</a>
+        <a class="mega-menu-logo-pill mega-menu-logo-starwars"  th:href="@{/catalogue(univers='tcg',licence='starwars')}">Star Wars</a>
+        <a class="mega-menu-logo-pill mega-menu-logo-more"      th:href="@{/catalogue(univers='tcg')}">VOIR TOUTES LES LICENCES →</a>
+      </div>
+    </div>
+  </li>
+
+    <li class="nav-item-mega">
+      <div class="nav-mega-trigger-row">
+        <a class="nav-link nav-link-mega" th:href="@{/catalogue(univers='occasion')}">Occasion</a>
+        <button class="nav-mega-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Ouvrir le menu TCG">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="mega-menu mega-menu--center" role="menu">
+        <div class="mega-menu-inner">
+          <div class="mega-menu-sidebar">
+            <div class="mega-menu-sidebar-kicker">CARTES &amp; COLLECTION</div>
+            <a class="mega-menu-sidebar-link" th:href="@{/catalogue(univers='tcg',tri='date')}">Prochaines Sorties Cartes</a>
+            <a class="mega-menu-sidebar-link" th:href="@{/catalogue(univers='tcg',tri='ventes')}">Top des ventes TCG</a>
+            <a class="mega-menu-sidebar-link" th:href="@{/catalogue(univers='tcg',tri='nouveautes')}">Nouveautés TCG</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-premium"  th:href="@{/catalogue(univers='tcg',exclus='premium')}">Exclus Premium</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-boosters" th:href="@{/catalogue(univers='tcg',format='boosters')}">Tous les Boosters</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-coffrets" th:href="@{/catalogue(univers='tcg',format='coffrets')}">Tous les Coffrets</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-decks"    th:href="@{/catalogue(univers='tcg',format='decks')}">Tous les Decks</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-displays" th:href="@{/catalogue(univers='tcg',format='displays')}">Tous les Displays</a>
+            <a class="mega-menu-sidebar-link mega-menu-sidebar-pokemon"  th:href="@{/catalogue(univers='tcg',licence='pokemon',format='packs')}">Packs de Cartes Pokémon</a>
+          </div>
+
+          <div class="mega-menu-cols">
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--pokemon">POKÉMON</div>
+              <a th:href="@{/catalogue(univers='tcg',licence='pokemon',format='boosters')}">Booster Pokémon</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='pokemon',format='decks')}">Deck Pokémon</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='pokemon',format='coffrets')}">Coffret Pokémon</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='pokemon',format='etb')}">ETB Pokémon</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='pokemon',format='accessoires')}">Accessoires Pokémon</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--onepiece">ONE PIECE</div>
+              <a th:href="@{/catalogue(univers='tcg',licence='one_piece',format='boosters')}">Boosters One Piece</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='one_piece',format='displays')}">Box de Boosters One Piece</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='one_piece',format='accessoires')}">Accessoires One Piece</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--lorcana">DISNEY LORCANA</div>
+              <a th:href="@{/catalogue(univers='tcg',licence='lorcana',format='boosters')}">Booster Lorcana</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='lorcana',format='decks')}">Deck Lorcana</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='lorcana',format='coffrets')}">Coffret Lorcana</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='lorcana',format='displays')}">Display Lorcana</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='lorcana',format='accessoires')}">Accessoires Lorcana</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--magic">MAGIC</div>
+              <a th:href="@{/catalogue(univers='tcg',licence='magic',format='boosters')}">Booster Magic</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='magic',format='decks')}">Deck Magic</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='magic',format='coffrets')}">Coffret &amp; Bundle Magic</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='magic',format='displays')}">Display Magic</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='magic',format='accessoires')}">Accessoires Magic</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title mega-menu-title--yugioh">YU-GI-OH!</div>
+              <a th:href="@{/catalogue(univers='tcg',licence='yugioh',format='boosters')}">Booster Yu-Gi-Oh! TCG</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='yugioh',format='decks')}">Deck Yu-Gi-Oh! TCG</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='yugioh',format='coffrets')}">Coffret Yu-Gi-Oh! TCG</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='yugioh',format='displays')}">Display Yu-Gi-Oh! TCG</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='yugioh',format='accessoires')}">Accessoires Yu-Gi-Oh! TCG</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title">UNIVERS TCG</div>
+              <a th:href="@{/catalogue(univers='tcg',format='packs')}">Pack de cartes</a>
+              <a th:href="@{/catalogue(univers='tcg',format='mystery')}">Mystery Pack</a>
+              <a th:href="@{/catalogue(univers='tcg',format='import')}">Cartes Import</a>
+
+              <div class="mega-menu-title" style="margin-top:1rem">AUTRES LICENCES</div>
+              <a th:href="@{/catalogue(univers='tcg',licence='dragonball')}">Dragon Ball Z</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='naruto')}">Naruto Mythos</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='starwars')}">Star Wars</a>
+              <a th:href="@{/catalogue(univers='tcg',licence='altered')}">Altered</a>
+            </div>
+
+            <div class="mega-menu-column">
+              <div class="mega-menu-title">ACCESSOIRES TCG</div>
+              <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='sleeves')}">Sleeves &amp; Toploaders</a>
+              <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='deckbox')}">Deckbox &amp; Tapis de jeu</a>
+              <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='classeurs')}">Classeurs et Portfolio</a>
+              <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='protections')}">Protections Booster &amp; Display</a>
+              <a th:href="@{/catalogue(univers='tcg',format='accessoires',type='rangement')}">Boîtes de rangement</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="mega-menu-logo-strip">
+          <a class="mega-menu-logo-pill mega-menu-logo-pokemon"   th:href="@{/catalogue(univers='tcg',licence='pokemon')}">Pokémon</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-magic"     th:href="@{/catalogue(univers='tcg',licence='magic')}">Magic</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-lorcana"   th:href="@{/catalogue(univers='tcg',licence='lorcana')}">Lorcana</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-yugioh"    th:href="@{/catalogue(univers='tcg',licence='yugioh')}">Yu-Gi-Oh!</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-onepiece"  th:href="@{/catalogue(univers='tcg',licence='one_piece')}">One Piece</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-dragonball" th:href="@{/catalogue(univers='tcg',licence='dragonball')}">Dragon Ball Z</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-starwars"  th:href="@{/catalogue(univers='tcg',licence='starwars')}">Star Wars</a>
+          <a class="mega-menu-logo-pill mega-menu-logo-more"      th:href="@{/catalogue(univers='tcg')}">VOIR TOUTES LES LICENCES →</a>
+        </div>
+      </div>
+    </li>
+    <li><a class="nav-link" th:href="@{/magasins}">Magasins</a></li>
+  </ul>
+
+  <div class="navbar-right">
+    <div class="nav-store" th:if="${session.selectedMagasinNom != null}">
+      <span class="nav-store-label">Mon magasin</span>
+      <span class="nav-store-name" th:text="${session.selectedMagasinNom}">Micromania Paris Les Halles</span>
+    </div>
+
+    <div class="nav-actions">
+      <a class="nav-icon-link" th:href="@{/panier}" aria-label="Panier" title="Panier">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M3 5h2l2.1 9.2a1 1 0 0 0 .98.8H18a1 1 0 0 0 .97-.76L21 8H7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="10" cy="19" r="1.6" fill="currentColor"/>
+          <circle cx="17" cy="19" r="1.6" fill="currentColor"/>
+        </svg>
+        <span class="nav-icon-badge" id="navCartBadge"
+              th:style="${session.cartCount == null or session.cartCount == 0} ? 'display:none' : ''"
+              th:text="${session.cartCount != null ? session.cartCount : 0}">0</span>
+      </a>
+
+      <!-- Dropdown compte -->
+      <div class="nav-user-dropdown" id="navUserDropdown">
+        <button class="nav-user-btn" id="navUserBtn" type="button"
+                aria-haspopup="true" aria-expanded="false" aria-label="Mon compte">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 20a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span sec:authorize="isAuthenticated()" class="nav-user-pseudo"
+                th:text="${session.userPseudo ?: #authentication.name}"></span>
+          <svg class="nav-user-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <div class="nav-user-menu" role="menu">
+          <!-- Non connecté -->
+          <a sec:authorize="isAnonymous()" class="nav-user-menu-item" href="#"
+             data-open-login role="menuitem">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="10 17 15 12 10 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="15" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            Connexion
+          </a>
+
+          <!-- Connecté -->
+          <a sec:authorize="isAuthenticated()" class="nav-user-menu-item"
+             th:href="@{/compte}" role="menuitem">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+            <span th:text="${session.userPseudo ?: #authentication.name}"></span>
+          </a>
+          <div sec:authorize="isAuthenticated()" class="nav-user-menu-divider"></div>
+          <form sec:authorize="isAuthenticated()" th:action="@{/auth/logout}" method="post" style="margin:0">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button type="submit" class="nav-user-menu-item nav-user-menu-logout" role="menuitem">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline points="16 17 21 12 16 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+              Déconnexion
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+</header>
+</th:block>
+</html>

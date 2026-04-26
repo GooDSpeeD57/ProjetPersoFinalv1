@@ -3,6 +3,7 @@ package fr.micromania.entity.catalog;
 import fr.micromania.entity.referentiel.*;
 import jakarta.persistence.*;
 import lombok.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,14 +44,19 @@ public class ProduitVariant {
     @Builder.Default
     private List<ProduitPrix> prix = new ArrayList<>();
 
+    @OneToMany(mappedBy = "variant", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ProduitImage> images = new ArrayList<>();
+
     @Column(name = "nom_commercial", nullable = false, length = 255)
     private String nomCommercial;
 
     @Column(name = "reference_fournisseur", length = 100)
     private String referenceFournisseur;
 
-    @Column(name = "edition", length = 100)
-    private String edition;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_edition")
+    private fr.micromania.entity.referentiel.EditionProduit edition;
 
     @Column(name = "couleur", length = 100)
     private String couleur;

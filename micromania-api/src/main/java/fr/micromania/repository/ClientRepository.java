@@ -31,6 +31,10 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
 
     Optional<Client> findByNumeroCarteFidelite(String numeroCarteFidelite);
 
+    /** Recherche par identité (sécurisée) : nom + prénom + date de naissance */
+    Optional<Client> findByNomIgnoreCaseAndPrenomIgnoreCaseAndDateNaissanceAndDeletedFalse(
+        String nom, String prenom, java.time.LocalDate dateNaissance);
+
     /** Recherche full-text sur pseudo / nom / prénom / email */
     @Query("""
         SELECT c FROM Client c

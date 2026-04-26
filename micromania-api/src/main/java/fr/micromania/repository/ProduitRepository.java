@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface ProduitRepository extends JpaRepository<Produit, Long> {
+public interface ProduitRepository extends JpaRepository<Produit, Long>, JpaSpecificationExecutor<Produit> {
 
     Optional<Produit> findBySlugAndDeletedFalse(String slug);
 

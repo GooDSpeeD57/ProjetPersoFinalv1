@@ -11,17 +11,17 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ============================================================
 
 INSERT INTO type_fidelite (code, description, points_par_euro, seuil_upgrade_euro, prix_abonnement) VALUES
-('NORMAL',   'Client standard',     1.00, 200.00, NULL),
-('PREMIUM',  'Client premium',      1.20, NULL,   NULL),
-('ULTIMATE', 'Abonnement Ultimate', 1.50, NULL,   9.99);
+('NORMAL',   'Client standard',     1.00, NULL, NULL),
+('PREMIUM',  'Client premium',      12.00, 200,   NULL),
+('ULTIMATE', 'Abonnement Ultimate', 15.00, NULL,   34.99);
 
-INSERT INTO type_categorie (code, description) VALUES
-('JEU',          'Jeux video'),
-('CONSOLE',      'Consoles de jeu'),
-('ACCESSOIRE',   'Accessoires gaming'),
-('GOODIES',      'Produits derives'),
-('CARTE_CADEAU', 'Cartes cadeaux'),
-('TCG',          'Trading Card Game');
+INSERT INTO type_categorie (id_type_categorie, code, description) VALUES
+(1, 'JEU',          'Jeux video'),
+(2, 'CONSOLE',      'Consoles de jeu'),
+(3, 'ACCESSOIRE',   'Accessoires gaming'),
+(4, 'GOODIES',      'Produits derives'),
+(5, 'CARTE_CADEAU', 'Cartes cadeaux'),
+(6, 'TCG',          'Trading Card Game');
 
 INSERT INTO type_adresse (code) VALUES
 ('FACTURATION'), ('DOMICILE'), ('LIVRAISON'), ('MAGASIN');
@@ -113,6 +113,16 @@ INSERT INTO mode_livraison (code, description) VALUES
 
 INSERT INTO canal_vente (code) VALUES ('WEB'), ('MOBILE'), ('MAGASIN');
 
+INSERT INTO edition_produit (code, libelle, ordre_affichage) VALUES
+('STANDARD',  'Standard',          1),
+('DAYONE',    'Day One',           2),
+('DELUXE',    'Deluxe',            3),
+('COLLECTOR', 'Collector',         4),
+('PREMIUM',   'Premium',           5),
+('LIMITEE',   'Edition Limitee',   6),
+('GOTY',      'Game of the Year',  7),
+('COMPLETE',  'Complete Edition',  8);
+
 INSERT INTO format_produit (code, description) VALUES
 ('PHYSIQUE',       'Produit physique'),
 ('DEMAT',          'Produit dematerialise'),
@@ -171,12 +181,14 @@ INSERT INTO plateforme (code, libelle) VALUES
 ('3DO',            'Panasonic 3DO'),
 ('PC',             'PC');
 
-INSERT INTO type_garantie (code, description, duree_mois, prix_extension) VALUES
-('STANDARD_CONSOLE',    'Garantie standard console',    24, 49.99),
-('STANDARD_ACCESSOIRE', 'Garantie standard accessoire', 12, 19.99),
-('ETENDUE_CONSOLE',     'Extension console',            12, 39.99),
-('ETENDUE_ACCESSOIRE',  'Extension accessoire',         12,  9.99),
-('OCCASION_CONSOLE',    'Garantie occasion console',     6,  NULL);
+INSERT INTO type_garantie (id_type_garantie, code, description, duree_mois, prix_extension, id_categorie) VALUES
+(1, 'STANDARD_CONSOLE',    'Garantie standard console',        24,  NULL,  2),
+(2, 'STANDARD_ACCESSOIRE', 'Garantie standard accessoire',     12,  NULL,  3),
+(3, 'ETENDUE_CONSOLE',     'Extension console',                12, 70.00,  2),
+(4, 'ETENDUE_ACCESSOIRE',  'Extension accessoire',             12,  9.99,  3),
+(5, 'OCCASION_CONSOLE',    'Garantie occasion console',         6,  NULL,  2),
+(6, 'ANTI_CASSE_JEU_NEUF', 'Garantie anti-casse jeu neuf',    12,  3.00,  1),
+(7, 'ANTI_CASSE_JEU_OCC',  'Garantie anti-casse jeu occasion',  6,  3.00,  1);
 
 INSERT INTO etat_carte_tcg (code, libelle, coefficient_prix) VALUES
 ('NM',   'Near Mint', 1.00),
@@ -963,12 +975,13 @@ INSERT INTO adresse (id_client, id_type_adresse, rue, ville, code_postal, pays, 
 -- CATEGORIES
 -- ------------------------------------------------------------
 
-INSERT INTO categorie (id_type_categorie, nom, description) VALUES
-((SELECT id_type_categorie FROM type_categorie WHERE code='JEU'),       'Jeux Video',  'Jeux toutes plateformes'),
-((SELECT id_type_categorie FROM type_categorie WHERE code='CONSOLE'),   'Consoles',    'Consoles de jeux'),
-((SELECT id_type_categorie FROM type_categorie WHERE code='ACCESSOIRE'),'Accessoires', 'Accessoires gaming'),
-((SELECT id_type_categorie FROM type_categorie WHERE code='GOODIES'),   'Goodies',     'Produits derives gaming'),
-((SELECT id_type_categorie FROM type_categorie WHERE code='TCG'),       'Cartes TCG',  'Trading card games');
+INSERT INTO categorie (id_categorie, id_type_categorie, nom, description) VALUES
+(1, (SELECT id_type_categorie FROM type_categorie WHERE code='JEU'),          'Jeux Video',   'Jeux toutes plateformes'),
+(2, (SELECT id_type_categorie FROM type_categorie WHERE code='CONSOLE'),      'Consoles',     'Consoles de jeux'),
+(3, (SELECT id_type_categorie FROM type_categorie WHERE code='ACCESSOIRE'),   'Accessoires',  'Accessoires gaming'),
+(4, (SELECT id_type_categorie FROM type_categorie WHERE code='GOODIES'),      'Goodies',      'Produits derives gaming'),
+(5, (SELECT id_type_categorie FROM type_categorie WHERE code='TCG'),          'Cartes TCG',   'Trading card games'),
+(6, (SELECT id_type_categorie FROM type_categorie WHERE code='CARTE_CADEAU'), 'Carte Cadeau', 'Cartes cadeaux');
 
 -- ------------------------------------------------------------
 -- 60 JEUX (PS4 / PS5 / XBOX ONE / XBOX SERIES / SWITCH / SWITCH2)
@@ -1036,13 +1049,6 @@ INSERT INTO produit (id_categorie, nom, slug, description, resume_court, editeur
 ((SELECT id_categorie FROM categorie WHERE nom='Jeux Video'),'Final Fantasy VII Remake Intergrade Switch 2','final-fantasy-vii-remake-intergrade-switch-2-switch2','Final Fantasy VII Remake Intergrade Switch 2 sur SWITCH2','Final Fantasy VII Remake Intergrade Switch 2 version SWITCH2','Square Enix',16,'Square Enix',FALSE),
 ((SELECT id_categorie FROM categorie WHERE nom='Jeux Video'),'Yakuza Kiwami 3 and Dark Ties','yakuza-kiwami-3-and-dark-ties-switch2','Yakuza Kiwami 3 and Dark Ties sur SWITCH2','Yakuza Kiwami 3 and Dark Ties version SWITCH2','Sega',18,'Sega',FALSE);
 
-INSERT INTO produit_image (id_produit, url, alt, principale, ordre_affichage)
-SELECT id_produit,
-       CONCAT('/images/catalogue/jeux/', slug, '.jpg'),
-       CONCAT('Visuel ', nom), TRUE, 1
-FROM produit
-WHERE id_categorie = (SELECT id_categorie FROM categorie WHERE nom='Jeux Video');
-
 INSERT INTO produit_variant (id_produit, sku, id_plateforme, id_format_produit, id_statut_produit, nom_commercial, scelle, est_demat, est_tcg_unitaire, est_reprise)
 SELECT
     p.id_produit,
@@ -1098,11 +1104,6 @@ INSERT INTO produit (id_categorie, nom, slug, description, resume_court, constru
 ((SELECT id_categorie FROM categorie WHERE nom='Consoles'),'Nintendo Switch 2 Standard',  'nintendo-switch-2-standard',  'Nintendo Switch 2 Standard',  'Nintendo Switch 2 Standard',  'Nintendo',  'Nintendo',  TRUE),
 ((SELECT id_categorie FROM categorie WHERE nom='Consoles'),'Xbox Series S 1 To',          'xbox-series-s-1-to',          'Xbox Series S 1 To',          'Xbox Series S 1 To',          'Microsoft', 'Microsoft', TRUE),
 ((SELECT id_categorie FROM categorie WHERE nom='Consoles'),'Xbox Series X 1 To',          'xbox-series-x-1-to',          'Xbox Series X 1 To',          'Xbox Series X 1 To',          'Microsoft', 'Microsoft', TRUE);
-
-INSERT INTO produit_image (id_produit, url, alt, principale, ordre_affichage)
-SELECT id_produit, CONCAT('/images/catalogue/consoles/', slug, '.jpg'), CONCAT('Visuel ', nom), TRUE, 1
-FROM produit
-WHERE id_categorie = (SELECT id_categorie FROM categorie WHERE nom='Consoles');
 
 INSERT INTO produit_variant (id_produit, sku, id_plateforme, id_format_produit, id_statut_produit, nom_commercial, scelle, est_demat, est_tcg_unitaire, est_reprise, necessite_numero_serie) VALUES
 ((SELECT id_produit FROM produit WHERE slug='playstation-4-500-go'),        'PLAYSTATION-4-500-GO-NEUF',          (SELECT id_plateforme FROM plateforme WHERE code='PS4'),        (SELECT id_format_produit FROM format_produit WHERE code='PHYSIQUE'),(SELECT id_statut_produit FROM statut_produit WHERE code='NEUF'),    'PlayStation 4 500 Go Neuf',          FALSE,FALSE,FALSE,FALSE,TRUE),
@@ -1161,10 +1162,6 @@ INSERT INTO produit (id_categorie, nom, slug, description, resume_court, constru
 ((SELECT id_categorie FROM categorie WHERE nom='Accessoires'),'Paire Joy-Con 2 Switch 2',            'paire-joy-con-2-switch-2',            'Paire Joy-Con 2 Switch 2',            'Paire Joy-Con 2 Switch 2',            'Nintendo',  'Nintendo'),
 ((SELECT id_categorie FROM categorie WHERE nom='Accessoires'),'Manette Pro Switch 2',                'manette-pro-switch-2',                'Manette Pro Switch 2',                'Manette Pro Switch 2',                'Nintendo',  'Nintendo'),
 ((SELECT id_categorie FROM categorie WHERE nom='Accessoires'),'Camera Nintendo Switch 2',            'camera-nintendo-switch-2',            'Camera Nintendo Switch 2',            'Camera Nintendo Switch 2',            'Nintendo',  'Nintendo');
-
-INSERT INTO produit_image (id_produit, url, alt, principale, ordre_affichage)
-SELECT id_produit, CONCAT('/images/catalogue/accessoires/', slug, '.jpg'), CONCAT('Visuel ', nom), TRUE, 1
-FROM produit WHERE id_categorie = (SELECT id_categorie FROM categorie WHERE nom='Accessoires');
 
 INSERT INTO produit_variant (id_produit, sku, id_plateforme, id_format_produit, id_statut_produit, nom_commercial, scelle, est_demat, est_tcg_unitaire, est_reprise) VALUES
 ((SELECT id_produit FROM produit WHERE slug='manette-dualsense-blanche'),          'MANETTE-DUALSENSE-BLANCHE-NEUF',           (SELECT id_plateforme FROM plateforme WHERE code='PS5'),        (SELECT id_format_produit FROM format_produit WHERE code='PHYSIQUE'),(SELECT id_statut_produit FROM statut_produit WHERE code='NEUF'),    'Manette DualSense Blanche Neuf',           FALSE,FALSE,FALSE,FALSE),
@@ -1298,127 +1295,146 @@ INSERT INTO reprise_ligne (id_reprise, id_variant, quantite, prix_estime_unitair
 -- PRIX CATALOGUE (WEB / MOBILE / MAGASIN)
 -- ------------------------------------------------------------
 
-INSERT INTO produit_prix (id_variant, id_canal_vente, prix, date_debut, date_fin, actif)
+INSERT INTO produit_prix (id_variant, prix_neuf, prix_occasion, prix_reprise, prix_location, date_debut, date_fin, actif)
 SELECT
     pv.id_variant,
-    cv.id_canal_vente,
-    CASE
-        WHEN tc.code = 'JEU' THEN
-            CASE
-                WHEN sp.code = 'NEUF' THEN
-                    CASE
-                        WHEN pf.code = 'SWITCH2' THEN 79.99
-                        WHEN pf.code IN ('PS5', 'XBOX_SERIES') THEN 69.99
-                        WHEN pf.code = 'SWITCH' THEN 59.99
-                        WHEN pf.code IN ('PS4', 'XBOX_ONE') THEN 49.99
-                        ELSE 59.99
-                    END
-                WHEN sp.code = 'OCCASION' THEN
-                    CASE
-                        WHEN pf.code = 'SWITCH2' THEN 59.99
-                        WHEN pf.code IN ('PS5', 'XBOX_SERIES') THEN 49.99
-                        WHEN pf.code = 'SWITCH' THEN 44.99
-                        WHEN pf.code IN ('PS4', 'XBOX_ONE') THEN 29.99
-                        ELSE 39.99
-                    END
-                ELSE 29.99
-            END
+    -- prix_neuf : calculé pour variante NEUF ou PRECOMMANDE
+    CASE WHEN sp.code IN ('NEUF', 'PRECOMMANDE') THEN
+        CASE
+            WHEN tc.code = 'JEU' THEN
+                CASE
+                    WHEN pf.code = 'SWITCH2'              THEN 79.99
+                    WHEN pf.code IN ('PS5','XBOX_SERIES') THEN 69.99
+                    WHEN pf.code = 'SWITCH'               THEN 59.99
+                    WHEN pf.code IN ('PS4','XBOX_ONE')    THEN 49.99
+                    ELSE 59.99
+                END
+            WHEN tc.code = 'CONSOLE' THEN
+                CASE
+                    WHEN p.slug = 'playstation-5-pro-2-to'         THEN 799.99
+                    WHEN p.slug = 'playstation-5-slim-standard'    THEN 549.99
+                    WHEN p.slug = 'nintendo-switch-2-standard'     THEN 469.99
+                    WHEN p.slug = 'xbox-series-x-1-to'             THEN 549.99
+                    WHEN p.slug = 'xbox-series-s-1-to'             THEN 349.99
+                    WHEN p.slug = 'nintendo-switch-oled-blanche'   THEN 349.99
+                    WHEN p.slug = 'nintendo-switch-standard'       THEN 299.99
+                    WHEN p.slug = 'nintendo-switch-lite-turquoise' THEN 229.99
+                    WHEN p.slug = 'playstation-4-pro-1-to'         THEN 299.99
+                    WHEN p.slug = 'playstation-4-500-go'           THEN 219.99
+                    ELSE 299.99
+                END
+            WHEN tc.code = 'ACCESSOIRE' THEN
+                CASE
+                    WHEN p.slug LIKE '%carte-extension-stockage%'                         THEN 199.99
+                    WHEN p.slug LIKE '%casque%'                                            THEN 99.99
+                    WHEN p.slug LIKE '%manette-pro-switch%'                                THEN 74.99
+                    WHEN p.slug LIKE '%manette-dualsense%'                                 THEN 74.99
+                    WHEN p.slug LIKE '%manette-xbox-wireless%'                             THEN 64.99
+                    WHEN p.slug LIKE '%manette-xbox-one%'                                  THEN 54.99
+                    WHEN p.slug LIKE '%manette-ps4%'                                       THEN 59.99
+                    WHEN p.slug LIKE '%joy-con%'                                            THEN 79.99
+                    WHEN p.slug LIKE '%dock-nintendo-switch%'                              THEN 89.99
+                    WHEN p.slug LIKE '%station-de-recharge%' OR p.slug LIKE '%station-de-charge%' THEN 29.99
+                    WHEN p.slug LIKE '%camera%'                                            THEN 59.99
+                    WHEN p.slug LIKE '%telecommande%'                                      THEN 29.99
+                    WHEN p.slug LIKE '%batterie%'                                          THEN 24.99
+                    WHEN p.slug LIKE '%support-vertical%'                                  THEN 24.99
+                    WHEN p.slug LIKE '%disque-dur%'                                        THEN 89.99
+                    WHEN p.slug LIKE '%etui%' OR p.slug LIKE '%protection%'                THEN 19.99
+                    ELSE 39.99
+                END
+            WHEN tc.code = 'GOODIES'     THEN 19.99
+            WHEN tc.code = 'CARTE_CADEAU' THEN 20.00
+            WHEN tc.code = 'TCG' THEN
+                CASE
+                    WHEN pv.est_tcg_unitaire = TRUE THEN 1.99
+                    WHEN pv.scelle = TRUE            THEN 6.99
+                    ELSE 4.99
+                END
+            ELSE 19.99
+        END
+    ELSE NULL END AS prix_neuf,
 
-        WHEN tc.code = 'CONSOLE' THEN
-            CASE
-                WHEN sp.code = 'NEUF' THEN
-                    CASE
-                        WHEN p.slug = 'playstation-5-pro-2-to' THEN 799.99
-                        WHEN p.slug = 'playstation-5-slim-standard' THEN 549.99
-                        WHEN p.slug = 'nintendo-switch-2-standard' THEN 469.99
-                        WHEN p.slug = 'xbox-series-x-1-to' THEN 549.99
-                        WHEN p.slug = 'xbox-series-s-1-to' THEN 349.99
-                        WHEN p.slug = 'nintendo-switch-oled-blanche' THEN 349.99
-                        WHEN p.slug = 'nintendo-switch-standard' THEN 299.99
-                        WHEN p.slug = 'nintendo-switch-lite-turquoise' THEN 229.99
-                        WHEN p.slug = 'playstation-4-pro-1-to' THEN 299.99
-                        WHEN p.slug = 'playstation-4-500-go' THEN 219.99
-                        ELSE 299.99
-                    END
-                WHEN sp.code = 'OCCASION' THEN
-                    CASE
-                        WHEN p.slug = 'playstation-5-pro-2-to' THEN 649.99
-                        WHEN p.slug = 'playstation-5-slim-standard' THEN 449.99
-                        WHEN p.slug = 'nintendo-switch-2-standard' THEN 399.99
-                        WHEN p.slug = 'xbox-series-x-1-to' THEN 449.99
-                        WHEN p.slug = 'xbox-series-s-1-to' THEN 279.99
-                        WHEN p.slug = 'nintendo-switch-oled-blanche' THEN 279.99
-                        WHEN p.slug = 'nintendo-switch-standard' THEN 229.99
-                        WHEN p.slug = 'nintendo-switch-lite-turquoise' THEN 169.99
-                        WHEN p.slug = 'playstation-4-pro-1-to' THEN 229.99
-                        WHEN p.slug = 'playstation-4-500-go' THEN 159.99
-                        ELSE 199.99
-                    END
-                ELSE 149.99
-            END
+    -- prix_occasion : calculé pour variante OCCASION
+    CASE WHEN sp.code = 'OCCASION' THEN
+        CASE
+            WHEN tc.code = 'JEU' THEN
+                CASE
+                    WHEN pf.code = 'SWITCH2'              THEN 59.99
+                    WHEN pf.code IN ('PS5','XBOX_SERIES') THEN 49.99
+                    WHEN pf.code = 'SWITCH'               THEN 44.99
+                    WHEN pf.code IN ('PS4','XBOX_ONE')    THEN 29.99
+                    ELSE 39.99
+                END
+            WHEN tc.code = 'CONSOLE' THEN
+                CASE
+                    WHEN p.slug = 'playstation-5-pro-2-to'         THEN 649.99
+                    WHEN p.slug = 'playstation-5-slim-standard'    THEN 449.99
+                    WHEN p.slug = 'nintendo-switch-2-standard'     THEN 399.99
+                    WHEN p.slug = 'xbox-series-x-1-to'             THEN 449.99
+                    WHEN p.slug = 'xbox-series-s-1-to'             THEN 279.99
+                    WHEN p.slug = 'nintendo-switch-oled-blanche'   THEN 279.99
+                    WHEN p.slug = 'nintendo-switch-standard'       THEN 229.99
+                    WHEN p.slug = 'nintendo-switch-lite-turquoise' THEN 169.99
+                    WHEN p.slug = 'playstation-4-pro-1-to'         THEN 229.99
+                    WHEN p.slug = 'playstation-4-500-go'           THEN 159.99
+                    ELSE 199.99
+                END
+            WHEN tc.code = 'ACCESSOIRE' THEN
+                CASE
+                    WHEN p.slug LIKE '%carte-extension-stockage%'                         THEN 149.99
+                    WHEN p.slug LIKE '%casque%'                                            THEN 69.99
+                    WHEN p.slug LIKE '%manette-pro-switch%'                                THEN 54.99
+                    WHEN p.slug LIKE '%manette-dualsense%'                                 THEN 54.99
+                    WHEN p.slug LIKE '%manette-xbox-wireless%'                             THEN 44.99
+                    WHEN p.slug LIKE '%manette-xbox-one%'                                  THEN 39.99
+                    WHEN p.slug LIKE '%manette-ps4%'                                       THEN 39.99
+                    WHEN p.slug LIKE '%joy-con%'                                            THEN 59.99
+                    WHEN p.slug LIKE '%dock-nintendo-switch%'                              THEN 59.99
+                    WHEN p.slug LIKE '%station-de-recharge%' OR p.slug LIKE '%station-de-charge%' THEN 19.99
+                    WHEN p.slug LIKE '%camera%'                                            THEN 39.99
+                    WHEN p.slug LIKE '%telecommande%'                                      THEN 19.99
+                    WHEN p.slug LIKE '%batterie%'                                          THEN 14.99
+                    WHEN p.slug LIKE '%support-vertical%'                                  THEN 14.99
+                    WHEN p.slug LIKE '%disque-dur%'                                        THEN 59.99
+                    WHEN p.slug LIKE '%etui%' OR p.slug LIKE '%protection%'                THEN 9.99
+                    ELSE 24.99
+                END
+            WHEN tc.code = 'GOODIES'     THEN 9.99
+            WHEN tc.code = 'TCG' THEN
+                CASE
+                    WHEN pv.est_tcg_unitaire = TRUE THEN 0.99
+                    WHEN pv.scelle = TRUE            THEN 4.99
+                    ELSE 2.99
+                END
+            ELSE 14.99
+        END
+    ELSE NULL END AS prix_occasion,
 
-        WHEN tc.code = 'ACCESSOIRE' THEN
-            CASE
-                WHEN sp.code = 'NEUF' THEN
-                    CASE
-                        WHEN p.slug LIKE '%carte-extension-stockage%' THEN 199.99
-                        WHEN p.slug LIKE '%casque%' THEN 99.99
-                        WHEN p.slug LIKE '%manette-pro-switch%' THEN 74.99
-                        WHEN p.slug LIKE '%manette-dualsense%' THEN 74.99
-                        WHEN p.slug LIKE '%manette-xbox-wireless%' THEN 64.99
-                        WHEN p.slug LIKE '%manette-xbox-one%' THEN 54.99
-                        WHEN p.slug LIKE '%manette-ps4%' THEN 59.99
-                        WHEN p.slug LIKE '%joy-con%' THEN 79.99
-                        WHEN p.slug LIKE '%dock-nintendo-switch%' THEN 89.99
-                        WHEN p.slug LIKE '%station-de-recharge%' OR p.slug LIKE '%station-de-charge%' THEN 29.99
-                        WHEN p.slug LIKE '%camera%' THEN 59.99
-                        WHEN p.slug LIKE '%telecommande%' THEN 29.99
-                        WHEN p.slug LIKE '%batterie%' THEN 24.99
-                        WHEN p.slug LIKE '%support-vertical%' THEN 24.99
-                        WHEN p.slug LIKE '%disque-dur%' THEN 89.99
-                        WHEN p.slug LIKE '%etui%' OR p.slug LIKE '%protection%' THEN 19.99
-                        ELSE 39.99
-                    END
-                WHEN sp.code = 'OCCASION' THEN
-                    CASE
-                        WHEN p.slug LIKE '%carte-extension-stockage%' THEN 149.99
-                        WHEN p.slug LIKE '%casque%' THEN 69.99
-                        WHEN p.slug LIKE '%manette-pro-switch%' THEN 54.99
-                        WHEN p.slug LIKE '%manette-dualsense%' THEN 54.99
-                        WHEN p.slug LIKE '%manette-xbox-wireless%' THEN 44.99
-                        WHEN p.slug LIKE '%manette-xbox-one%' THEN 39.99
-                        WHEN p.slug LIKE '%manette-ps4%' THEN 39.99
-                        WHEN p.slug LIKE '%joy-con%' THEN 59.99
-                        WHEN p.slug LIKE '%dock-nintendo-switch%' THEN 59.99
-                        WHEN p.slug LIKE '%station-de-recharge%' OR p.slug LIKE '%station-de-charge%' THEN 19.99
-                        WHEN p.slug LIKE '%camera%' THEN 39.99
-                        WHEN p.slug LIKE '%telecommande%' THEN 19.99
-                        WHEN p.slug LIKE '%batterie%' THEN 14.99
-                        WHEN p.slug LIKE '%support-vertical%' THEN 14.99
-                        WHEN p.slug LIKE '%disque-dur%' THEN 59.99
-                        WHEN p.slug LIKE '%etui%' OR p.slug LIKE '%protection%' THEN 9.99
-                        ELSE 24.99
-                    END
-                ELSE 19.99
-            END
+    -- prix_reprise : ~60 % du prix neuf pour les produits repris
+    CASE WHEN pv.est_reprise = TRUE THEN
+        CASE
+            WHEN tc.code = 'JEU' THEN
+                CASE
+                    WHEN pf.code = 'SWITCH2'              THEN 30.00
+                    WHEN pf.code IN ('PS5','XBOX_SERIES') THEN 25.00
+                    WHEN pf.code = 'SWITCH'               THEN 20.00
+                    ELSE 15.00
+                END
+            WHEN tc.code = 'CONSOLE' THEN
+                CASE
+                    WHEN p.slug = 'playstation-5-pro-2-to'         THEN 400.00
+                    WHEN p.slug = 'playstation-5-slim-standard'    THEN 280.00
+                    WHEN p.slug = 'nintendo-switch-2-standard'     THEN 220.00
+                    WHEN p.slug = 'xbox-series-x-1-to'             THEN 250.00
+                    ELSE 120.00
+                END
+            WHEN tc.code = 'ACCESSOIRE' THEN 10.00
+            ELSE NULL
+        END
+    ELSE NULL END AS prix_reprise,
 
-        WHEN tc.code = 'GOODIES' THEN
-            CASE WHEN sp.code = 'OCCASION' THEN 9.99 ELSE 19.99 END
-
-        WHEN tc.code = 'CARTE_CADEAU' THEN 20.00
-
-        WHEN tc.code = 'TCG' THEN
-            CASE
-                WHEN pv.est_tcg_unitaire = TRUE THEN
-                    CASE WHEN sp.code = 'OCCASION' THEN 0.99 ELSE 1.99 END
-                WHEN pv.scelle = TRUE THEN
-                    CASE WHEN sp.code = 'OCCASION' THEN 4.99 ELSE 6.99 END
-                ELSE
-                    CASE WHEN sp.code = 'OCCASION' THEN 2.99 ELSE 4.99 END
-            END
-
-        ELSE 19.99
-    END AS prix,
+    NULL AS prix_location,
     NOW(),
     NULL,
     TRUE
@@ -1428,12 +1444,8 @@ JOIN categorie c ON c.id_categorie = p.id_categorie
 JOIN type_categorie tc ON tc.id_type_categorie = c.id_type_categorie
 JOIN statut_produit sp ON sp.id_statut_produit = pv.id_statut_produit
 LEFT JOIN plateforme pf ON pf.id_plateforme = pv.id_plateforme
-JOIN canal_vente cv ON cv.code IN ('WEB', 'MOBILE', 'MAGASIN')
 WHERE NOT EXISTS (
-    SELECT 1
-    FROM produit_prix pp
-    WHERE pp.id_variant = pv.id_variant
-      AND pp.id_canal_vente = cv.id_canal_vente
+    SELECT 1 FROM produit_prix pp WHERE pp.id_variant = pv.id_variant
 );
 
 INSERT INTO commande (reference_commande, id_client, id_statut_commande, id_mode_livraison, id_canal_vente, id_entrepot_expedition, id_magasin_retrait, sous_total, montant_remise, frais_livraison, montant_total) VALUES
@@ -1458,6 +1470,47 @@ INSERT INTO ligne_facture (id_facture, id_variant, quantite, prix_unitaire) VALU
 (3, (SELECT id_variant FROM produit_variant WHERE nom_commercial LIKE 'Halo Infinite%'        LIMIT 1), 1, 59.99),
 (3, (SELECT id_variant FROM produit_variant WHERE nom_commercial LIKE 'Forza Horizon 5%'      LIMIT 1), 1, 69.99);
 
+
+-- ------------------------------------------------------------
+-- IMAGES PRODUIT (liées aux variants)
+-- ------------------------------------------------------------
+
+-- Structure : /images/catalogue/{type_categorie}/{plateforme_code}/{slug}-{plateforme_code}.jpg
+-- Jeux : sous-dossier par plateforme (ps5, ps4, xbox-series, switch, switch-2, pc…)
+INSERT INTO produit_image (id_variant, url, alt, principale, ordre_affichage)
+SELECT pv.id_variant,
+       CONCAT('/images/catalogue/jeu/',
+              LOWER(REPLACE(pl.code, '_', '-')), '/',
+              p.slug, '-', LOWER(REPLACE(pl.code, '_', '-')), '.jpg'),
+       CONCAT('Visuel ', p.nom), TRUE, 1
+FROM produit_variant pv
+JOIN produit p    ON p.id_produit     = pv.id_produit
+JOIN plateforme pl ON pl.id_plateforme = pv.id_plateforme
+WHERE p.id_categorie = (SELECT id_categorie FROM categorie WHERE nom = 'Jeux Video');
+
+-- Consoles : sous-dossier par plateforme constructeur (ps5, xbox-series-x, switch…)
+INSERT INTO produit_image (id_variant, url, alt, principale, ordre_affichage)
+SELECT pv.id_variant,
+       CONCAT('/images/catalogue/console/',
+              LOWER(REPLACE(pl.code, '_', '-')), '/',
+              p.slug, '.jpg'),
+       CONCAT('Visuel ', p.nom), TRUE, 1
+FROM produit_variant pv
+JOIN produit p     ON p.id_produit     = pv.id_produit
+JOIN plateforme pl ON pl.id_plateforme = pv.id_plateforme
+WHERE p.id_categorie = (SELECT id_categorie FROM categorie WHERE nom = 'Consoles');
+
+-- Accessoires : sous-dossier par plateforme
+INSERT INTO produit_image (id_variant, url, alt, principale, ordre_affichage)
+SELECT pv.id_variant,
+       CONCAT('/images/catalogue/accessoire/',
+              LOWER(REPLACE(pl.code, '_', '-')), '/',
+              p.slug, '.jpg'),
+       CONCAT('Visuel ', p.nom), TRUE, 1
+FROM produit_variant pv
+JOIN produit p     ON p.id_produit     = pv.id_produit
+JOIN plateforme pl ON pl.id_plateforme = pv.id_plateforme
+WHERE p.id_categorie = (SELECT id_categorie FROM categorie WHERE nom = 'Accessoires');
 
 -- ------------------------------------------------------------
 -- AVIS PRODUITS

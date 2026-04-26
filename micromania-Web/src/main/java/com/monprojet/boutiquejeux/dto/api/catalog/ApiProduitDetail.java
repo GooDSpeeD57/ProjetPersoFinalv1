@@ -22,6 +22,8 @@ public record ApiProduitDetail(
         ApiCodeDescription categorie,
         List<ApiProduitVariant> variants,
         List<ApiProduitImage> images,
+        List<ApiScreenshot> screenshots,
+        List<ApiProduitVideo> videos,
         Double noteMoyenne,
         long nbAvis,
         List<ApiAvisProduit> avis

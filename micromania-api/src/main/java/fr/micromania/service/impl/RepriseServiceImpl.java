@@ -6,6 +6,8 @@ import fr.micromania.entity.Magasin;
 import fr.micromania.entity.Reprise;
 import fr.micromania.entity.RepriseeLigne;
 import fr.micromania.entity.catalog.ProduitVariant;
+import fr.micromania.entity.referentiel.ModeCompensationReprise;
+import fr.micromania.entity.referentiel.StatutReprise;
 import fr.micromania.mapper.RepriseMapper;
 import fr.micromania.repository.*;
 import fr.micromania.service.RepriseService;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -34,7 +37,11 @@ public class RepriseServiceImpl implements RepriseService {
     private final MagasinRepository magasinRepository;
     private final ProduitVariantRepository variantRepository;
     private final StatutRepriseRepository statutRepriseRepository;
+    private final ModeCompensationRepriseRepository modeCompensationRepriseRepository;
     private final RepriseMapper repriseMapper;
+
+    /** Décote espèces : le client reçoit 90 % de la valeur en avoir. */
+    private static final BigDecimal RATIO_ESPECES = new BigDecimal("0.90");
 
     @Override
     @Transactional
@@ -45,10 +52,19 @@ public class RepriseServiceImpl implements RepriseService {
         Magasin magasin = magasinRepository.findById(request.idMagasin())
             .orElseThrow(() -> new EntityNotFoundException("Magasin introuvable : " + request.idMagasin()));
 
+        ModeCompensationReprise modeComp = modeCompensationRepriseRepository.findById(request.idModeCompensation())
+            .orElseThrow(() -> new EntityNotFoundException("Mode de compensation introuvable : " + request.idModeCompensation()));
+
+        StatutReprise statutInitial = statutRepriseRepository.findByCode("EN_ATTENTE")
+            .or(() -> statutRepriseRepository.findAll().stream().findFirst())
+            .orElseThrow(() -> new IllegalStateException("Aucun statut reprise configuré"));
+
         Reprise reprise = Reprise.builder()
             .referenceReprise("REP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
             .employe(employe)
             .magasin(magasin)
+            .modeCompensationReprise(modeComp)
+            .statutReprise(statutInitial)
             .commentaire(request.commentaire())
             .montantTotalEstime(BigDecimal.ZERO)
             .montantTotalValide(BigDecimal.ZERO)
@@ -59,36 +75,45 @@ public class RepriseServiceImpl implements RepriseService {
                 .orElseThrow(() -> new EntityNotFoundException("Client introuvable : " + request.idClient())));
         }
 
-        BigDecimal totalEstime = BigDecimal.ZERO;
+        // totalAvoir = somme brute des prix estimés (valeur en avoir, avant décote éventuelle)
+        BigDecimal totalAvoir = BigDecimal.ZERO;
         for (CreateRepriseeLigneRequest ligneReq : request.lignes()) {
             RepriseeLigne ligne = construireLigne(reprise, ligneReq);
             reprise.getLignes().add(ligne);
-            totalEstime = totalEstime.add(
+            totalAvoir = totalAvoir.add(
                 ligneReq.prixEstimeUnitaire().multiply(BigDecimal.valueOf(ligneReq.quantite())));
         }
+
+        // montantTotalEstime = ce que reçoit réellement le client
+        boolean estEspeces = "ESPECES".equalsIgnoreCase(modeComp.getCode());
+        BigDecimal totalEstime = estEspeces
+            ? totalAvoir.multiply(RATIO_ESPECES).setScale(2, RoundingMode.HALF_UP)
+            : totalAvoir;
         reprise.setMontantTotalEstime(totalEstime);
 
         reprise = repriseRepository.save(reprise);
-        log.info("Reprise créée : ref={}", reprise.getReferenceReprise());
-        return repriseMapper.toResponse(reprise);
+        log.info("Reprise créée : ref={}, avoir={}, estimé={}", reprise.getReferenceReprise(), totalAvoir, totalEstime);
+        return toResponseAvecAvoir(reprise, totalAvoir);
     }
 
     @Override
     public RepriseResponse getById(Long id) {
-        return repriseMapper.toResponse(repriseRepository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Reprise introuvable : " + id)));
+        Reprise reprise = repriseRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Reprise introuvable : " + id));
+        return toResponseAvecAvoir(reprise, computeTotalAvoir(reprise));
     }
 
     @Override
     public RepriseResponse getByReference(String reference) {
-        return repriseMapper.toResponse(repriseRepository.findByReferenceReprise(reference)
-            .orElseThrow(() -> new EntityNotFoundException("Reprise introuvable : " + reference)));
+        Reprise reprise = repriseRepository.findByReferenceReprise(reference)
+            .orElseThrow(() -> new EntityNotFoundException("Reprise introuvable : " + reference));
+        return toResponseAvecAvoir(reprise, computeTotalAvoir(reprise));
     }
 
     @Override
     public Page<RepriseResponse> filter(Long idMagasin, String statut, Long idClient, Pageable pageable) {
         return repriseRepository.filter(idMagasin, statut, idClient, pageable)
-            .map(repriseMapper::toResponse);
+            .map(r -> toResponseAvecAvoir(r, computeTotalAvoir(r)));
     }
 
     @Override
@@ -108,13 +133,19 @@ public class RepriseServiceImpl implements RepriseService {
                 () -> { throw new EntityNotFoundException("Ligne reprise introuvable : " + request.idRepriseLigne()); }
             );
 
-        BigDecimal totalValide = reprise.getLignes().stream()
+        // totalAvoir validé = somme brute des prix validés (avant décote éventuelle)
+        BigDecimal totalAvoirValide = reprise.getLignes().stream()
             .filter(l -> l.getPrixValideUnitaire() != null)
             .map(l -> l.getPrixValideUnitaire().multiply(BigDecimal.valueOf(l.getQuantite())))
             .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        boolean estEspeces = "ESPECES".equalsIgnoreCase(reprise.getModeCompensationReprise().getCode());
+        BigDecimal totalValide = estEspeces
+            ? totalAvoirValide.multiply(RATIO_ESPECES).setScale(2, RoundingMode.HALF_UP)
+            : totalAvoirValide;
         reprise.setMontantTotalValide(totalValide);
 
-        return repriseMapper.toResponse(repriseRepository.save(reprise));
+        return toResponseAvecAvoir(repriseRepository.save(reprise), computeTotalAvoir(reprise));
     }
 
     @Override
@@ -124,7 +155,8 @@ public class RepriseServiceImpl implements RepriseService {
             .orElseThrow(() -> new EntityNotFoundException("Reprise introuvable : " + idReprise));
         reprise.setStatutReprise(chargerStatutReprise("VALIDEE"));
         reprise.setDateValidation(LocalDateTime.now());
-        return repriseMapper.toResponse(repriseRepository.save(reprise));
+        Reprise saved = repriseRepository.save(reprise);
+        return toResponseAvecAvoir(saved, computeTotalAvoir(saved));
     }
 
     @Override
@@ -134,10 +166,36 @@ public class RepriseServiceImpl implements RepriseService {
             .orElseThrow(() -> new EntityNotFoundException("Reprise introuvable : " + idReprise));
         reprise.setStatutReprise(chargerStatutReprise("REFUSEE"));
         reprise.setCommentaire(motif);
-        return repriseMapper.toResponse(repriseRepository.save(reprise));
+        Reprise saved = repriseRepository.save(reprise);
+        return toResponseAvecAvoir(saved, computeTotalAvoir(saved));
     }
 
-    // ── Helper ────────────────────────────────────────────────
+    // ── Helpers ───────────────────────────────────────────────
+
+    /**
+     * Calcule la valeur brute en avoir (somme prixEstimé × quantité) à partir des lignes.
+     * Ce montant est indépendant du mode de compensation.
+     */
+    private BigDecimal computeTotalAvoir(Reprise reprise) {
+        return reprise.getLignes().stream()
+            .map(l -> l.getPrixEstimeUnitaire().multiply(BigDecimal.valueOf(l.getQuantite())))
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
+     * Construit le RepriseResponse en injectant montantTotalAvoir
+     * (le mapper l'ignore car ce champ est calculé ici, pas stocké en base).
+     */
+    private RepriseResponse toResponseAvecAvoir(Reprise reprise, BigDecimal totalAvoir) {
+        RepriseResponse base = repriseMapper.toResponse(reprise);
+        return new RepriseResponse(
+            base.id(), base.referenceReprise(), base.statut(), base.modeCompensation(),
+            base.client(), base.employe(), base.magasin(),
+            base.montantTotalEstime(), base.montantTotalValide(), totalAvoir,
+            base.commentaire(), base.dateCreation(), base.dateValidation(), base.lignes()
+        );
+    }
+
     private RepriseeLigne construireLigne(Reprise reprise, CreateRepriseeLigneRequest req) {
         RepriseeLigne ligne = RepriseeLigne.builder()
             .reprise(reprise)

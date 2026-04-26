@@ -6,7 +6,7 @@
 </head>
 <body>
 <div class="site-shell">
-<th:block th:replace="~{fragments/layout :: navbar}"/>
+<th:block th:replace="~{fragments/navbar :: navbar}"/>
 
 <main>
   <div class="container">
@@ -21,7 +21,7 @@
           <div class="store-hero-kicker">Repère boutique + carte interactive</div>
           <h1 class="store-hero-title">Trouve ton point de vente et active-le comme magasin de référence.</h1>
           <p class="store-hero-text">
-            Recherche par ville, nom ou code postal. La carte et la liste n’apparaissent qu’après une recherche de secteur.
+            Recherche par ville, nom ou code postal. La carte et la liste n'apparaissent qu'après une recherche de secteur.
           </p>
         </div>
         <div class="store-hero-actions">
@@ -67,14 +67,11 @@
           </div>
           <div class="store-map-legend">
             <span><i class="store-map-dot"></i> magasin</span>
-            <span><i class="store-map-dot store-map-dot-selected"></i> magasin sélectionné</span>
+            <span><i class="store-map-dot store-map-dot-selected"></i> sélectionné / favori</span>
           </div>
         </div>
-
-        <div id="magasins-map"
-             class="store-map"
-             th:attr="data-selected-store-id=${selectedMagasinId}">
-        </div>
+        <div id="magasins-map" class="store-map"
+             th:attr="data-selected-store-id=${selectedMagasinId}"></div>
         <p class="store-map-help">
           Clique sur un point de la carte pour mettre la fiche magasin en avant, puis valide avec le bouton de sélection.
         </p>
@@ -93,7 +90,8 @@
         <article class="store-card card"
                  th:each="magasin : ${magasins}"
                  th:id="|store-card-${magasin.id()}|"
-                 th:classappend="${selectedMagasinId != null and selectedMagasinId == magasin.id() ? ' store-card-selected' : ''}"
+                 th:classappend="${(selectedMagasinId != null and selectedMagasinId == magasin.id())
+                                or (magasinFavoriId != null and magasinFavoriId == magasin.id()) ? ' store-card-selected' : ''}"
                  th:attr="data-store-id=${magasin.id()},
                           data-latitude=${magasin.latitude()},
                           data-longitude=${magasin.longitude()},
@@ -107,11 +105,15 @@
                 <div class="store-card-city" th:text="${magasin.codePostal() + ' • ' + magasin.ville()}">75001 • Paris</div>
                 <h3 class="store-card-title" th:text="${magasin.nom()}">Micromania Paris Les Halles</h3>
               </div>
-              <span class="status-pill status-approved"
-                    th:if="${selectedMagasinId != null and selectedMagasinId == magasin.id()}">Sélectionné</span>
+              <div style="display:flex;flex-direction:column;gap:0.3rem;align-items:flex-end">
+                <span class="status-pill status-approved"
+                      th:if="${selectedMagasinId != null and selectedMagasinId == magasin.id()}">Sélectionné</span>
+                <span class="status-pill" style="background:var(--accent3);color:#fff"
+                      th:if="${magasinFavoriId != null and magasinFavoriId == magasin.id()}">⭐ Favori</span>
+              </div>
             </div>
 
-            <div class="store-card-address" th:text="${magasin.adresseComplete()}">101 Porte Berger • 75001 Paris • France</div>
+            <div class="store-card-address" th:text="${magasin.adresseComplete()}">Adresse</div>
 
             <div class="store-card-meta">
               <div th:if="${magasin.telephone() != null and !magasin.telephone().isBlank()}">
@@ -125,20 +127,33 @@
             </div>
 
             <div class="store-card-actions">
-              <button type="button"
-                      class="btn btn-secondary btn-sm js-store-focus"
+              <button type="button" class="btn btn-secondary btn-sm js-store-focus"
                       th:if="${magasin.latitude() != null and magasin.longitude() != null}">
                 Voir sur la carte
               </button>
 
-              <form th:action="@{/magasins/{idMagasin}/selection(idMagasin=${magasin.id()})}" method="post">
-                <button type="submit"
-                        class="btn btn-primary btn-sm"
+              <form th:action="@{/magasins/{id}/selection(id=${magasin.id()})}" method="post">
+                <button type="submit" class="btn btn-primary btn-sm"
                         th:text="${selectedMagasinId != null and selectedMagasinId == magasin.id() ? 'Magasin actif' : 'Choisir ce magasin'}">
                   Choisir ce magasin
                 </button>
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
               </form>
+
+              <!-- Bouton favori compte (connecté uniquement) -->
+              <th:block th:if="${estConnecte}">
+                <form th:if="${magasinFavoriId == null or magasinFavoriId != magasin.id()}"
+                      th:action="@{/compte/magasin-favori/{id}(id=${magasin.id()})}" method="post">
+                  <button type="submit" class="btn btn-outline btn-sm">⭐ Définir comme favori</button>
+                  <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                </form>
+                <form th:if="${magasinFavoriId != null and magasinFavoriId == magasin.id()}"
+                      th:action="@{/compte/magasin-favori/supprimer}" method="post">
+                  <button type="submit" class="btn btn-outline btn-sm"
+                          style="color:var(--accent3);border-color:var(--accent3)">⭐ Retirer des favoris</button>
+                  <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                </form>
+              </th:block>
             </div>
           </div>
         </article>
@@ -153,9 +168,8 @@
   </div>
 </main>
 
-<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/footer :: footer}"/>
 </div>
-<th:block th:replace="~{fragments/layout :: scripts}"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script th:src="@{/js/magasins.js}"></script>
 </body>

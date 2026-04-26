@@ -7,7 +7,7 @@
 <body>
 <div class="site-shell">
 
-<th:block th:replace="~{fragments/layout :: navbar}"/>
+<th:block th:replace="~{fragments/navbar :: navbar}"/>
 
 <main th:with="apiRoot=${#strings.replace(@environment.getProperty('api.base-url'), '/api/v1', '')}">
   <div class="container home-shell">
@@ -87,14 +87,16 @@
       <div class="home-rail-shell" data-rail-wrapper>
         <button type="button" class="carousel-arrow carousel-arrow-prev rail-arrow" data-rail-prev aria-label="Défiler vers la gauche">‹</button>
         <div class="home-rail" data-rail>
-          <article class="product-card home-product-card" th:each="p : ${prochainesSorties}">
+          <article class="product-card home-product-card"
+                   th:each="p : ${prochainesSorties}"
+                   th:attr="data-href=@{/catalogue/{id}(id=${p.id()})}">
+            <div class="product-etat-banner banner-bientot">Bientôt</div>
             <div class="product-img home-product-img">
               <img th:if="${p.imageUrl() != null}"
                    th:src="${apiRoot + p.imageUrl()}"
                    th:alt="${p.imageAlt() != null ? p.imageAlt() : p.nom()}"
                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
               <div class="promo-image-fallback" th:style="${p.imageUrl() != null} ? 'display:none' : ''">🎮</div>
-              <span class="product-badge" th:classappend="' ' + ${p.badgeClass()}" th:text="${p.badge()}">À venir</span>
             </div>
             <div class="product-body">
               <div class="product-platform" th:text="${p.categorie()}">PS5</div>
@@ -105,8 +107,13 @@
                 <div th:if="${p.prixOccasion() != null}">Occasion : <span th:text="${#numbers.formatDecimal(p.prixOccasion(),1,2) + ' €'}">49,99 €</span></div>
                 <div th:if="${p.prixNeuf() == null and p.prixOccasion() == null}">Prix à venir</div>
               </div>
-              <div class="product-actions">
-                <a class="btn btn-sm btn-secondary" th:href="@{/catalogue/{id}(id=${p.id()})}">Voir la fiche</a>
+              <div class="product-actions" onclick="event.stopPropagation()">
+                <form th:action="@{/panier/ajouter}" method="post">
+                  <input type="hidden" name="produitId" th:value="${p.id()}"/>
+                  <input type="hidden" name="produitNom" th:value="${p.nom()}"/>
+                  <button type="submit" class="btn btn-sm btn-primary">+ Panier</button>
+                </form>
+                <a class="btn btn-sm btn-secondary" th:href="@{/catalogue/{id}(id=${p.id()})}">Détail</a>
               </div>
             </div>
           </article>
@@ -127,14 +134,16 @@
       <div class="home-rail-shell" data-rail-wrapper>
         <button type="button" class="carousel-arrow carousel-arrow-prev rail-arrow" data-rail-prev aria-label="Défiler vers la gauche">‹</button>
         <div class="home-rail" data-rail>
-          <article class="product-card home-product-card" th:each="p : ${topVentes}">
+          <article class="product-card home-product-card"
+                   th:each="p : ${topVentes}"
+                   th:attr="data-href=@{/catalogue/{id}(id=${p.id()})}">
+            <div class="product-etat-banner banner-top-vente">Top Vente</div>
             <div class="product-img home-product-img">
               <img th:if="${p.imageUrl() != null}"
                    th:src="${apiRoot + p.imageUrl()}"
                    th:alt="${p.imageAlt() != null ? p.imageAlt() : p.nom()}"
                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
               <div class="promo-image-fallback" th:style="${p.imageUrl() != null} ? 'display:none' : ''">🎮</div>
-              <span class="product-badge" th:classappend="' ' + ${p.badgeClass()}" th:text="${p.badge()}">Top vente</span>
             </div>
             <div class="product-body">
               <div class="product-platform" th:text="${p.categorie()}">PS5</div>
@@ -145,8 +154,13 @@
                 <div th:if="${p.prixOccasion() != null}">Occasion : <span th:text="${#numbers.formatDecimal(p.prixOccasion(),1,2) + ' €'}">49,99 €</span></div>
                 <div th:if="${p.prixNeuf() == null and p.prixOccasion() == null}">N/A</div>
               </div>
-              <div class="product-actions">
-                <a class="btn btn-sm btn-secondary" th:href="@{/catalogue/{id}(id=${p.id()})}">Voir la fiche</a>
+              <div class="product-actions" onclick="event.stopPropagation()">
+                <form th:action="@{/panier/ajouter}" method="post">
+                  <input type="hidden" name="produitId" th:value="${p.id()}"/>
+                  <input type="hidden" name="produitNom" th:value="${p.nom()}"/>
+                  <button type="submit" class="btn btn-sm btn-primary">+ Panier</button>
+                </form>
+                <a class="btn btn-sm btn-secondary" th:href="@{/catalogue/{id}(id=${p.id()})}">Détail</a>
               </div>
             </div>
           </article>
@@ -167,14 +181,16 @@
       <div class="home-rail-shell" data-rail-wrapper>
         <button type="button" class="carousel-arrow carousel-arrow-prev rail-arrow" data-rail-prev aria-label="Défiler vers la gauche">‹</button>
         <div class="home-rail" data-rail>
-          <article class="product-card home-product-card" th:each="p : ${nouveautes}">
+          <article class="product-card home-product-card"
+                   th:each="p : ${nouveautes}"
+                   th:attr="data-href=@{/catalogue/{id}(id=${p.id()})}">
+            <div class="product-etat-banner banner-nouveau">Nouveau</div>
             <div class="product-img home-product-img">
               <img th:if="${p.imageUrl() != null}"
                    th:src="${apiRoot + p.imageUrl()}"
                    th:alt="${p.imageAlt() != null ? p.imageAlt() : p.nom()}"
                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
               <div class="promo-image-fallback" th:style="${p.imageUrl() != null} ? 'display:none' : ''">🎮</div>
-              <span class="product-badge" th:classappend="' ' + ${p.badgeClass()}" th:text="${p.badge()}">Nouveau</span>
             </div>
             <div class="product-body">
               <div class="product-platform" th:text="${p.categorie()}">PS5</div>
@@ -185,8 +201,13 @@
                 <div th:if="${p.prixOccasion() != null}">Occasion : <span th:text="${#numbers.formatDecimal(p.prixOccasion(),1,2) + ' €'}">49,99 €</span></div>
                 <div th:if="${p.prixNeuf() == null and p.prixOccasion() == null}">N/A</div>
               </div>
-              <div class="product-actions">
-                <a class="btn btn-sm btn-secondary" th:href="@{/catalogue/{id}(id=${p.id()})}">Voir la fiche</a>
+              <div class="product-actions" onclick="event.stopPropagation()">
+                <form th:action="@{/panier/ajouter}" method="post">
+                  <input type="hidden" name="produitId" th:value="${p.id()}"/>
+                  <input type="hidden" name="produitNom" th:value="${p.nom()}"/>
+                  <button type="submit" class="btn btn-sm btn-primary">+ Panier</button>
+                </form>
+                <a class="btn btn-sm btn-secondary" th:href="@{/catalogue/{id}(id=${p.id()})}">Détail</a>
               </div>
             </div>
           </article>
@@ -197,8 +218,7 @@
   </div>
 </main>
 
-<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/footer :: footer}"/>
 </div>
-<th:block th:replace="~{fragments/layout :: scripts}"/>
 </body>
 </html>

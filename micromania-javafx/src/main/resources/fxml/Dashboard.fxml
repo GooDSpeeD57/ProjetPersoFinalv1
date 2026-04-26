@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox spacing="24" styleClass="view-container" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/17.0.12" fx:controller="com.monprojet.boutiquejeux.controller.DashboardController">
+    <padding><Insets bottom="30" left="30" right="30" top="30" /></padding>
+
+    <HBox alignment="CENTER_LEFT" spacing="12">
+        <Label fx:id="labelBienvenue" styleClass="page-title" />
+        <Region HBox.hgrow="ALWAYS" />
+        <Label fx:id="labelDate" styleClass="subtitle" />
+    </HBox>
+    <Label fx:id="labelMagasin" styleClass="field-label" />
+
+    <Separator />
+
+    <!-- Statistiques en cartes -->
+    <GridPane hgap="20" vgap="20">
+        <columnConstraints>
+            <ColumnConstraints percentWidth="20" />
+            <ColumnConstraints percentWidth="20" />
+            <ColumnConstraints percentWidth="20" />
+            <ColumnConstraints percentWidth="20" />
+            <ColumnConstraints percentWidth="20" />
+        </columnConstraints>
+
+        <!-- Ventes du jour -->
+        <VBox alignment="CENTER" spacing="8" styleClass="stat-card" GridPane.columnIndex="0" GridPane.rowIndex="0">
+            <Label styleClass="stat-label" text="🛒 Ventes aujourd'hui" />
+            <Label fx:id="labelVentesJour" styleClass="stat-value" text="…" />
+        </VBox>
+
+        <!-- CA du jour -->
+        <VBox alignment="CENTER" spacing="8" styleClass="stat-card" GridPane.columnIndex="1" GridPane.rowIndex="0">
+            <Label styleClass="stat-label" text="💶 CA aujourd'hui" />
+            <Label fx:id="labelCAJour" styleClass="stat-value" text="…" />
+        </VBox>
+
+        <!-- Reprises -->
+        <VBox alignment="CENTER" spacing="8" styleClass="stat-card" GridPane.columnIndex="2" GridPane.rowIndex="0">
+            <Label styleClass="stat-label" text="♻️ Reprises" />
+            <Label fx:id="labelReprisesJour" styleClass="stat-value" text="…" />
+        </VBox>
+
+        <!-- Stock bas -->
+        <VBox alignment="CENTER" spacing="8" styleClass="stat-card stat-card-warn" GridPane.columnIndex="3" GridPane.rowIndex="0">
+            <Label styleClass="stat-label" text="⚠ Stocks bas" />
+            <Label fx:id="labelStockBas" styleClass="stat-value" text="…" />
+        </VBox>
+
+        <!-- Clients -->
+        <VBox alignment="CENTER" spacing="8" styleClass="stat-card" GridPane.columnIndex="4" GridPane.rowIndex="0">
+            <Label styleClass="stat-label" text="👤 Clients" />
+            <Label fx:id="labelNbClients" styleClass="stat-value" text="…" />
+        </VBox>
+      <rowConstraints>
+         <RowConstraints />
+      </rowConstraints>
+    </GridPane>
+
+    <!-- Accès rapides -->
+    <Label styleClass="section-title" text="Accès rapides" />
+    <HBox spacing="16">
+        <Button prefWidth="180" styleClass="btn-primary"   text="➕ Nouveau client"  onAction="#handleNouveauClient"/>
+        <Button prefWidth="180" styleClass="btn-primary"   text="🛒 Nouvelle vente"  onAction="#handleNouvelleVente"/>
+        <Button prefWidth="180" styleClass="btn-secondary" text="♻ Reprise produit"  onAction="#handleReprise"/>
+        <Button prefWidth="180" styleClass="btn-secondary" text="🔍 Rechercher"      onAction="#handleRecherche"/>
+    </HBox>
+</VBox>

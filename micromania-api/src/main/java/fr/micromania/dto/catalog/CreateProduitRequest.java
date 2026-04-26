@@ -37,5 +37,11 @@ public record CreateProduitRequest(
     @Pattern(regexp = "NORMAL|PREMIUM|ULTIMATE")
     String niveauAccesMin,
 
-    boolean misEnAvant
+    /** Code ISO-639-1 de la langue (ex : "fr", "en", "de"). Défaut : "fr". */
+    @Size(max = 10)
+    String langue,
+
+    boolean misEnAvant,
+
+    boolean estPreCommande
 ) {}

@@ -1,116 +1,909 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
   <th:block th:replace="~{fragments/layout :: head(${produit != null && produit.nom() != null ? produit.nom() : 'Produit'})}"/>
 </head>
 <body>
 <div class="site-shell">
-<th:block th:replace="~{fragments/layout :: navbar}"/>
+<th:block th:replace="~{fragments/navbar :: navbar}"/>
 <th:block th:replace="~{fragments/layout :: alerts}"/>
-<main>
-  <div class="container product-detail-container">
-    <a th:href="@{/catalogue}" class="product-detail-backlink">
-      ◀ RETOUR AU CATALOGUE
-    </a>
+
+<main th:with="apiRoot=${#strings.replace(@environment.getProperty('api.base-url'), '/api/v1', '')}">
+  <div class="container">
+    <a th:href="@{/catalogue}" class="product-detail-backlink">◀ RETOUR AU CATALOGUE</a>
 
     <div th:if="${produit == null}" class="alert alert-error">Produit introuvable.</div>
 
-    <div th:if="${produit != null}" class="product-detail-layout">
-      <div class="card product-detail-media-card">
-        <div class="product-detail-image-wrap">
-          <img th:if="${produit.images() != null and !#lists.isEmpty(produit.images())}"
-               th:src="${#strings.replace(@environment.getProperty('api.base-url'), '/api/v1', '') + produit.images().get(0).url()}"
-               th:alt="${produit.images().get(0).alt() != null ? produit.images().get(0).alt() : produit.nom()}"
-               class="product-detail-image"/>
-          <span th:unless="${produit.images() != null and !#lists.isEmpty(produit.images())}">🎮</span>
+    <div th:if="${produit != null}">
+      <div class="product-detail-layout">
+        <div class="pd-media-col"
+             th:with="today=${T(java.time.LocalDate).now()},
+                      isBientot=${produit.dateSortie() != null and produit.dateSortie().isAfter(today)},
+                      isNouveau=${produit.dateSortie() != null and !produit.dateSortie().isAfter(today) and produit.dateSortie().isAfter(today.minusDays(90))}">
+
+          <div class="pd-badge pd-badge-topvente" th:if="${produit.misEnAvant()}">TOP VENTE</div>
+          <div class="pd-badge pd-badge-bientot"  th:if="${!produit.misEnAvant() and isBientot}">BIENTÔT</div>
+          <div class="pd-badge pd-badge-nouveau"  th:if="${!produit.misEnAvant() and !isBientot and isNouveau}">NOUVEAUTÉ</div>
+
+          <div class="pd-gallery">
+            <div class="pd-thumbs"
+                 th:if="${(produit.images() != null and !#lists.isEmpty(produit.images()))
+                          or (produit.videos() != null and !#lists.isEmpty(produit.videos()))
+                          or (produit.screenshots() != null and !#lists.isEmpty(produit.screenshots()))}">
+
+              <!-- Jaquettes variants -->
+              <button class="pd-thumb"
+                      th:each="img : ${produit.images()}"
+                      th:attr="data-src=${apiRoot + img.url()},
+                               data-variant-id=${img.variantId()}"
+                      onclick="switchThumb(this)">
+                <img th:src="${apiRoot + img.url()}"
+                     th:alt="${img.alt() != null ? img.alt() : produit.nom()}"/>
+              </button>
+
+              <!-- Séparateur jaquettes / vidéos -->
+              <div class="pd-thumbs-sep"
+                   th:if="${produit.images() != null and !#lists.isEmpty(produit.images())
+                            and produit.videos() != null and !#lists.isEmpty(produit.videos())}">
+              </div>
+
+              <!-- Vidéos YouTube → ouvre lightbox iframe -->
+              <button class="pd-thumb pd-thumb-video"
+                      th:each="vid,iterStat : ${produit.videos()}"
+                      th:attr="data-video-index=${iterStat.index}"
+                      th:onclick="'openVideoLightbox(' + ${iterStat.index} + ')'">
+                <img th:src="${'https://img.youtube.com/vi/' + #strings.substringAfter(vid.url(), 'v=') + '/mqdefault.jpg'}"
+                     th:alt="${vid.titre() != null ? vid.titre() : 'Vidéo'}"
+                     loading="lazy"/>
+                <span class="pd-thumb-play">▶</span>
+              </button>
+
+              <!-- Séparateur vidéos / screenshots -->
+              <div class="pd-thumbs-sep"
+                   th:if="${produit.videos() != null and !#lists.isEmpty(produit.videos())
+                            and produit.screenshots() != null and !#lists.isEmpty(produit.screenshots())}">
+              </div>
+
+              <!-- Screenshots → ouvre lightbox -->
+              <button class="pd-thumb pd-thumb-ss"
+                      th:each="ss,iterStat : ${produit.screenshots()}"
+                      th:attr="data-src=${apiRoot + ss.url()},
+                               data-ss-index=${iterStat.index}"
+                      th:onclick="'openLightbox(' + ${iterStat.index} + ')'">
+                <img th:src="${apiRoot + ss.url()}"
+                     th:alt="${ss.alt() != null ? ss.alt() : 'Screenshot'}"
+                     loading="lazy"/>
+              </button>
+            </div>
+
+            <div class="pd-main-image-wrap">
+              <img id="pdMainImage"
+                   th:if="${produit.images() != null and !#lists.isEmpty(produit.images())}"
+                   th:src="${apiRoot + produit.images().get(0).url()}"
+                   th:alt="${produit.nom()}"
+                   class="product-detail-image"/>
+              <span th:unless="${produit.images() != null and !#lists.isEmpty(produit.images())}">🎮</span>
+            </div>
+          </div>
+
         </div>
+
+        <div class="product-detail-info">
+          <div class="pd-top-actions">
+            <button type="button" class="pd-top-action-btn" id="btnFavori"
+                    sec:authorize="isAuthenticated()"
+                    th:attr="data-id=${produit.id()}"
+                    onclick="toggleFavori(this)"
+                    title="Ajouter en favori">
+              <span class="pd-top-action-icon">♡</span>
+            </button>
+            <a class="pd-top-action-btn pd-top-action-revendre"
+               th:href="@{/reprise}">
+              <span class="pd-top-action-icon">↩</span>
+              <span>REVENDRE CE JEU</span>
+              <span class="pd-revendre-prix" th:if="${prixReprise != null}"
+                    th:text="${#numbers.formatDecimal(prixReprise, 1, 2) + ' €'}"></span>
+            </a>
+          </div>
+
+          <h1 class="product-detail-title" th:text="${produit.nom()}"></h1>
+
+          <div class="pd-sortie-row">
+            <span th:if="${produit.dateSortie() != null}">
+              Sortie le :
+              <strong th:text="${#temporals.format(produit.dateSortie(), 'dd MMMM yyyy').toUpperCase()}"></strong>
+            </span>
+            <div class="pd-rating-summary" th:if="${produit.noteMoyenne() != null and produit.nbAvis() > 0}">
+              <div class="pd-rating-stars">
+                <th:block th:each="i : ${#numbers.sequence(1,5)}">
+                  <span th:classappend="${i <= T(java.lang.Math).round(produit.noteMoyenne())} ? 'star-on' : 'star-off'">★</span>
+                </th:block>
+              </div>
+              <a href="#avis-section" class="pd-rating-link"
+                 th:text="'(' + ${produit.nbAvis()} + ')'"></a>
+            </div>
+          </div>
+
+          <div class="pd-synopsis-wrap">
+            <p class="pd-synopsis"
+               th:if="${produit.resumeCourt() != null and !produit.resumeCourt().isBlank()
+                        and !#strings.equalsIgnoreCase(produit.resumeCourt(), produit.nom())}"
+               th:text="${produit.resumeCourt()}"></p>
+            <p class="pd-synopsis"
+               th:if="${(produit.resumeCourt() == null or produit.resumeCourt().isBlank()) and produit.description() != null and !produit.description().isBlank()}"
+               th:text="${produit.description()}"></p>
+            <a href="#product-full-desc" class="pd-details-link"
+               th:if="${produit.description() != null and !produit.description().isBlank()}">
+              DÉTAILS PRODUIT ▾
+            </a>
+          </div>
+
+          <div class="pd-selectors" th:if="${produit.variants() != null and !#lists.isEmpty(produit.variants())}">
+
+            <div class="pd-section">
+              <div class="pd-section-label">Plateforme</div>
+              <div class="pd-pills" id="pdPlatformPills"></div>
+            </div>
+
+            <div class="pd-section" id="pdEditionSection" style="display:none">
+              <div class="pd-section-label">Édition</div>
+              <div class="pd-pills" id="pdEditionPills"></div>
+            </div>
+
+            <div class="pd-section" id="pdEtatSection" style="display:none">
+              <div class="pd-section-label">État</div>
+              <div class="pd-etat-cards" id="pdEtatCards"></div>
+            </div>
+
+          </div>
+
+          <div th:if="${produit.variants() != null and !#lists.isEmpty(produit.variants())}">
+
+            <!-- Types de garantie (données cachées pour JS) -->
+            <div id="pdTypesGarantieData" style="display:none">
+              <span th:each="tg : ${typesGarantie}"
+                    class="pg-tg-item"
+                    th:attr="data-id=${tg.id()},
+                             data-code=${tg.code()},
+                             data-desc=${tg.description()},
+                             data-duree=${tg.dureeMois()},
+                             data-prix=${tg.prixExtension() != null ? tg.prixExtension() : ''}">
+              </span>
+            </div>
+
+            <!-- Garantie optionnelle — au-dessus des boutons, hors grille -->
+            <div class="pd-garantie-wrap" id="pdGarantieWrap" style="display:none">
+              <div class="pd-garantie-section-label">🛡 Protection optionnelle</div>
+              <div id="pdGarantieOptions" class="pd-garantie-options"></div>
+            </div>
+
+            <!-- Boutons panier + retrait côte à côte -->
+            <div class="pd-cta-row">
+              <form th:action="@{/panier/ajouter}" method="post" class="pd-cart-form" id="pdCartForm">
+                <input type="hidden" name="produitId"      th:value="${produit.id()}"/>
+                <input type="hidden" name="produitNom"     th:value="${produit.nom()}"/>
+                <input type="hidden" name="idVariant"      id="pdVariantId"/>
+                <input type="hidden" name="prix"           id="pdPrixHidden"/>
+                <input type="hidden" name="garantieLabel"  id="pdGarantieLabelHidden"/>
+                <input type="hidden" name="garantiePrix"   id="pdGarantiePrixHidden"/>
+                <input type="hidden" name="typeGarantieId" id="pdTypeGarantieIdHidden"/>
+                <button type="submit" class="btn btn-primary pd-cta-btn" id="pdAddToCart" disabled>
+                  » AJOUTER AU PANIER
+                </button>
+              </form>
+              <a th:href="@{/magasins}" class="pd-cta-store-btn">
+                RETRAIT 1H EN MAGASIN
+              </a>
+            </div>
+          </div>
+
+          <!-- Données variants pour JS (hidden) -->
+          <div id="pdVariantsData" style="display:none"
+               th:each="v : ${produit.variants()}"
+               th:if="${v.actif()}"
+               class="pd-vdata"
+               th:attr="data-id=${v.id()},
+                        data-pf-code=${v.plateforme() != null ? v.plateforme().code() : ''},
+                        data-pf-lib=${v.plateforme() != null ? v.plateforme().libelle() : 'Standard'},
+                        data-edition=${v.edition() != null ? v.edition().libelle() : ''},
+                        data-etat=${v.statutProduit() != null ? v.statutProduit() : 'N/A'},
+                        data-prix-neuf=${v.prixNeuf() != null ? v.prixNeuf() : ''},
+                        data-prix-occasion=${v.prixOccasion() != null ? v.prixOccasion() : ''},
+                        data-prix-reprise=${v.prixReprise() != null ? v.prixReprise() : ''},
+                        data-prix-location=${v.prixLocation() != null ? v.prixLocation() : ''}">
+          </div>
+
+        </div><!-- /product-detail-info -->
+      </div><!-- /product-detail-layout -->
+
+      <!-- Description complète -->
+      <div id="product-full-desc" class="pd-full-desc"
+           th:if="${produit.description() != null and !produit.description().isBlank()}">
+        <div class="pd-full-desc-title">Description</div>
+        <p class="pd-description" th:text="${produit.description()}"></p>
       </div>
 
-      <div>
-        <div class="section-label" th:text="${produit.categorie() != null && produit.categorie().description() != null ? produit.categorie().description() : 'CATALOGUE'}"></div>
-        <h1 class="product-detail-title" th:text="${produit.nom()}"></h1>
+      <!-- ════════════════════════════════════════════════════════
+           SECTION AVIS
+      ════════════════════════════════════════════════════════ -->
+      <section id="avis-section" class="avis-section">
+        <div class="section-label">// COMMUNAUTÉ</div>
+        <h2 class="avis-section-title">
+          Notes &amp; avis
+          <span class="avis-count-badge" th:if="${produit.nbAvis() > 0}" th:text="${produit.nbAvis()}"></span>
+        </h2>
 
-        <div id="prixAffiche"
-             class="product-detail-price"
-             th:text="${produit.variants() != null and !#lists.isEmpty(produit.variants()) and produit.variants().get(0).prixWeb() != null ? #numbers.formatDecimal(produit.variants().get(0).prixWeb(),1,2) + ' €' : 'N/A'}">
+        <div class="avis-layout">
+          <!-- Score global -->
+          <aside class="avis-score-aside">
+            <div class="avis-score-block" th:if="${produit.noteMoyenne() != null and produit.nbAvis() > 0}">
+              <div class="avis-score-number" th:text="${#numbers.formatDecimal(produit.noteMoyenne(),1,1)}"></div>
+              <div class="avis-score-stars">
+                <th:block th:each="i : ${#numbers.sequence(1,5)}">
+                  <span th:classappend="${i <= T(java.lang.Math).round(produit.noteMoyenne())} ? 'star-on' : 'star-off'">★</span>
+                </th:block>
+              </div>
+              <div class="avis-score-total" th:text="${produit.nbAvis() + ' avis clients'}"></div>
+              <div class="avis-satisfaction-bar">
+                <div class="avis-satisfaction-fill"
+                     th:style="'width:' + ${#numbers.formatDecimal(produit.noteMoyenne() * 20, 1, 0)} + '%'"></div>
+              </div>
+              <div class="avis-satisfaction-label"
+                   th:text="${produit.noteMoyenne() >= 4 ? 'Très satisfaisant' : (produit.noteMoyenne() >= 3 ? 'Satisfaisant' : 'Mitigé')}"></div>
+            </div>
+            <div class="avis-score-empty" th:if="${produit.noteMoyenne() == null or produit.nbAvis() == 0}">
+              <div class="avis-score-empty-icon">✦</div>
+              <p>Soyez le premier<br>à donner votre avis !</p>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm avis-score-cta"
+                    sec:authorize="isAuthenticated()"
+                    onclick="toggleAvisForm()"
+                    th:text="${monAvis != null ? 'Modifier mon avis' : 'Écrire un avis'}">Écrire un avis</button>
+            <a class="btn btn-secondary btn-sm avis-score-cta"
+               sec:authorize="isAnonymous()" th:href="@{/auth/login}">Connectez-vous pour noter</a>
+          </aside>
+
+          <!-- Liste avis -->
+          <div class="avis-list-col">
+            <div th:if="${produit.avis() != null and !#lists.isEmpty(produit.avis())}" class="avis-list">
+              <article class="avis-card" th:each="avis : ${produit.avis()}">
+                <div class="avis-card-header">
+                  <div class="avis-avatar" th:text="${#strings.substring(avis.auteur(), 0, 1).toUpperCase()}">A</div>
+                  <div class="avis-card-meta">
+                    <span class="avis-author" th:text="${avis.auteur()}"></span>
+                    <span class="avis-date" th:if="${avis.dateCreation() != null}"
+                          th:text="${#temporals.format(avis.dateCreation(), 'dd MMM yyyy')}"></span>
+                  </div>
+                  <div class="avis-card-stars">
+                    <th:block th:each="i : ${#numbers.sequence(1,5)}">
+                      <span th:classappend="${i <= avis.note()} ? 'star-on' : 'star-off'">★</span>
+                    </th:block>
+                    <span class="avis-note-label" th:text="${avis.note() + '/5'}"></span>
+                  </div>
+                </div>
+                <p class="avis-comment"
+                   th:if="${avis.commentaire() != null and !avis.commentaire().isBlank()}"
+                   th:text="${avis.commentaire()}"></p>
+                <p class="avis-comment avis-comment-empty"
+                   th:if="${avis.commentaire() == null or avis.commentaire().isBlank()}">Aucun commentaire laissé.</p>
+              </article>
+            </div>
+            <div class="avis-empty" th:if="${produit.avis() == null or #lists.isEmpty(produit.avis())}">
+              <p>Aucun avis pour le moment. Partagez votre expérience !</p>
+            </div>
+          </div>
         </div>
 
-        <p class="product-detail-description" th:text="${produit.description() != null ? produit.description() : 'Aucune description disponible.'}"></p>
-
-        <div class="info-row" th:if="${produit.editeur() != null}">
-          <span class="label">Éditeur</span>
-          <span th:text="${produit.editeur()}"></span>
+        <!-- Volet formulaire avis (collapsible) -->
+        <div sec:authorize="isAuthenticated()">
+          <div class="avis-not-eligible" th:if="${!aAchete}">
+            <span class="avis-not-eligible-icon">🔒</span>
+            <p>Vous devez avoir acheté ce produit pour laisser un avis.</p>
+          </div>
+          <div th:if="${aAchete}">
+            <div id="avis-form-panel" class="avis-form-panel" th:classappend="${avisFormOpen == true ? 'is-open' : ''}">
+              <div class="avis-form-panel-inner">
+                <div class="avis-form-panel-header">
+                  <h3 class="avis-form-title" th:text="${monAvis != null ? 'Modifier votre avis' : 'Donner votre avis'}">Donner votre avis</h3>
+                  <button type="button" class="avis-form-close" onclick="toggleAvisForm()" aria-label="Fermer">✕</button>
+                </div>
+                <div class="avis-mon-avis" th:if="${monAvis != null}">
+                  <div class="avis-mon-avis-label">Votre avis actuel</div>
+                  <div class="avis-card-stars">
+                    <th:block th:each="i : ${#numbers.sequence(1,5)}">
+                      <span th:classappend="${i <= monAvis.note()} ? 'star-on' : 'star-off'">★</span>
+                    </th:block>
+                  </div>
+                  <p class="avis-comment"
+                     th:if="${monAvis.commentaire() != null and !monAvis.commentaire().isBlank()}"
+                     th:text="${monAvis.commentaire()}"></p>
+                </div>
+                <form th:action="@{/catalogue/{id}/avis(id=${produit.id()})}"
+                      th:object="${avisForm}" method="post" class="avis-form" novalidate>
+                  <div class="avis-form-group">
+                    <label class="avis-form-label">Votre note <span class="required">*</span></label>
+                    <div class="star-picker" id="starPicker">
+                      <input type="radio" id="s5" name="note" value="5" th:checked="${avisForm.note == 5}"/><label for="s5" title="5 étoiles">★</label>
+                      <input type="radio" id="s4" name="note" value="4" th:checked="${avisForm.note == 4}"/><label for="s4" title="4 étoiles">★</label>
+                      <input type="radio" id="s3" name="note" value="3" th:checked="${avisForm.note == 3}"/><label for="s3" title="3 étoiles">★</label>
+                      <input type="radio" id="s2" name="note" value="2" th:checked="${avisForm.note == 2}"/><label for="s2" title="2 étoiles">★</label>
+                      <input type="radio" id="s1" name="note" value="1" th:checked="${avisForm.note == 1}"/><label for="s1" title="1 étoile">★</label>
+                    </div>
+                    <div class="avis-form-error" th:if="${#fields.hasErrors('note')}" th:errors="*{note}"></div>
+                  </div>
+                  <div class="avis-form-group">
+                    <label for="commentaire" class="avis-form-label">Commentaire (optionnel)</label>
+                    <textarea id="commentaire" name="commentaire" th:field="*{commentaire}"
+                              class="avis-form-textarea" placeholder="Partagez votre expérience…"
+                              maxlength="2000" rows="4"></textarea>
+                    <div class="avis-form-error" th:if="${#fields.hasErrors('commentaire')}" th:errors="*{commentaire}"></div>
+                  </div>
+                  <div class="avis-form-actions">
+                    <button type="submit" class="btn btn-primary">
+                      <span th:text="${monAvis != null ? 'Mettre à jour' : 'Publier mon avis'}">Publier</span>
+                    </button>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="toggleAvisForm()">Annuler</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="info-row" th:if="${produit.pegi() != null}">
-          <span class="label">PEGI</span>
-          <span th:text="${produit.pegi()} + '+'"></span>
+
+        <div class="avis-login-invite" sec:authorize="isAnonymous()">
+          <span>Connectez-vous pour laisser un avis</span>
+          <a th:href="@{/auth/login}" class="btn btn-secondary btn-sm">Se connecter</a>
         </div>
-        <div class="info-row" th:if="${produit.niveauAccesMin() != null}">
-          <span class="label">Accès</span>
-          <span th:text="${produit.niveauAccesMin()}"></span>
-        </div>
+      </section>
 
-        <form th:if="${produit.variants() != null and !#lists.isEmpty(produit.variants())}"
-              th:action="@{/panier/ajouter}"
-              method="post"
-              class="product-detail-form">
-
-          <input type="hidden" name="produitId" th:value="${produit.id()}"/>
-          <input type="hidden" name="produitNom" th:value="${produit.nom()}"/>
-
-          <label for="idVariant" class="product-detail-label">Version</label>
-
-          <select id="idVariant" name="idVariant" class="product-detail-select">
-            <option th:each="variant : ${produit.variants()}"
-                    th:value="${variant.id()}"
-                    th:data-prix="${variant.prixWeb()}"
-                    th:text="${(variant.plateforme() != null ? variant.plateforme().libelle() : 'Standard')
-                              + ' - '
-                              + (variant.statutProduit() != null ? variant.statutProduit() : 'N/A')
-                              + ' - '
-                              + (variant.prixWeb() != null ? #numbers.formatDecimal(variant.prixWeb(),1,2) + ' €' : 'N/A')}">
-            </option>
-          </select>
-
-          <input type="hidden" name="prix" id="prixHidden"
-                 th:value="${produit.variants().get(0).prixWeb()}"/>
-
-          <button type="submit" class="btn btn-primary">🛒 Ajouter au panier</button>
-          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-        </form>
-      </div>
     </div>
   </div>
 </main>
 
-<th:block th:replace="~{fragments/layout :: footer}"/>
+<!-- ══════════════════════════════════════════════════════════
+     LIGHTBOX SCREENSHOTS
+══════════════════════════════════════════════════════════ -->
+<div id="screenshotLightbox" class="ss-lightbox" onclick="closeLightboxOnOverlay(event)">
+  <div class="ss-lightbox-inner">
+    <button class="ss-lb-close" onclick="closeLightbox()" title="Fermer">✕</button>
+    <button class="ss-lb-prev"  onclick="moveLightbox(-1)" title="Précédent">‹</button>
+    <img id="ssLightboxImg" src="" alt="Screenshot" class="ss-lb-img"/>
+    <button class="ss-lb-next"  onclick="moveLightbox(1)"  title="Suivant">›</button>
+    <div class="ss-lb-counter" id="ssLightboxCounter"></div>
+  </div>
 </div>
-<th:block th:replace="~{fragments/layout :: scripts}"/>
 
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const select = document.getElementById("idVariant");
-    const prixHidden = document.getElementById("prixHidden");
-    const prixAffiche = document.getElementById("prixAffiche");
+<th:block th:replace="~{fragments/footer :: footer}"/>
+</div>
+<script th:inline="javascript">
+/* ═══════════════════════════════════════════════════════════
+   FIDÉLITÉ — taux par type (source : table type_fidelite + ratio_points)
+   Ratio pour catégorie JEU (utilisé par défaut)
+═══════════════════════════════════════════════════════════ */
+// NORMAL : 1 pt / €   |   PREMIUM : 12 pts / €   |   ULTIMATE : 15 pts / €
+const FIDELITE_RATIO = { NORMAL: 1, PREMIUM: 12, ULTIMATE: 15 };
+const USER_TYPE_FIDELITE = /*[[${typeFideliteCode}]]*/ null;
 
-    if (!select) return;
+function calcPoints(prix) {
+  if (!USER_TYPE_FIDELITE || !prix) return null;
+  const ratio = FIDELITE_RATIO[USER_TYPE_FIDELITE] || 1.00;
+  return Math.ceil(prix * ratio);   // arrondi à l'entier supérieur
+}
 
-    function syncVariant() {
-      const option = select.options[select.selectedIndex];
-      const prix = option ? option.getAttribute("data-prix") : null;
+/* ═══════════════════════════════════════════════════════════
+   CASCADE PLATFORM → ÉDITION → ÉTAT
+═══════════════════════════════════════════════════════════ */
+(function () {
+  /* ── Lecture des variants cachés ── */
+  const variants = Array.from(document.querySelectorAll('.pd-vdata')).map(el => ({
+    id:           el.dataset.id,
+    pfCode:       el.dataset.pfCode,
+    pfLib:        el.dataset.pfLib,
+    edition:      el.dataset.edition,   // "" = pas d'édition nommée
+    etat:         el.dataset.etat,
+    prixNeuf:     parseFloat(el.dataset.prixNeuf)     || null,
+    prixOccasion: parseFloat(el.dataset.prixOccasion) || null,
+    prixReprise:  parseFloat(el.dataset.prixReprise)  || null,
+    prixLocation: parseFloat(el.dataset.prixLocation) || null
+  }));
 
-      if (prixHidden) {
-        prixHidden.value = prix || "";
+  if (!variants.length) return;
+
+  let selPf      = null;
+  let selEdition = null;  // null = pas encore choisi, "" = sans édition
+  let selEtat    = null;
+
+  /* ── Utilitaires ── */
+  function unique(arr) { return [...new Set(arr)]; }
+
+  function availablePlatforms() {
+    return unique(variants.map(v => v.pfCode)).filter(Boolean);
+  }
+  /* Éditions NOMMÉES uniquement (exclut chaîne vide) */
+  function namedEditions(pf) {
+    return unique(variants.filter(v => v.pfCode === pf).map(v => v.edition)).filter(Boolean);
+  }
+  function availableEtats(pf, ed) {
+    return unique(variants.filter(v => v.pfCode === pf && v.edition === ed).map(v => v.etat)).filter(Boolean);
+  }
+  function findVariant(pf, ed, etat) {
+    return variants.find(v => v.pfCode === pf && v.edition === ed && v.etat === etat) || null;
+  }
+  function variantIdsForPlatform(pf) {
+    return new Set(variants.filter(v => v.pfCode === pf).map(v => String(v.id)));
+  }
+
+  /* ── Galerie : filtrer les thumbnails par plateforme ── */
+  function filterGallery(pf) {
+    const ids    = variantIdsForPlatform(pf);
+    const thumbs = Array.from(document.querySelectorAll('.pd-thumb'));
+    /* Si aucune thumb n'a data-variant-id, on ne filtre pas (compatibilité) */
+    const anyTagged = thumbs.some(t => t.dataset.variantId);
+    if (!anyTagged) return;
+
+    let firstVisible = null;
+    thumbs.forEach(t => {
+      const vid     = t.dataset.variantId ? String(t.dataset.variantId) : null;
+      const visible = !vid || ids.has(vid);
+      t.style.display = visible ? '' : 'none';
+      if (visible && !firstVisible) firstVisible = t;
+    });
+    if (firstVisible) {
+      thumbs.forEach(t => t.classList.remove('is-active'));
+      firstVisible.classList.add('is-active');
+      const main = document.getElementById('pdMainImage');
+      if (main) main.src = firstVisible.dataset.src;
+    }
+  }
+
+  /* ── Rendu platform pills ── */
+  function renderPlatforms() {
+    const container = document.getElementById('pdPlatformPills');
+    if (!container) return;
+    container.innerHTML = '';
+    availablePlatforms().forEach(pf => {
+      const lib = variants.find(v => v.pfCode === pf)?.pfLib || pf;
+      const btn = document.createElement('button');
+      btn.type      = 'button';
+      btn.className = 'pd-pill' + (pf === selPf ? ' is-selected' : '');
+      btn.textContent = lib;
+      btn.onclick = () => {
+        const prevEdition = selEdition;
+        const prevEtat    = selEtat;
+        selPf   = pf;
+        selEtat = null;
+        filterGallery(pf);
+        const eds = namedEditions(pf);
+        if (!eds.length) {
+          /* Pas d'éditions sur cette plateforme → forcer vide, puis auto-sélectionner état */
+          selEdition = '';
+          const etats = availableEtats(pf, '');
+          // Conserver l'état précédent si dispo, sinon prendre le premier
+          selEtat = (prevEtat && etats.includes(prevEtat)) ? prevEtat : (etats[0] || null);
+        } else if (prevEdition && eds.includes(prevEdition)) {
+          /* L'édition précédente existe aussi → la conserver + tenter de garder l'état */
+          selEdition = prevEdition;
+          const etats = availableEtats(pf, prevEdition);
+          selEtat = (prevEtat && etats.includes(prevEtat)) ? prevEtat : (etats[0] || null);
+        } else {
+          /* Prendre la première édition et auto-sélectionner l'état */
+          selEdition = eds[0];
+          const etats = availableEtats(pf, eds[0]);
+          selEtat = etats[0] || null;
+        }
+        renderAll();
+      };
+      container.appendChild(btn);
+    });
+  }
+
+  /* ── Rendu édition pills ── */
+  function renderEditions() {
+    const section   = document.getElementById('pdEditionSection');
+    const container = document.getElementById('pdEditionPills');
+    if (!section || !container || !selPf) { if (section) section.style.display = 'none'; return; }
+    const eds = namedEditions(selPf);
+    if (!eds.length) {
+      /* Pas d'éditions → cacher la section ET forcer selEdition = "" pour débloquer les états */
+      section.style.display = 'none';
+      if (selEdition === null) { selEdition = ''; renderEtats(); }
+      return;
+    }
+    section.style.display = '';
+    container.innerHTML = '';
+    eds.forEach(ed => {
+      const btn = document.createElement('button');
+      btn.type      = 'button';
+      btn.className = 'pd-pill' + (ed === selEdition ? ' is-selected' : '');
+      btn.textContent = ed.toUpperCase();
+      btn.onclick = () => {
+        const prevEtat = selEtat;
+        selEdition = ed;
+        // Auto-sélectionner l'état : garder le précédent si dispo, sinon le premier
+        const etats = availableEtats(selPf, ed);
+        selEtat = (prevEtat && etats.includes(prevEtat)) ? prevEtat : (etats[0] || null);
+        renderEtats();
+        updatePrice();
+      };
+      container.appendChild(btn);
+    });
+  }
+
+  /* ── Rendu état cards ── */
+  function renderEtats() {
+    const section   = document.getElementById('pdEtatSection');
+    const container = document.getElementById('pdEtatCards');
+    /* selEdition === null = pas encore résolu ; "" = sans édition = OK */
+    if (!section || !container || !selPf || selEdition === null) {
+      if (section) section.style.display = 'none'; return;
+    }
+    const etats = availableEtats(selPf, selEdition);
+    if (!etats.length) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    container.innerHTML = '';
+    etats.forEach(etat => {
+      const v   = findVariant(selPf, selEdition, etat);
+      const pts = v ? calcPoints(v.prix) : null;
+      const card = document.createElement('button');
+      card.type      = 'button';
+      card.className = 'pd-etat-card' + (etat === selEtat ? ' is-selected' : '');
+      const prixVariant = v ? getPrixParEtat(v, etat) : null;
+      card.innerHTML =
+        '<span class="pd-etat-label">' + etat.toUpperCase() + '</span>' +
+        '<span class="pd-etat-prix">' + (prixVariant != null ? prixVariant.toFixed(2) + '\u00a0\u20ac' : 'N/A') + '</span>' +
+        (pts !== null ? '<span class="pd-etat-pts"><strong>' + pts + ' pts</strong> fidélité *</span>' : '');
+      card.onclick = () => { selEtat = etat; renderEtats(); updatePrice(); };
+      container.appendChild(card);
+    });
+  }
+
+  /* ── Prix selon état du variant ── */
+  function getPrixParEtat(v, etat) {
+    if (!v) return null;
+    const e = (etat || '').toUpperCase();
+    if (e === 'NEUF' || e === 'PRECOMMANDE') return v.prixNeuf;
+    if (e === 'OCCASION')                     return v.prixOccasion;
+    if (e === 'LOCATION')                     return v.prixLocation;
+    if (e === 'REPRISE')                      return v.prixReprise;
+    return v.prixNeuf ?? v.prixOccasion ?? v.prixLocation ?? null;
+  }
+
+  /* ── Garantie : chargement des types depuis la table type_garantie ── */
+  const ALL_TYPES_GARANTIE = Array.from(document.querySelectorAll('.pg-tg-item')).map(el => ({
+    id:    el.dataset.id,
+    code:  el.dataset.code,
+    desc:  el.dataset.desc,
+    duree: parseInt(el.dataset.duree) || 0,
+    prix:  parseFloat(el.dataset.prix) || null
+  })).filter(tg => tg.prix !== null && tg.prix > 0);
+
+  function filtrerGarantiesParEtat(etat) {
+    if (!etat) return [];
+    const e = etat.toUpperCase();
+    // Les types ont déjà été filtrés côté serveur par catégorie.
+    // On affine uniquement si le CODE contient un marqueur explicite d'état :
+    // - un type marqué NEUF_* → uniquement pour NEUF/PRECOMMANDE
+    // - un type marqué OCC_* ou OCCASION_* → uniquement pour OCCASION
+    // - sinon (code générique) → applicable à tous les états achetables
+    return ALL_TYPES_GARANTIE.filter(tg => {
+      const code = tg.code.toUpperCase();
+      const hasNeufMarker = code.includes('NEUF') || code.includes('NEW');
+      const hasOccMarker  = code.includes('OCC') || code.includes('OCCASION');
+      if (e === 'NEUF' || e === 'PRECOMMANDE') {
+        // Exclure uniquement les types marqués OCCASION
+        return !hasOccMarker;
       }
+      if (e === 'OCCASION') {
+        // Exclure uniquement les types marqués NEUF
+        return !hasNeufMarker;
+      }
+      // LOCATION, REPRISE → types sans marqueur
+      return !hasNeufMarker && !hasOccMarker;
+    });
+  }
 
-      if (prixAffiche) {
-        prixAffiche.textContent = prix ? (Number(prix).toFixed(2) + " €") : "N/A";
+  function updateGarantie(etat) {
+    const wrap    = document.getElementById('pdGarantieWrap');
+    const options = document.getElementById('pdGarantieOptions');
+    if (!wrap || !options) return;
+
+    const types = filtrerGarantiesParEtat(etat);
+
+    if (!types.length) {
+      wrap.style.display = 'none';
+      clearGarantieHidden();
+      return;
+    }
+
+    options.innerHTML = '';
+    types.forEach(tg => {
+      const label = document.createElement('label');
+      label.className = 'pd-garantie-label';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id   = 'pdGarantieCheck_' + tg.id;
+      checkbox.addEventListener('change', function() {
+        label.classList.toggle('is-checked', this.checked);
+        if (this.checked) {
+          const l = document.getElementById('pdGarantieLabelHidden');
+          const p = document.getElementById('pdGarantiePrixHidden');
+          const i = document.getElementById('pdTypeGarantieIdHidden');
+          if (l) l.value = tg.desc || tg.code;
+          if (p) p.value = tg.prix;
+          if (i) i.value = tg.id;
+        } else {
+          clearGarantieHidden();
+        }
+      });
+
+      const icon = document.createElement('span');
+      icon.className = 'pd-garantie-icon';
+      icon.textContent = '🛡';
+
+      const text = document.createElement('span');
+      text.className = 'pd-garantie-text';
+      text.innerHTML = '<strong>' + (tg.desc || tg.code) + '</strong>'
+                     + '<span class="pd-garantie-desc">' + tg.duree + ' mois</span>';
+
+      const prixSpan = document.createElement('span');
+      prixSpan.className = 'pd-garantie-prix';
+      prixSpan.textContent = tg.prix ? tg.prix.toFixed(2) + '\u00a0€' : '';
+
+      label.appendChild(checkbox);
+      label.appendChild(icon);
+      label.appendChild(text);
+      label.appendChild(prixSpan);
+      options.appendChild(label);
+    });
+    wrap.style.display = '';
+    clearGarantieHidden(); // décoché par défaut
+  }
+
+  window.clearGarantieHidden = function() {
+    const l = document.getElementById('pdGarantieLabelHidden');
+    const p = document.getElementById('pdGarantiePrixHidden');
+    const i = document.getElementById('pdTypeGarantieIdHidden');
+    if (l) l.value = ''; if (p) p.value = ''; if (i) i.value = '';
+  };
+
+  function renderAll() {
+    renderPlatforms();
+    renderEditions();
+    renderEtats();
+    updatePrice();
+  }
+
+  /* ── Mise à jour variant + bouton panier ── */
+  function updatePrice() {
+    const v = (selPf && selEdition !== null && selEtat)
+              ? findVariant(selPf, selEdition, selEtat) : null;
+    const variantEl  = document.getElementById('pdVariantId');
+    const prixHidden = document.getElementById('pdPrixHidden');
+    const addBtn     = document.getElementById('pdAddToCart');
+    if (v) {
+      const prix = getPrixParEtat(v, selEtat);
+      if (variantEl)  variantEl.value  = v.id;
+      if (prixHidden) prixHidden.value = prix != null ? prix : '';
+      if (addBtn)     addBtn.disabled  = false;
+    } else {
+      if (variantEl)  variantEl.value  = '';   // toujours vider si aucun variant résolu
+      if (prixHidden) prixHidden.value = '';
+      if (addBtn)     addBtn.disabled  = true;
+    }
+    updateGarantie(selEtat);
+  }
+
+  /* ── Init ── */
+  const urlParams    = new URLSearchParams(window.location.search);
+  const urlEtat      = urlParams.get('etat');
+  const urlVariantId = urlParams.get('v');   // variantId passé depuis le catalogue
+
+  const pfs = availablePlatforms();
+  if (pfs.length) {
+    /* 1. Si un variantId est passé en URL, pré-sélectionner EXACTEMENT ce variant
+          (plateforme + édition + état), pas seulement la plateforme */
+    if (urlVariantId) {
+      const match = variants.find(v => String(v.id) === String(urlVariantId));
+      if (match) {
+        selPf      = match.pfCode;
+        selEdition = match.edition;   // "" = sans édition nommée
+        selEtat    = match.etat;
       }
     }
 
-    syncVariant();
-    select.addEventListener("change", syncVariant);
-  });
+    /* 2. Fallback : première plateforme disponible */
+    if (!selPf) selPf = pfs[0];
+
+    /* 3. Filtrer la galerie dès le départ */
+    filterGallery(selPf);
+
+    /* 4. Si l'édition n'est pas encore résolue, prendre la première disponible */
+    if (selEdition === null) {
+      const eds = namedEditions(selPf);
+      selEdition = eds.length ? eds[0] : '';
+    }
+
+    /* 5. Si l'état n'est pas encore résolu, essayer ?etat= de l'URL ou le premier dispo */
+    if (selEtat === null && selEdition !== null) {
+      const etats = availableEtats(selPf, selEdition);
+      if (etats.length) {
+        const matchEtat = urlEtat && etats.find(e => e.toLowerCase() === urlEtat.toLowerCase());
+        selEtat = matchEtat || etats[0];
+      }
+    }
+  }
+
+  /* Lancer le rendu quand le DOM est prêt */
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderAll);
+  } else {
+    renderAll();
+  }
+})();
+
+
+/* ═══════════════════════════════════════════════════════════
+   GALERIE : miniatures
+═══════════════════════════════════════════════════════════ */
+function switchThumb(btn) {
+  document.querySelectorAll('.pd-thumb').forEach(t => t.classList.remove('is-active'));
+  btn.classList.add('is-active');
+  const main = document.getElementById('pdMainImage');
+  if (main) main.src = btn.dataset.src;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FAVORI (localStorage)
+═══════════════════════════════════════════════════════════ */
+function toggleFavori(btn) {
+  const id  = btn.dataset.id;
+  const key = 'favori_' + id;
+  const isFav = localStorage.getItem(key) === '1';
+  btn.querySelector('.pd-top-action-icon').textContent = isFav ? '♡' : '♥';
+  btn.classList.toggle('is-active', !isFav);
+  btn.title = isFav ? 'Ajouter en favori' : 'Dans vos favoris';
+  isFav ? localStorage.removeItem(key) : localStorage.setItem(key, '1');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   VOLET AVIS
+═══════════════════════════════════════════════════════════ */
+function toggleAvisForm() {
+  const panel = document.getElementById('avis-form-panel');
+  if (!panel) return;
+  const open = panel.classList.toggle('is-open');
+  if (open) setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STAR PICKER
+═══════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', function () {
+  // Init favori
+  const btnFavori = document.getElementById('btnFavori');
+  if (btnFavori) {
+    if (localStorage.getItem('favori_' + btnFavori.dataset.id) === '1') {
+      btnFavori.querySelector('.pd-top-action-icon').textContent = '♥';
+      btnFavori.classList.add('is-active');
+      btnFavori.title = 'Dans vos favoris';
+    }
+  }
+
+  // Star picker
+  const picker = document.getElementById('starPicker');
+  if (picker) {
+    const labels = picker.querySelectorAll('label');
+    const inputs = picker.querySelectorAll('input[type=radio]');
+    function refreshPicker() {
+      let val = 0;
+      inputs.forEach(i => { if (i.checked) val = parseInt(i.value); });
+      labels.forEach((lbl, idx) => lbl.classList.toggle('star-active', (5 - idx) <= val));
+    }
+    inputs.forEach(i => i.addEventListener('change', refreshPicker));
+    labels.forEach((lbl, idx) => {
+      const sv = 5 - idx;
+      lbl.addEventListener('mouseenter', () => labels.forEach((l, i) => l.classList.toggle('star-hover', (5 - i) <= sv)));
+      lbl.addEventListener('mouseleave', () => labels.forEach(l => l.classList.remove('star-hover')));
+    });
+    refreshPicker();
+  }
+});
+</script>
+
+<!-- Lightbox screenshots -->
+<script th:inline="javascript">
+/*<![CDATA[*/
+const SS_URLS    = /*[[${produit.screenshots() != null ?
+    produit.screenshots().![url] : {}}]]*/ [];
+const VIDEO_URLS = /*[[${produit.videos() != null ?
+    produit.videos().![url] : {}}]]*/ [];
+
+let ssCurrentIndex = 0;
+
+function openLightbox(index) {
+    if (!SS_URLS || SS_URLS.length === 0) return;
+    ssCurrentIndex = index;
+    updateLightbox();
+    document.getElementById('screenshotLightbox').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+    document.getElementById('screenshotLightbox').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function closeLightboxOnOverlay(e) {
+    if (e.target === document.getElementById('screenshotLightbox')) closeLightbox();
+}
+
+function moveLightbox(dir) {
+    ssCurrentIndex = (ssCurrentIndex + dir + SS_URLS.length) % SS_URLS.length;
+    updateLightbox();
+}
+
+function updateLightbox() {
+    const apiRoot = /*[[${#strings.replace(@environment.getProperty('api.base-url'), '/api/v1', '')}]]*/ '';
+    document.getElementById('ssLightboxImg').src = apiRoot + SS_URLS[ssCurrentIndex];
+    document.getElementById('ssLightboxCounter').textContent = (ssCurrentIndex + 1) + ' / ' + SS_URLS.length;
+}
+
+document.addEventListener('keydown', e => {
+    const lb = document.getElementById('screenshotLightbox');
+    if (!lb.classList.contains('active')) return;
+    if (e.key === 'Escape')      closeLightbox();
+    if (e.key === 'ArrowLeft')   moveLightbox(-1);
+    if (e.key === 'ArrowRight')  moveLightbox(1);
+});
+
+/* ── Lightbox vidéo YouTube ── */
+function extractYoutubeId(url) {
+    const m = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?]+)/);
+    return m ? m[1] : null;
+}
+
+function openVideoLightbox(index) {
+    const url = VIDEO_URLS[index];
+    if (!url) return;
+    const videoId = extractYoutubeId(url);
+    if (!videoId) return;
+    const lb = document.getElementById('screenshotLightbox');
+    // Remplacer l'img par un iframe YouTube
+    const img = document.getElementById('ssLightboxImg');
+    img.style.display = 'none';
+    let iframe = document.getElementById('ssLightboxIframe');
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'ssLightboxIframe';
+        iframe.className = 'ss-lb-iframe';
+        iframe.allow = 'autoplay; encrypted-media';
+        iframe.allowFullscreen = true;
+        img.parentNode.insertBefore(iframe, img);
+    }
+    iframe.src = 'https://www.youtube.com/embed/' + videoId + '?autoplay=1';
+    iframe.style.display = 'block';
+    document.getElementById('ssLightboxCounter').textContent = '';
+    // Masquer les boutons nav (une seule vidéo affichée)
+    document.querySelector('.ss-lb-prev').style.visibility = 'hidden';
+    document.querySelector('.ss-lb-next').style.visibility = 'hidden';
+    lb.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+// Surcharger closeLightbox pour couper la vidéo
+const _origClose = closeLightbox;
+window.closeLightbox = function() {
+    const iframe = document.getElementById('ssLightboxIframe');
+    if (iframe) { iframe.src = ''; iframe.style.display = 'none'; }
+    const img = document.getElementById('ssLightboxImg');
+    if (img) img.style.display = 'block';
+    document.querySelector('.ss-lb-prev').style.visibility = '';
+    document.querySelector('.ss-lb-next').style.visibility = '';
+    _origClose();
+};
+/*]]>*/
 </script>
 </body>
 </html>

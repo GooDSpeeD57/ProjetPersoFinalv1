@@ -15,5 +15,7 @@ public record LigneFactureRequest(
     Integer quantite,
 
     @NotNull @DecimalMin("0.00")
-    BigDecimal prixUnitaire
+    BigDecimal prixUnitaire,
+
+    Long idTypeGarantie   // optionnel — null si pas de garantie souscrite
 ) {}

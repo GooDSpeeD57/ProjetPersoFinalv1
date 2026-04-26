@@ -96,6 +96,81 @@ public class StockServiceImpl implements StockService {
             .getContent();
     }
 
+    @Override
+    public List<StockCheckoutResponse> getStockCheckout(Long idVariant) {
+        return stockMagasinRepo.findByVariantId(idVariant).stream()
+                .filter(s -> s.getQuantiteDisponible() > 0)
+                .map(s -> new StockCheckoutResponse(
+                        s.getMagasin().getId(),
+                        s.getMagasin().getNom(),
+                        s.getQuantiteDisponible()
+                ))
+                .toList();
+    }
+
+    @Override
+    public StockEntrepotCheckoutResponse getStockEntrepotCheckout(Long idVariant) {
+        List<fr.micromania.entity.stock.StockEntrepot> stocks = stockEntrepotRepo.findByVariantId(idVariant);
+        int total = stocks.stream().mapToInt(fr.micromania.entity.stock.StockEntrepot::getQuantiteDisponible).sum();
+        String nom = stocks.stream()
+                .map(s -> s.getVariant().getNomCommercial())
+                .findFirst().orElse("Produit inconnu");
+        String sku = stocks.stream()
+                .map(s -> s.getVariant().getSku())
+                .findFirst().orElse(null);
+        return new StockEntrepotCheckoutResponse(idVariant, nom, sku, total);
+    }
+
+    @Override
+    @Transactional
+    public void transfererDepotVersMagasin(TransfertStockRequest request) {
+        // 1. Sortir de l'entrepôt
+        StockEntrepot stockDepot = stockEntrepotRepo
+                .findByVariantIdAndEntrepotIdForUpdate(request.idVariant(), request.idEntrepotSource())
+                .orElseThrow(() -> new EntityNotFoundException("Stock dépôt introuvable"));
+
+        int apresDepot = stockDepot.getQuantiteNeuf() - request.quantite();
+        if (apresDepot < 0)
+            throw new IllegalStateException("Stock dépôt insuffisant (disponible : " + stockDepot.getQuantiteNeuf() + ")");
+        stockDepot.setQuantiteNeuf(apresDepot);
+        stockDepot.setQuantiteDisponible(apresDepot - stockDepot.getQuantiteReservee());
+        stockEntrepotRepo.save(stockDepot);
+
+        // 2. Entrer en magasin
+        StockMagasin stockMag = stockMagasinRepo
+                .findByVariantIdAndMagasinIdForUpdate(request.idVariant(), request.idMagasinDestination())
+                .orElseGet(() -> creerStockMagasin(request.idVariant(), request.idMagasinDestination()));
+        stockMag.setQuantiteNeuf(stockMag.getQuantiteNeuf() + request.quantite());
+        stockMag.setQuantiteDisponible(
+                stockMag.getQuantiteNeuf() + stockMag.getQuantiteOccasion() - stockMag.getQuantiteReservee());
+        stockMagasinRepo.save(stockMag);
+
+        // 3. Enregistrer les deux mouvements
+        ProduitVariant variant = variantRepo.findById(request.idVariant())
+                .orElseThrow(() -> new EntityNotFoundException("Variant introuvable"));
+        fr.micromania.entity.Entrepot entrepot = entrepotRepo.findById(request.idEntrepotSource())
+                .orElseThrow(() -> new EntityNotFoundException("Entrepôt introuvable"));
+        fr.micromania.entity.Magasin magasin = magasinRepo.findById(request.idMagasinDestination())
+                .orElseThrow(() -> new EntityNotFoundException("Magasin introuvable"));
+        TypeMouvement typeTransfert = typeMouvementRepository.findByCode("TRANSFERT")
+                .orElseThrow(() -> new EntityNotFoundException("Type mouvement TRANSFERT introuvable"));
+
+        String commentaire = request.commentaire() != null
+                ? request.commentaire()
+                : "Transfert dépôt → magasin";
+
+        mouvementRepo.save(MouvementStock.builder()
+                .variant(variant).entrepot(entrepot).typeMouvement(typeTransfert)
+                .quantite(-request.quantite()).sourceStock("NEUF").commentaire(commentaire).build());
+
+        mouvementRepo.save(MouvementStock.builder()
+                .variant(variant).magasin(magasin).typeMouvement(typeTransfert)
+                .quantite(request.quantite()).sourceStock("NEUF").commentaire(commentaire).build());
+
+        log.info("Transfert dépôt→magasin: variant={} entrepot={} magasin={} qte={}",
+                request.idVariant(), request.idEntrepotSource(), request.idMagasinDestination(), request.quantite());
+    }
+
     // ── Helpers privés ────────────────────────────────────────
 
     private void appliquerDeltaMagasin(StockMagasin stock, String source, int delta) {

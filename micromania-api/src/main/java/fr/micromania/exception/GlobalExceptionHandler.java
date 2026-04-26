@@ -86,6 +86,10 @@ public class GlobalExceptionHandler {
             BadCredentialsException ex,
             HttpServletRequest request) {
 
+        log.warn("401 BadCredentials — uri={} ip={} msg={}",
+            request.getRequestURI(),
+            request.getRemoteAddr(),
+            ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
             new ErrorResponse(401, ex.getMessage(), request.getRequestURI()));
     }

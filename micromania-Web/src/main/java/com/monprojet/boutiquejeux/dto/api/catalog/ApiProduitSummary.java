@@ -23,5 +23,8 @@ public record ApiProduitSummary(
         boolean misEnAvant,
         Integer pegi,
         Double noteMoyenne,
-        long nbAvis
+        long nbAvis,
+        Long variantIdNeuf,
+        Long variantIdOccasion,
+        boolean estPreCommande
 ) {}

@@ -45,9 +45,12 @@ public class SecurityConfig {
 
                 .requestMatchers(HttpMethod.GET,
                     "/api/v1/auth/verify-email",
+                    "/api/v1/catalogue",
+                    "/api/v1/catalogue/**",
                     "/api/v1/produits/**",
                     "/api/v1/produits/mis-en-avant",
                     "/api/v1/categories/**",
+                    "/api/v1/referentiel/**",
                     "/api/v1/magasins/**",
                     "/api/v1/tcg/cartes/**",
                     "/images/**"
