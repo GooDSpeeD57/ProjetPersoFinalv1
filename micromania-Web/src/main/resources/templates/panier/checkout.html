@@ -5,7 +5,7 @@
 </head>
 <body>
 <div class="site-shell">
-<th:block th:replace="~{fragments/layout :: navbar}"/>
+<th:block th:replace="~{fragments/navbar :: navbar}"/>
 
 <main>
   <div class="container">
@@ -49,11 +49,33 @@
           <div class="card-header">// MODE DE LIVRAISON</div>
           <div class="card-body">
             <div class="checkout-option-list checkout-option-list-compact">
-              <label class="checkout-option checkout-option-inline">
+              <label class="checkout-option checkout-option-inline"
+                     th:classappend="${!tousArticlesEnEntrepot} ? ' checkout-option-dim' : ''">
                 <input type="radio" name="modeLivraisonCode" value="DOMICILE" class="js-delivery-mode" checked/>
                 <div class="checkout-option-content">
-                  <div class="checkout-option-title">Livraison à domicile</div>
+                  <div class="checkout-option-title" style="flex-wrap:wrap;gap:0.4rem">
+                    <span>Livraison à domicile</span>
+                    <span th:if="${tousArticlesEnEntrepot}"
+                          style="font-size:0.78rem;font-weight:700;color:var(--success)">✓ Stock dépôt OK</span>
+                    <span th:unless="${tousArticlesEnEntrepot}"
+                          style="font-size:0.78rem;font-weight:700;color:var(--warning)">⚠ Stock dépôt insuffisant</span>
+                  </div>
                   <div class="checkout-option-text">La commande part sur l'adresse sélectionnée.</div>
+                  <!-- Détail par article si stock insuffisant -->
+                  <div th:unless="${tousArticlesEnEntrepot}" style="margin-top:0.6rem;display:flex;flex-direction:column;gap:0.3rem">
+                    <div th:each="item : ${apiPanier.lignes()}"
+                         th:with="dispo=${stockEntrepotParVariant != null ? stockEntrepotParVariant[item.idVariant()] : 0},
+                                  ok=${ligneEntrepotOk != null ? ligneEntrepotOk[item.idVariant()] : true}">
+                      <span class="checkout-option-text" style="display:flex;gap:0.5rem;align-items:center">
+                        <span th:if="${ok}" style="color:var(--success)">✓</span>
+                        <span th:unless="${ok}" style="color:var(--danger)">✗</span>
+                        <span th:text="${item.nomCommercial()}">Produit</span>
+                        <span th:unless="${ok}"
+                              style="font-size:0.75rem;color:var(--danger)"
+                              th:text="${'(dispo. dépôt : ' + dispo + ', demandé : ' + item.quantite() + ')'}"></span>
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </label>
               <label class="checkout-option checkout-option-inline">
@@ -63,6 +85,13 @@
                   <div class="checkout-option-text">Choisissez un magasin proposé à proximité de votre adresse.</div>
                 </div>
               </label>
+              <label class="checkout-option checkout-option-inline">
+                <input type="radio" name="modeLivraisonCode" value="LIVRAISON_MAGASIN" class="js-delivery-mode"/>
+                <div class="checkout-option-content">
+                  <div class="checkout-option-title">Livraison en magasin</div>
+                  <div class="checkout-option-text">Votre commande est livrée dans le magasin Micromania de votre choix.</div>
+                </div>
+              </label>
             </div>
           </div>
         </div>
@@ -70,7 +99,11 @@
         <div class="card js-retrait-wrapper" style="margin-top:1.5rem;display:none">
           <div class="card-header">// MAGASIN DE RETRAIT</div>
           <div class="card-body">
-            <div class="checkout-help" style="margin-bottom:1rem">Les magasins ci-dessous sont triés par proximité estimée depuis l'adresse sélectionnée.</div>
+            <div class="checkout-help" style="margin-bottom:1rem">
+              Les magasins sont triés par distance depuis votre adresse.
+              <span style="color:var(--success)">●</span> <strong>En stock</strong> — tous vos articles sont disponibles dans ce magasin.
+              <span style="color:var(--text-dim)">●</span> Stock insuffisant — ce magasin ne peut pas honorer toute la commande.
+            </div>
 
             <div th:each="adresse : ${adresses}" class="checkout-store-group js-store-group" th:attr="data-adresse-id=${adresse.id()}" style="display:none">
               <div th:if="${magasinsProchesParAdresse[adresse.id()] == null or #lists.isEmpty(magasinsProchesParAdresse[adresse.id()])}" class="dashboard-empty">
@@ -78,16 +111,24 @@
               </div>
 
               <div class="checkout-option-list" th:unless="${magasinsProchesParAdresse[adresse.id()] == null or #lists.isEmpty(magasinsProchesParAdresse[adresse.id()])}">
-                <label class="checkout-option" th:each="magasin, stat : ${magasinsProchesParAdresse[adresse.id()]}">
+                <label th:each="magasin, stat : ${magasinsProchesParAdresse[adresse.id()]}"
+                       th:with="stockOk=${magasinStockOk != null and magasinStockOk[magasin.id()] != null ? magasinStockOk[magasin.id()] : true}"
+                       th:classappend="${!stockOk} ? ' checkout-option-dim' : ''"
+                       class="checkout-option">
                   <input type="radio"
                          name="idMagasinRetrait"
                          class="js-store-radio"
                          th:value="${magasin.id()}"
                          th:checked="${defaultAdresseId != null and defaultAdresseId.equals(adresse.id()) and defaultMagasinRetraitId != null and defaultMagasinRetraitId.equals(magasin.id())}"/>
                   <div class="checkout-option-content">
-                    <div class="checkout-option-title">
+                    <div class="checkout-option-title" style="flex-wrap:wrap;gap:0.4rem">
                       <span th:text="${magasin.nom()}">Micromania</span>
-                      <span class="dashboard-pill dashboard-pill-muted" th:text="${magasin.libelleDistance() != null ? magasin.libelleDistance() : 'Proche'}">3.2 km</span>
+                      <span class="dashboard-pill dashboard-pill-muted"
+                            th:text="${magasin.libelleDistance() != null ? magasin.libelleDistance() : 'Proche'}">3.2 km</span>
+                      <span th:if="${stockOk}"
+                            style="font-size:0.78rem;font-weight:700;color:var(--success)">✓ En stock</span>
+                      <span th:unless="${stockOk}"
+                            style="font-size:0.78rem;font-weight:700;color:var(--danger)">✗ Stock insuffisant</span>
                     </div>
                     <div class="checkout-option-text" th:text="${magasin.rue()}">Rue</div>
                     <div class="checkout-option-text" th:if="${magasin.complement() != null and !magasin.complement().isBlank()}" th:text="${magasin.complement()}">Complément</div>
@@ -95,6 +136,88 @@
                     <div class="checkout-option-text" th:if="${magasin.telephone() != null and !magasin.telephone().isBlank()}" th:text="${'Tél. ' + magasin.telephone()}">Téléphone</div>
                   </div>
                 </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Carte Livraison en magasin -->
+        <div class="card js-livraison-magasin-wrapper" style="margin-top:1.5rem;display:none">
+          <div class="card-header">// MAGASIN DE LIVRAISON</div>
+          <div class="card-body">
+
+            <!-- Magasin sélectionné (favori ou choix via modal) -->
+            <div id="js-livmag-info-box"
+                 th:style="${magasinFavori == null ? 'display:none' : ''}">
+              <div style="border:1px solid var(--accent);border-radius:var(--radius);padding:0.85rem;margin-bottom:0.75rem">
+                <div class="checkout-option-title" style="flex-wrap:wrap;gap:0.4rem">
+                  <span id="js-livmag-nom" th:text="${magasinFavori != null ? magasinFavori.nom() : ''}"></span>
+                  <span id="js-livmag-favori-badge" class="dashboard-pill"
+                        style="background:var(--accent3);color:#fff"
+                        th:style="${magasinFavori == null ? 'display:none' : 'background:var(--accent3);color:#fff'}">⭐ Favori</span>
+                </div>
+                <div class="checkout-option-text" id="js-livmag-adresse"
+                     th:text="${magasinFavori != null ? magasinFavori.adresseComplete() : ''}"></div>
+                <div class="checkout-option-text" id="js-livmag-ville"
+                     th:text="${magasinFavori != null ? magasinFavori.ville() : ''}"></div>
+                <div class="checkout-option-text" id="js-livmag-tel"
+                     th:text="${magasinFavori != null and magasinFavori.telephone() != null ? '📞 ' + magasinFavori.telephone() : ''}"></div>
+              </div>
+            </div>
+
+            <!-- Message si aucun magasin encore sélectionné -->
+            <div id="js-livmag-empty-msg" class="checkout-help"
+                 th:style="${magasinFavori != null ? 'display:none' : ''}">
+              Aucun magasin sélectionné. Veuillez choisir votre magasin de livraison.
+            </div>
+
+            <input type="hidden" id="js-livmag-id" name="idMagasinLivraison"
+                   th:value="${magasinFavori != null ? magasinFavori.id() : ''}"/>
+
+            <button type="button" id="js-btn-choisir-magasin" class="btn btn-secondary btn-sm" style="margin-top:0.5rem">
+              📍 <span id="js-btn-choisir-text" th:text="${magasinFavori != null ? 'Changer de magasin' : 'Choisir un magasin'}"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal sélecteur de magasin pour livraison en magasin -->
+        <div class="login-modal-overlay" id="modal-livmag" style="z-index:9000">
+          <div class="login-modal-box" style="width:min(600px,100%);max-height:calc(100dvh - 2rem)">
+            <button type="button" class="login-modal-close" id="js-close-livmag-modal">×</button>
+            <div class="login-modal-title">// Choisir un magasin</div>
+            <input type="text" class="form-control" id="js-livmag-search"
+                   placeholder="Filtrer par ville, nom, code postal…"
+                   style="margin-bottom:1rem"/>
+            <div id="js-livmag-list"
+                 style="max-height:55vh;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem">
+              <div th:each="mag : ${tousMagasins}"
+                   class="js-livmag-item card"
+                   style="padding:0;cursor:pointer;border:1px solid var(--border)"
+                   th:attr="data-magasin-id=${mag.id()},
+                            data-magasin-nom=${mag.nom()},
+                            data-magasin-adresse=${mag.adresseComplete()},
+                            data-magasin-ville=${mag.ville()},
+                            data-magasin-cp=${mag.codePostal()},
+                            data-magasin-tel=${mag.telephone() != null ? mag.telephone() : ''}">
+                <div style="padding:0.75rem;display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap">
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:0.72rem;color:var(--text-dim)"
+                         th:text="${mag.codePostal() + ' • ' + mag.ville()}"></div>
+                    <div style="font-family:var(--font-head);font-size:0.9rem;color:var(--accent)"
+                         th:text="${mag.nom()}"></div>
+                    <div style="font-size:0.78rem;color:var(--text-dim)"
+                         th:if="${mag.adresseComplete() != null}"
+                         th:text="${mag.adresseComplete()}"></div>
+                    <div style="font-size:0.78rem;color:var(--text-dim)"
+                         th:if="${mag.telephone() != null}"
+                         th:text="${'📞 ' + mag.telephone()}"></div>
+                  </div>
+                  <button type="button" class="btn btn-primary btn-sm js-select-livmag">Choisir</button>
+                </div>
+              </div>
+              <div id="js-livmag-no-result"
+                   style="display:none;text-align:center;color:var(--text-dim);padding:1.5rem;font-size:0.85rem">
+                Aucun magasin trouvé pour cette recherche.
               </div>
             </div>
           </div>
@@ -139,16 +262,12 @@
         <div class="card" style="margin-top:1.5rem">
           <div class="card-header">// BON D'ACHAT</div>
           <div class="card-body">
-            <div class="checkout-option-list checkout-option-list-compact">
-              <label class="checkout-option checkout-option-inline">
-                <input type="radio" name="idBonAchat" value="" checked/>
-                <div class="checkout-option-content">
-                  <div class="checkout-option-title">Ne pas utiliser de bon</div>
-                  <div class="checkout-option-text">Conserver mes bons pour plus tard.</div>
-                </div>
-              </label>
+            <div th:if="${bonsDisponibles == null or bonsDisponibles.isEmpty()}" class="dashboard-empty" style="margin-top:0">
+              Aucun bon disponible pour le moment.
+            </div>
+            <div class="checkout-option-list checkout-option-list-compact" th:unless="${bonsDisponibles == null or bonsDisponibles.isEmpty()}">
               <label class="checkout-option checkout-option-inline" th:each="bon : ${bonsDisponibles}">
-                <input type="radio" name="idBonAchat" th:value="${bon.id()}"/>
+                <input type="checkbox" name="idsBonAchat" th:value="${bon.id()}"/>
                 <div class="checkout-option-content">
                   <div class="checkout-option-title">
                     <span th:text="${bon.codeBon()}">BON-XXXX</span>
@@ -157,9 +276,6 @@
                   <div class="checkout-option-text" th:text="${bon.pointsUtilises() + ' points consommés'}">2000 points</div>
                 </div>
               </label>
-            </div>
-            <div th:if="${bonsDisponibles == null or bonsDisponibles.isEmpty()}" class="dashboard-empty" style="margin-top:1rem">
-              Aucun bon disponible pour le moment.
             </div>
           </div>
         </div>
@@ -173,10 +289,27 @@
         </div>
 
         <div class="checkout-product-list">
-          <div class="checkout-product-row" th:each="item : ${apiPanier.lignes()}">
-            <div>
+          <div th:each="item : ${apiPanier.lignes()}"
+               th:with="entrepotOk=${ligneEntrepotOk != null ? ligneEntrepotOk[item.idVariant()] : true},
+                        dispo=${stockEntrepotParVariant != null ? stockEntrepotParVariant[item.idVariant()] : 0}"
+               class="checkout-product-row">
+            <div style="flex:1;min-width:0">
               <div class="checkout-product-name" th:text="${item.nomCommercial()}">Produit</div>
               <div class="checkout-product-meta" th:text="${item.quantite() + ' × ' + #numbers.formatDecimal(item.prixUnitaire(),1,2) + ' €'}">1 × 10.00 €</div>
+              <div th:if="${item.garantiePrix() != null}"
+                   style="font-size:0.72rem;color:var(--accent);margin-top:0.15rem">
+                🛡 <span th:text="${item.garantieLabel() != null ? item.garantieLabel() : 'Garantie'}"></span>
+                + <span th:text="${#numbers.formatDecimal(item.garantiePrix(), 1, 2) + ' €'}"></span>
+              </div>
+              <!-- Indicateur stock dépôt -->
+              <div th:if="${entrepotOk}"
+                   style="font-size:0.72rem;color:var(--success);margin-top:0.15rem">
+                ✓ Dépôt : <span th:text="${dispo}"></span> disponible(s)
+              </div>
+              <div th:unless="${entrepotOk}"
+                   style="font-size:0.72rem;color:var(--danger);margin-top:0.15rem">
+                ✗ Dépôt : <span th:text="${dispo}"></span> disponible(s) / <span th:text="${item.quantite()}"></span> demandé(s)
+              </div>
             </div>
             <div class="cart-item-price" th:text="${#numbers.formatDecimal(item.montantLigne(),1,2) + ' €'}">10.00 €</div>
           </div>
@@ -184,10 +317,25 @@
 
         <div class="summary-row"><span>Sous-total</span><span th:text="${#numbers.formatDecimal(apiPanier.sousTotal(),1,2) + ' €'}">0.00 €</span></div>
         <div class="summary-row"><span>Remise panier</span><span th:text="${#numbers.formatDecimal(apiPanier.remise(),1,2) + ' €'}">0.00 €</span></div>
+        <th:block th:each="item : ${apiPanier.lignes()}" th:if="${item.garantiePrix() != null}">
+          <div class="summary-row summary-row-garantie">
+            <span>🛡 <span th:text="${item.garantieLabel() != null ? item.garantieLabel() : 'Garantie'}"></span></span>
+            <span th:text="${'+' + #numbers.formatDecimal(item.garantiePrix(), 1, 2) + ' €'}"></span>
+          </div>
+        </th:block>
         <div class="summary-row"><span>Livraison</span><span style="color:var(--success)">Offerte</span></div>
-        <div class="summary-row total"><span>Total estimé</span><span th:text="${#numbers.formatDecimal(apiPanier.total(),1,2) + ' €'}">0.00 €</span></div>
+        <div class="summary-row total"><span>Total estimé</span><span th:text="${#numbers.formatDecimal(apiPanier.total(), 1, 2) + ' €'}">0.00 €</span></div>
 
-        <button type="submit" class="btn btn-primary btn-full" style="margin-top:1rem">Confirmer la commande</button>
+        <!-- Avertissement stock dépôt insuffisant (visible si livraison domicile et stock KO) -->
+        <div id="js-alerte-stock-entrepot"
+             th:if="${!tousArticlesEnEntrepot}"
+             style="display:none;margin-top:1rem;padding:0.75rem;border-radius:var(--radius);border:1px solid var(--warning);background:rgba(245,158,11,0.08);font-size:0.82rem;color:var(--warning)">
+          ⚠ Certains articles ne sont pas disponibles en quantité suffisante au dépôt pour une livraison à domicile.
+          Veuillez choisir le retrait en magasin ou réduire les quantités.
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" style="margin-top:1rem"
+                id="js-btn-confirmer">Confirmer la commande</button>
         <a class="btn btn-secondary btn-full" th:href="@{/panier}" style="margin-top:0.75rem">Retour au panier</a>
       </aside>
     </form>
@@ -198,15 +346,32 @@
   </div>
 </main>
 
-<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/footer :: footer}"/>
 </div>
-<th:block th:replace="~{fragments/layout :: scripts}"/>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    const modeInputs = Array.from(document.querySelectorAll('.js-delivery-mode'));
-    const addressInputs = Array.from(document.querySelectorAll('.js-checkout-address'));
+    const modeInputs     = Array.from(document.querySelectorAll('.js-delivery-mode'));
+    const addressInputs  = Array.from(document.querySelectorAll('.js-checkout-address'));
     const retraitWrapper = document.querySelector('.js-retrait-wrapper');
-    const groups = Array.from(document.querySelectorAll('.js-store-group'));
+    const livMagWrapper  = document.querySelector('.js-livraison-magasin-wrapper');
+    const groups         = Array.from(document.querySelectorAll('.js-store-group'));
+
+    // ── Éléments livraison en magasin ──────────────────────────────────────
+    const modalLivMag       = document.getElementById('modal-livmag');
+    const closeLivMagBtn    = document.getElementById('js-close-livmag-modal');
+    const btnChoisirMagasin = document.getElementById('js-btn-choisir-magasin');
+    const livMagSearch      = document.getElementById('js-livmag-search');
+    const livMagList        = document.getElementById('js-livmag-list');
+    const livMagNoResult    = document.getElementById('js-livmag-no-result');
+    const livMagInfoBox     = document.getElementById('js-livmag-info-box');
+    const livMagEmptyMsg    = document.getElementById('js-livmag-empty-msg');
+    const livMagIdInput     = document.getElementById('js-livmag-id');
+    const livMagNom         = document.getElementById('js-livmag-nom');
+    const livMagAdresse     = document.getElementById('js-livmag-adresse');
+    const livMagVille       = document.getElementById('js-livmag-ville');
+    const livMagTel         = document.getElementById('js-livmag-tel');
+    const livMagFavoriBadge = document.getElementById('js-livmag-favori-badge');
+    const livMagBtnText     = document.getElementById('js-btn-choisir-text');
 
     function selectedMode() {
       return modeInputs.find(input => input.checked)?.value || 'DOMICILE';
@@ -220,27 +385,119 @@
       if (!group) return;
       const checked = group.querySelector('.js-store-radio:checked');
       if (checked) return;
-      const first = group.querySelector('.js-store-radio');
+      const firstInStock = Array.from(group.querySelectorAll('.js-store-radio'))
+        .find(r => !r.closest('.checkout-option-dim'));
+      const first = firstInStock || group.querySelector('.js-store-radio');
       if (first) first.checked = true;
     }
 
-    function refreshCheckoutUi() {
-      const retrait = selectedMode() === 'RETRAIT_MAGASIN';
-      const addressId = selectedAddressId();
+    // ── Modal livraison en magasin ─────────────────────────────────────────
+    function openLivMagModal() {
+      if (!modalLivMag) return;
+      modalLivMag.classList.add('is-open');
+      if (livMagSearch) { livMagSearch.value = ''; livMagSearch.focus(); }
+      filterMagasins('');
+    }
 
-      if (retraitWrapper) {
-        retraitWrapper.style.display = retrait ? '' : 'none';
+    function closeLivMagModal() {
+      if (modalLivMag) modalLivMag.classList.remove('is-open');
+    }
+
+    function filterMagasins(q) {
+      if (!livMagList) return;
+      const lower = q.toLowerCase().trim();
+      let visibleCount = 0;
+      livMagList.querySelectorAll('.js-livmag-item').forEach(function(item) {
+        const nom     = (item.dataset.magasinNom     || '').toLowerCase();
+        const ville   = (item.dataset.magasinVille   || '').toLowerCase();
+        const adresse = (item.dataset.magasinAdresse || '').toLowerCase();
+        const cp      = (item.dataset.magasinCp      || '').toLowerCase();
+        const match   = !lower || nom.includes(lower) || ville.includes(lower)
+                               || adresse.includes(lower) || cp.includes(lower);
+        item.style.display = match ? '' : 'none';
+        if (match) visibleCount++;
+      });
+      if (livMagNoResult) livMagNoResult.style.display = visibleCount === 0 ? '' : 'none';
+    }
+
+    function selectMagasin(id, nom, adresse, ville, tel) {
+      if (livMagIdInput) livMagIdInput.value = id;
+      if (livMagNom)     livMagNom.textContent     = nom     || '';
+      if (livMagAdresse) livMagAdresse.textContent  = adresse || '';
+      if (livMagVille)   livMagVille.textContent    = ville   || '';
+      if (livMagTel)     livMagTel.textContent      = tel ? '📞 ' + tel : '';
+      if (livMagFavoriBadge) livMagFavoriBadge.style.display = 'none';
+      if (livMagInfoBox)  livMagInfoBox.style.display  = '';
+      if (livMagEmptyMsg) livMagEmptyMsg.style.display = 'none';
+      if (livMagBtnText)  livMagBtnText.textContent = 'Changer de magasin';
+      closeLivMagModal();
+    }
+
+    if (btnChoisirMagasin) btnChoisirMagasin.addEventListener('click', openLivMagModal);
+    if (closeLivMagBtn)    closeLivMagBtn.addEventListener('click', closeLivMagModal);
+    if (modalLivMag) {
+      modalLivMag.addEventListener('click', function(e) {
+        if (e.target === modalLivMag) closeLivMagModal();
+      });
+    }
+    if (livMagSearch) {
+      livMagSearch.addEventListener('input', function() { filterMagasins(this.value); });
+    }
+    if (livMagList) {
+      livMagList.addEventListener('click', function(e) {
+        const btn = e.target.closest('.js-select-livmag');
+        if (!btn) return;
+        const item = btn.closest('.js-livmag-item');
+        if (!item) return;
+        selectMagasin(
+          item.dataset.magasinId,
+          item.dataset.magasinNom,
+          item.dataset.magasinAdresse,
+          item.dataset.magasinVille,
+          item.dataset.magasinTel
+        );
+      });
+    }
+
+    // Fermer modal avec Escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeLivMagModal();
+    });
+
+    // ── Alertes & état global ──────────────────────────────────────────────
+    const alerteStockEntrepot    = document.getElementById('js-alerte-stock-entrepot');
+    const stockEntrepotInsuffisant = /*[[${!tousArticlesEnEntrepot}]]*/ false;
+
+    function refreshCheckoutUi() {
+      const mode        = selectedMode();
+      const retrait     = mode === 'RETRAIT_MAGASIN';
+      const livMagMode  = mode === 'LIVRAISON_MAGASIN';
+      const domicile    = !retrait && !livMagMode;
+      const addressId   = selectedAddressId();
+
+      if (retraitWrapper) retraitWrapper.style.display = retrait    ? '' : 'none';
+      if (livMagWrapper)  livMagWrapper.style.display  = livMagMode ? '' : 'none';
+
+      // Si livraison en magasin activée sans magasin sélectionné → ouvrir modal
+      if (livMagMode && livMagIdInput && !livMagIdInput.value) {
+        if (modalLivMag && !modalLivMag.classList.contains('is-open')) {
+          openLivMagModal();
+        }
       }
 
-      groups.forEach(group => {
+      groups.forEach(function(group) {
         const visible = retrait && addressId && group.dataset.adresseId === addressId;
         group.style.display = visible ? '' : 'none';
         if (visible) ensureFirstStoreChecked(group);
       });
+
+      if (alerteStockEntrepot) {
+        alerteStockEntrepot.style.display = (domicile && stockEntrepotInsuffisant) ? '' : 'none';
+      }
     }
 
-    modeInputs.forEach(input => input.addEventListener('change', refreshCheckoutUi));
-    addressInputs.forEach(input => input.addEventListener('change', refreshCheckoutUi));
+    modeInputs.forEach(function(input) { input.addEventListener('change', refreshCheckoutUi); });
+    addressInputs.forEach(function(input) { input.addEventListener('change', refreshCheckoutUi); });
     refreshCheckoutUi();
   });
 </script>

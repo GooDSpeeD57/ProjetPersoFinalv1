@@ -12,5 +12,7 @@ public record LigneFactureResponse(
     BigDecimal tauxTvaApplique,
     BigDecimal montantHtLigne,
     BigDecimal montantTvaLigne,
-    BigDecimal montantLigne
+    BigDecimal montantLigne,
+    String garantieLabel,
+    BigDecimal garantiePrix
 ) {}

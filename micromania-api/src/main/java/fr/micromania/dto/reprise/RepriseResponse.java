@@ -12,8 +12,11 @@ public record RepriseResponse(
     String client,
     String employe,
     String magasin,
+    /** Montant calculé selon le mode (espèces = avoir × 0,90). */
     BigDecimal montantTotalEstime,
     BigDecimal montantTotalValide,
+    /** Valeur brute en avoir (avant décote espèces), utile pour l'affichage. */
+    BigDecimal montantTotalAvoir,
     String commentaire,
     LocalDateTime dateCreation,
     LocalDateTime dateValidation,

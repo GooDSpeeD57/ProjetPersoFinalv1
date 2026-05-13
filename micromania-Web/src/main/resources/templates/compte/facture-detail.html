@@ -5,7 +5,7 @@
 </head>
 <body>
 <div class="site-shell">
-<th:block th:replace="~{fragments/layout :: navbar}"/>
+<th:block th:replace="~{fragments/navbar :: navbar}"/>
 
 <main>
   <div class="container">
@@ -20,11 +20,26 @@
           <div class="card-header">// INFORMATIONS FACTURE</div>
           <div class="card-body">
             <div class="info-row"><span class="label">Référence</span><span th:text="${facture.referenceFacture()}">FAC-XXXX</span></div>
-            <div class="info-row"><span class="label">Date</span><span th:text="${facture.dateFacture() != null ? #temporals.format(facture.dateFacture(), 'dd/MM/yyyy HH:mm') : '—'}">01/01/2026</span></div>
+            <div class="info-row">
+              <span class="label">Date</span>
+              <span th:if="${facture.dateFacture() != null}">
+                <span th:text="${#temporals.format(facture.dateFacture(), 'dd/MM/yyyy')}"></span>
+                <span style="color:var(--text-dim);font-size:0.85rem" th:text="${' à ' + #temporals.format(facture.dateFacture(), 'HH:mm')}"></span>
+              </span>
+              <span th:unless="${facture.dateFacture() != null}">—</span>
+            </div>
             <div class="info-row"><span class="label">Statut</span><span th:text="${facture.statutFacture()}">EMISE</span></div>
-            <div class="info-row"><span class="label">Contexte</span><span th:text="${facture.contexteVente()}">EN_LIGNE</span></div>
+            <div class="info-row">
+              <span class="label">Contexte</span>
+              <span th:if="${facture.contexteVente() != null and (#strings.contains(facture.contexteVente(),'LIGNE') or #strings.contains(facture.contexteVente(),'WEB'))}">🌐 En ligne</span>
+              <span th:unless="${facture.contexteVente() != null and (#strings.contains(facture.contexteVente(),'LIGNE') or #strings.contains(facture.contexteVente(),'WEB'))}"
+                    th:text="${facture.contexteVente() != null ? facture.contexteVente() : '—'}"></span>
+            </div>
             <div class="info-row"><span class="label">Paiement</span><span th:text="${facture.modePaiement()}">CB</span></div>
-            <div class="info-row"><span class="label">Magasin</span><span th:text="${facture.magasin()}">Magasin</span></div>
+            <div class="info-row" th:if="${facture.magasin() != null and !#strings.isEmpty(facture.magasin())}">
+              <span class="label">Retrait en magasin</span>
+              <span th:text="${facture.magasin()}">Nom du magasin</span>
+            </div>
             <div class="info-row"><span class="label">Client</span><span th:text="${facture.nomClientAffiche()}">Nom Client</span></div>
             <div class="info-row"><span class="label">Email</span><span th:text="${facture.emailClientAffiche()}">email@example.com</span></div>
           </div>
@@ -45,13 +60,27 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="ligne : ${facture.lignes()}">
-                  <td th:text="${ligne.nomCommercial()}">Produit</td>
-                  <td th:text="${ligne.sku()}">SKU</td>
-                  <td th:text="${ligne.quantite()}">1</td>
-                  <td th:text="${#numbers.formatDecimal(ligne.prixUnitaire(),1,2) + ' €'}">10.00 €</td>
-                  <td th:text="${#numbers.formatDecimal(ligne.montantLigne(),1,2) + ' €'}">10.00 €</td>
-                </tr>
+                <th:block th:each="ligne : ${facture.lignes()}">
+                  <tr>
+                    <td th:text="${ligne.nomCommercial()}">Produit</td>
+                    <td th:text="${ligne.sku()}">SKU</td>
+                    <td th:text="${ligne.quantite()}">1</td>
+                    <td th:text="${#numbers.formatDecimal(ligne.prixUnitaire(),1,2) + ' €'}">10.00 €</td>
+                    <td th:text="${#numbers.formatDecimal(ligne.montantLigne(),1,2) + ' €'}">10.00 €</td>
+                  </tr>
+                  <!-- Ligne garantie si elle existe (prix unitaire × quantité) -->
+                  <tr th:if="${ligne.garantieLabel() != null and !#strings.isEmpty(ligne.garantieLabel())}"
+                      style="background:rgba(255,193,7,.06)">
+                    <td colspan="4" style="padding-left:2rem;color:var(--text-dim);font-size:0.88rem">
+                      🛡 <span th:text="${ligne.garantieLabel()}">Garantie</span>
+                      <span th:if="${ligne.quantite() > 1}"
+                            style="margin-left:0.4rem;font-size:0.8rem"
+                            th:text="${'(' + #numbers.formatDecimal(ligne.garantiePrix(),1,2) + ' € × ' + ligne.quantite() + ')'}"></span>
+                    </td>
+                    <td style="color:var(--accent);font-size:0.88rem"
+                        th:text="${'+' + #numbers.formatDecimal(ligne.garantieTotale(),1,2) + ' €'}">+9.99 €</td>
+                  </tr>
+                </th:block>
                 </tbody>
               </table>
             </div>
@@ -65,7 +94,14 @@
         </div>
         <div class="summary-row"><span>HT</span><span th:text="${#numbers.formatDecimal(facture.montantHtTotal(),1,2) + ' €'}">0.00 €</span></div>
         <div class="summary-row"><span>TVA</span><span th:text="${#numbers.formatDecimal(facture.montantTvaTotal(),1,2) + ' €'}">0.00 €</span></div>
-        <div class="summary-row"><span>Total</span><span th:text="${#numbers.formatDecimal(facture.montantTotal(),1,2) + ' €'}">0.00 €</span></div>
+        <div class="summary-row"><span>Produits</span><span th:text="${#numbers.formatDecimal(facture.montantTotal(),1,2) + ' €'}">0.00 €</span></div>
+        <!-- Garanties : somme des garantiePrix des lignes qui en ont une -->
+        <th:block th:with="lignesAvecGarantie=${facture.lignes().?[garantiePrix != null]}">
+          <div class="summary-row" th:if="${!lignesAvecGarantie.isEmpty()}" style="color:var(--accent)">
+            <span>🛡 Garanties</span>
+            <span th:text="${'+' + #numbers.formatDecimal(#aggregates.sum(lignesAvecGarantie.![garantieTotale()]),1,2) + ' €'}">+0.00 €</span>
+          </div>
+        </th:block>
         <div class="summary-row"><span>Remise</span><span th:text="${#numbers.formatDecimal(facture.montantRemise(),1,2) + ' €'}">0.00 €</span></div>
         <div class="summary-row total"><span>Total final</span><span th:text="${#numbers.formatDecimal(facture.montantFinal(),1,2) + ' €'}">0.00 €</span></div>
         <a class="btn btn-secondary btn-full" th:href="@{/compte}" style="margin-top:1rem">Retour au compte</a>
@@ -74,8 +110,7 @@
   </div>
 </main>
 
-<th:block th:replace="~{fragments/layout :: footer}"/>
+<th:block th:replace="~{fragments/footer :: footer}"/>
 </div>
-<th:block th:replace="~{fragments/layout :: scripts}"/>
 </body>
 </html>

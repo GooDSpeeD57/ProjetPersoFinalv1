@@ -45,9 +45,12 @@ public class SecurityConfig {
 
                 .requestMatchers(HttpMethod.GET,
                     "/api/v1/auth/verify-email",
+                    "/api/v1/catalogue",
+                    "/api/v1/catalogue/**",
                     "/api/v1/produits/**",
                     "/api/v1/produits/mis-en-avant",
                     "/api/v1/categories/**",
+                    "/api/v1/referentiel/**",
                     "/api/v1/magasins/**",
                     "/api/v1/tcg/cartes/**",
                     "/images/**"
@@ -96,7 +99,7 @@ public class SecurityConfig {
             "https://*.micromania.fr"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "Cache-Control"));
         config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);

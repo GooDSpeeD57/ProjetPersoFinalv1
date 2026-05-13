@@ -65,6 +65,29 @@ public class StockController {
         return ResponseEntity.ok(stockService.ajusterStockEntrepot(request));
     }
 
+    @GetMapping("/checkout/variant/{idVariant}")
+    @PreAuthorize("hasAnyRole('CLIENT','VENDEUR','MANAGER','ADMIN')")
+    public ResponseEntity<List<StockCheckoutResponse>> getStockCheckout(
+            @PathVariable Long idVariant) {
+
+        return ResponseEntity.ok(stockService.getStockCheckout(idVariant));
+    }
+
+    @GetMapping("/checkout/entrepot/variant/{idVariant}")
+    @PreAuthorize("hasAnyRole('CLIENT','VENDEUR','MANAGER','ADMIN')")
+    public ResponseEntity<StockEntrepotCheckoutResponse> getStockEntrepotCheckout(
+            @PathVariable Long idVariant) {
+
+        return ResponseEntity.ok(stockService.getStockEntrepotCheckout(idVariant));
+    }
+
+    @PostMapping("/transfert")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+    public ResponseEntity<Void> transferer(@Valid @RequestBody TransfertStockRequest request) {
+        stockService.transfererDepotVersMagasin(request);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/mouvements")
     public ResponseEntity<List<MouvementStockResponse>> getMouvements(
             @RequestParam(required = false) Long idVariant,

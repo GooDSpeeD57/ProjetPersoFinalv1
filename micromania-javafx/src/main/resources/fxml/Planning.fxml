@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.monprojet.boutiquejeux.controller.PlanningController"
+      spacing="12" styleClass="view-container">
+    <padding><Insets top="18" bottom="18" left="18" right="18"/></padding>
+
+    <Label text="📅 Planning équipe" styleClass="page-title"/>
+    <Separator/>
+
+    <!-- ── Barre supérieure : boutique + navigation semaine ── -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="Boutique :" styleClass="field-label"/>
+        <ComboBox fx:id="cbMagasin" prefWidth="230" promptText="— Choisir —"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="◀" onAction="#handleSemPrecedente" styleClass="btn-secondary"/>
+        <Label fx:id="labelSemaine" minWidth="270"
+               style="-fx-alignment:center;-fx-font-weight:bold;-fx-text-fill:#e0e0e0;"/>
+        <Button text="▶" onAction="#handleSemSuivante" styleClass="btn-secondary"/>
+        <Button text="Aujourd'hui" onAction="#handleAujourdhui" styleClass="btn-secondary"/>
+        <ProgressIndicator fx:id="spinner" maxWidth="24" maxHeight="24" visible="false"/>
+    </HBox>
+
+    <TabPane VBox.vgrow="ALWAYS" styleClass="tab-pane-dark" tabClosingPolicy="UNAVAILABLE">
+
+        <!-- ══════════════════════════════════════════════════════
+             ONGLET 1 — VUE SEMAINE (grille de synthèse)
+        ══════════════════════════════════════════════════════ -->
+        <Tab text="📊  Vue semaine">
+            <VBox spacing="6">
+                <padding><Insets top="10" bottom="4" left="4" right="4"/></padding>
+                <TableView fx:id="tableGrille" VBox.vgrow="ALWAYS" styleClass="table-dark">
+                    <columns>
+                        <TableColumn fx:id="colGEmp"  text="Employé"   prefWidth="155" minWidth="130"/>
+                        <TableColumn fx:id="colGRole" text="Rôle"      prefWidth="85"  minWidth="75"/>
+                        <TableColumn fx:id="colGLun"  text="Lundi"     prefWidth="87"  minWidth="75"/>
+                        <TableColumn fx:id="colGMar"  text="Mardi"     prefWidth="87"  minWidth="75"/>
+                        <TableColumn fx:id="colGMer"  text="Mercredi"  prefWidth="87"  minWidth="75"/>
+                        <TableColumn fx:id="colGJeu"  text="Jeudi"     prefWidth="87"  minWidth="75"/>
+                        <TableColumn fx:id="colGVen"  text="Vendredi"  prefWidth="87"  minWidth="75"/>
+                        <TableColumn fx:id="colGSam"  text="Samedi"    prefWidth="87"  minWidth="75"/>
+                        <TableColumn fx:id="colGDim"  text="Dimanche"  prefWidth="87"  minWidth="75"/>
+                    </columns>
+                </TableView>
+            </VBox>
+        </Tab>
+
+        <!-- ══════════════════════════════════════════════════════
+             ONGLET 2 — SAISIE PAR EMPLOYÉ (semaine complète)
+        ══════════════════════════════════════════════════════ -->
+        <Tab text="✏️  Saisie par employé">
+            <VBox spacing="10">
+                <padding><Insets top="10" bottom="8" left="6" right="6"/></padding>
+
+                <!-- Sélecteur employé + actions rapides -->
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Employé :" styleClass="field-label" minWidth="70"/>
+                    <ComboBox fx:id="cbEmploye" prefWidth="235" promptText="— Choisir un employé —"/>
+                    <Button text="📋 Copier sem. précédente"
+                            onAction="#handleCopierSemainePrecedente"
+                            styleClass="btn-secondary"/>
+                    <Button text="🗑 Effacer la semaine"
+                            onAction="#handleEffacerSemaine"
+                            styleClass="btn-danger"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="labelSaisieMsg"
+                           style="-fx-font-size:12;-fx-text-fill:#2ecc71;" wrapText="false"/>
+                    <ProgressIndicator fx:id="spinnerSaisie"
+                                       maxWidth="20" maxHeight="20" visible="false"/>
+                </HBox>
+
+                <!-- En-tête colonnes -->
+                <HBox spacing="8" style="-fx-padding:2 0 0 12;">
+                    <Label text="Jour / Date"  prefWidth="115" styleClass="field-label"/>
+                    <Label text="Travaillé"    prefWidth="82"  styleClass="field-label"/>
+                    <Label text="Début"        prefWidth="72"  styleClass="field-label"/>
+                    <Label text=""             prefWidth="18"/>
+                    <Label text="Fin"          prefWidth="72"  styleClass="field-label"/>
+                    <Label text="Note (optionnelle)" HBox.hgrow="ALWAYS" styleClass="field-label"/>
+                </HBox>
+
+                <!-- Lignes jours — construites dynamiquement dans buildJourRows() -->
+                <VBox fx:id="vboxJours" spacing="4" styleClass="card">
+                    <padding><Insets top="10" bottom="10" left="10" right="10"/></padding>
+                </VBox>
+
+                <!-- Sauvegarde -->
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <Button fx:id="btnSauvegarderSemaine"
+                            text="💾 Sauvegarder la semaine de cet employé"
+                            onAction="#handleSauvegarderSemaine"
+                            styleClass="btn-success"
+                            maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                </HBox>
+            </VBox>
+        </Tab>
+
+    </TabPane>
+</VBox>

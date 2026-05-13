@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.monprojet.boutiquejeux.controller.StockController"
+      spacing="14" styleClass="view-container">
+    <fx:define>
+        <ToggleGroup fx:id="modeGroup"/>
+    </fx:define>
+    <padding><Insets top="18" bottom="18" left="18" right="18"/></padding>
+
+    <Label text="📦 Gestion des stocks" styleClass="page-title"/>
+    <Separator/>
+
+    <!-- Barre de recherche -->
+    <HBox spacing="8" alignment="CENTER_LEFT">
+        <TextField fx:id="rechercheField" promptText="Rechercher un produit…"
+                   styleClass="text-field-dark" prefWidth="230"
+                   onAction="#handleRecherche"/>
+        <Button text="🔍" onAction="#handleRecherche" styleClass="btn-secondary"/>
+        <Button text="🔄" onAction="#handleRefresh"   styleClass="btn-secondary"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="labelInfo" styleClass="field-label"/>
+        <ProgressIndicator fx:id="spinner" maxWidth="24" maxHeight="24"/>
+    </HBox>
+
+    <HBox spacing="14" VBox.vgrow="ALWAYS">
+
+        <!-- ══ COLONNE GAUCHE : produits puis variants ══ -->
+        <VBox spacing="8" prefWidth="320" minWidth="260">
+
+            <Label text="📋 Produits" styleClass="section-title"/>
+            <TableView fx:id="tableProduits" VBox.vgrow="ALWAYS" styleClass="table-dark">
+                <columns>
+                    <TableColumn fx:id="colPNom" text="Nom"      prefWidth="210" minWidth="210"/>
+                    <TableColumn fx:id="colPCat" text="Catég."   prefWidth="90" minWidth="90"/>
+                </columns>
+            </TableView>
+
+            <Separator/>
+
+            <Label text="🎮 Variants du produit" styleClass="section-title"/>
+            <TableView fx:id="tableVariants" prefHeight="160" styleClass="table-dark">
+                <columns>
+                    <TableColumn fx:id="colVPlatf"  text="Support"  prefWidth="72" minWidth="72"/>
+                    <TableColumn fx:id="colVStatut" text="Statut"   prefWidth="66" minWidth="66"/>
+                    <TableColumn fx:id="colVEdition" text="Édition" prefWidth="68" minWidth="68"/>
+                    <TableColumn fx:id="colVSku"    text="SKU"      prefWidth="100" minWidth="100"/>
+                </columns>
+            </TableView>
+        </VBox>
+
+        <!-- ══ COLONNE DROITE : stock + formulaire ══ -->
+        <VBox spacing="10" HBox.hgrow="ALWAYS">
+
+            <!-- Label variant sélectionné -->
+            <Label fx:id="labelVariantSelec" text="← Sélectionnez un variant"
+                   styleClass="section-title"/>
+
+            <!-- Tableau stock existant -->
+            <TableView fx:id="tableStock" VBox.vgrow="ALWAYS" styleClass="table-dark">
+                <columns>
+                    <TableColumn fx:id="colLieu"     text="Lieu"   prefWidth="160" minWidth="160"/>
+                    <TableColumn fx:id="colType"     text="Type"   prefWidth="60" minWidth="60"/>
+                    <TableColumn fx:id="colQteNeuf"  text="Neuf"   prefWidth="55" minWidth="55"/>
+                    <TableColumn fx:id="colQteOccaz" text="Occaz"  prefWidth="55" minWidth="55"/>
+                    <TableColumn fx:id="colQteDispo" text="Dispo"  prefWidth="55" minWidth="55"/>
+                    <TableColumn fx:id="colAlerte"   text="État"   prefWidth="80" minWidth="80"/>
+                </columns>
+            </TableView>
+
+            <!-- Formulaire entrée / sortie de stock -->
+            <VBox styleClass="card" spacing="10">
+                <padding><Insets top="12" bottom="12" left="12" right="12"/></padding>
+                <Label text="⚙️  Mouvement de stock" styleClass="section-title"/>
+
+                <GridPane hgap="12" vgap="8">
+                    <columnConstraints>
+                        <ColumnConstraints prefWidth="105" minWidth="105"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                        <ColumnConstraints prefWidth="105" minWidth="105"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                    </columnConstraints>
+
+                    <!-- Mode -->
+                    <Label text="Destination :" styleClass="field-label"
+                           GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <HBox spacing="16" alignment="CENTER_LEFT"
+                          GridPane.rowIndex="0" GridPane.columnIndex="1" GridPane.columnSpan="3">
+                        <RadioButton fx:id="radioMagasin" text="Magasin"
+                                     toggleGroup="$modeGroup" selected="true"
+                                     styleClass="radio-dark"/>
+                        <RadioButton fx:id="radioDepot" text="Dépôt central"
+                                     toggleGroup="$modeGroup"
+                                     styleClass="radio-dark"/>
+                    </HBox>
+
+                    <!-- Emplacement -->
+                    <Label text="Emplacement :" styleClass="field-label"
+                           GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <ComboBox fx:id="comboLieu" maxWidth="Infinity"
+                              GridPane.rowIndex="1" GridPane.columnIndex="1"
+                              GridPane.columnSpan="3"/>
+
+                    <!-- Source + quantité -->
+                    <Label text="Source stock :" styleClass="field-label"
+                           GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <ComboBox fx:id="comboSourceStock" maxWidth="Infinity"
+                              GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                    <Label text="Quantité :" styleClass="field-label"
+                           GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+                    <TextField fx:id="quantiteField" promptText="ex : 5"
+                               styleClass="text-field-dark"
+                               GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+
+                    <!-- Commentaire -->
+                    <Label text="Commentaire :" styleClass="field-label"
+                           GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <TextField fx:id="commentaireField" promptText="Motif (facultatif)…"
+                               styleClass="text-field-dark"
+                               GridPane.rowIndex="3" GridPane.columnIndex="1"
+                               GridPane.columnSpan="3"/>
+                </GridPane>
+
+                <HBox spacing="8">
+                    <Button text="➕  Entrée en stock" onAction="#handleEntree"
+                            styleClass="btn-success" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                    <Button text="➖  Sortie du stock" onAction="#handleSortie"
+                            styleClass="btn-danger"  maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                </HBox>
+            </VBox>
+        </VBox>
+    </HBox>
+</VBox>

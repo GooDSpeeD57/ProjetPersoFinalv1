@@ -19,5 +19,6 @@ public record FactureResponse(
     BigDecimal montantRemise,
     BigDecimal montantFinal,
     LocalDateTime dateFacture,
-    List<LigneFactureResponse> lignes
+    List<LigneFactureResponse> lignes,
+    Integer pointsGagnes
 ) {}

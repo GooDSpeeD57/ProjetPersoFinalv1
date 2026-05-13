@@ -319,6 +319,15 @@ class HomeController {
 }
 
 @Controller
+class RepriseController {
+    /** Fonctionnalité de reprise — page provisoire en attendant l'implémentation complète. */
+    @GetMapping("/reprise")
+    String reprisePage() {
+        return "redirect:/catalogue";
+    }
+}
+
+@Controller
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 class AuthController {

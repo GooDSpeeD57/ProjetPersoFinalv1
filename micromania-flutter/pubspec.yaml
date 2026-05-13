@@ -1,0 +1,61 @@
+name: micromania
+description: "App mobile Micromania — catalogue, panier, commandes, scanner, géoloc, fidélité"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # HTTP
+  http: ^1.2.2
+
+  # State management
+  provider: ^6.1.2
+
+  # Secure token storage
+  flutter_secure_storage: 8.1.0
+
+  # Barcode scanner (caméra)
+  mobile_scanner: ^7.0.0
+
+  # QR code + barcode display (carte fidélité)
+  qr_flutter: ^4.1.0
+  barcode_widget: ^2.0.4
+
+  # Géolocalisation
+  geolocator: ^14.0.2
+
+  # Ouvrir maps / URLs externes
+  url_launcher: ^6.3.0
+
+  # Images réseau avec cache
+  cached_network_image: ^3.4.1
+
+  # Formatage dates / nombres
+  intl: ^0.20.0
+
+  # Préférences locales
+  shared_preferences: ^2.3.3
+
+  # Fonts (Orbitron headings + Rajdhani body — dark gaming theme)
+  google_fonts: ^6.2.1
+
+  cupertino_icons: ^1.0.9
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/icon.png"
+
+flutter:
+  uses-material-design: true

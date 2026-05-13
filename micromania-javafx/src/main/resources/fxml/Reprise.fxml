@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.monprojet.boutiquejeux.controller.RepriseController"
+      spacing="16" styleClass="view-container">
+    <padding><Insets top="20" bottom="20" left="20" right="20"/></padding>
+
+    <Label text="♻️ Reprise produit" styleClass="page-title"/>
+    <Separator/>
+
+    <HBox spacing="16" VBox.vgrow="ALWAYS">
+
+        <!-- GAUCHE : Client + Produit -->
+        <VBox spacing="14" HBox.hgrow="ALWAYS">
+            <!-- Client -->
+            <VBox styleClass="card" spacing="10">
+                <Label text="Client" styleClass="section-title"/>
+                <HBox spacing="8">
+                    <TextField fx:id="rechercheClientField" promptText="Email, pseudo ou nom…" styleClass="text-field-dark" HBox.hgrow="ALWAYS"/>
+                    <Button text="🔍" onAction="#handleRechercheClient" styleClass="btn-secondary"/>
+                </HBox>
+                <Label fx:id="labelClient" text="Aucun client sélectionné" styleClass="info-label"/>
+            </VBox>
+
+            <!-- Produit à reprendre -->
+            <VBox styleClass="card" spacing="10" VBox.vgrow="ALWAYS">
+                <Label text="Produit à reprendre" styleClass="section-title"/>
+                <HBox spacing="8">
+                    <TextField fx:id="rechercheProduitField" promptText="Nom du produit…" styleClass="text-field-dark" HBox.hgrow="ALWAYS"/>
+                    <Button text="🔍" onAction="#handleRechercheProduit" styleClass="btn-secondary"/>
+                </HBox>
+                <TableView fx:id="tableProduits" VBox.vgrow="ALWAYS" styleClass="table-dark">
+                    <columns>
+                        <TableColumn fx:id="colNom"      text="Produit" prefWidth="200" minWidth="200"/>
+                        <TableColumn fx:id="colGenre"    text="Genre"   prefWidth="100" minWidth="100"/>
+                        <TableColumn fx:id="colPrixNeuf" text="Prix neuf" prefWidth="100" minWidth="100"/>
+                    </columns>
+                </TableView>
+            </VBox>
+        </VBox>
+
+        <!-- DROITE : Estimation + Validation -->
+        <VBox spacing="14" prefWidth="360">
+            <VBox styleClass="card" spacing="14">
+                <Label text="📋 Estimation reprise" styleClass="section-title"/>
+
+                <VBox spacing="6">
+                    <Label text="Mode de compensation" styleClass="field-label"/>
+                    <ComboBox fx:id="comboModeCompensation" promptText="Avoir, espèces, virement…" maxWidth="Infinity"/>
+                </VBox>
+
+                <VBox spacing="6">
+                    <Label text="État du produit" styleClass="field-label"/>
+                    <ComboBox fx:id="comboEtat" maxWidth="Infinity"/>
+                </VBox>
+
+                <Label fx:id="labelPrixEstime" text="Prix estimé : —" styleClass="total-label"/>
+
+                <VBox spacing="6">
+                    <Label text="Prix final (€)" styleClass="field-label"/>
+                    <TextField fx:id="prixFinalField" promptText="0.00" styleClass="text-field-dark"/>
+                </VBox>
+
+                <VBox spacing="6">
+                    <Label text="Note interne" styleClass="field-label"/>
+                    <TextArea fx:id="noteArea" promptText="Rayures, boîte abîmée, manette manquante…"
+                              styleClass="textarea-dark" prefRowCount="4" wrapText="true"/>
+                </VBox>
+
+                <StackPane>
+                    <Button fx:id="btnValiderReprise" text="✅ Valider la reprise" onAction="#handleValiderReprise"
+                            styleClass="btn-success" maxWidth="Infinity"/>
+                    <ProgressIndicator fx:id="spinner" maxWidth="28" maxHeight="28" StackPane.alignment="CENTER_RIGHT">
+                        <StackPane.margin><Insets right="10"/></StackPane.margin>
+                    </ProgressIndicator>
+                </StackPane>
+            </VBox>
+
+            <!-- Info coefficients -->
+            <VBox styleClass="card" spacing="6">
+                <Label text="ℹ️ Barème de reprise" styleClass="section-title"/>
+                <Label text="Neuf scellé       → 70% du prix neuf" styleClass="field-label"/>
+                <Label text="Très bon état     → 55%" styleClass="field-label"/>
+                <Label text="Bon état          → 40%" styleClass="field-label"/>
+                <Label text="État moyen        → 25%" styleClass="field-label"/>
+                <Label text="Mauvais état      → 10%" styleClass="field-label"/>
+            </VBox>
+        </VBox>
+    </HBox>
+</VBox>

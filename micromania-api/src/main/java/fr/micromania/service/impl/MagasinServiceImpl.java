@@ -1,10 +1,17 @@
 package fr.micromania.service.impl;
 
+import fr.micromania.dto.magasin.CreateMagasinRequest;
+import fr.micromania.dto.magasin.HoraireMagasinDto;
+import fr.micromania.dto.magasin.HoraireMagasinRequest;
+import fr.micromania.dto.magasin.MagasinAdminResponse;
 import fr.micromania.dto.magasin.MagasinProximiteResponse;
 import fr.micromania.dto.magasin.MagasinPublicResponse;
+import fr.micromania.dto.magasin.UpdateMagasinRequest;
 import fr.micromania.entity.Adresse;
+import fr.micromania.entity.HoraireMagasin;
 import fr.micromania.entity.Magasin;
 import fr.micromania.repository.AdresseRepository;
+import fr.micromania.repository.HoraireMagasinRepository;
 import fr.micromania.repository.MagasinRepository;
 import fr.micromania.service.MagasinService;
 import jakarta.persistence.EntityNotFoundException;
@@ -16,21 +23,34 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class MagasinServiceImpl implements MagasinService {
 
-    private final MagasinRepository magasinRepository;
-    private final AdresseRepository adresseRepository;
+    private final MagasinRepository        magasinRepository;
+    private final AdresseRepository        adresseRepository;
+    private final HoraireMagasinRepository horaireRepository;
+
+    private static final String[] JOURS_SEMAINE =
+            {"", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"};
 
     @Override
     public List<MagasinPublicResponse> getMagasinsActifs(String q) {
         String filtre = normaliser(q);
 
+        Map<Long, Adresse> adresseParMagasin = adresseRepository.findAllMagasinAddressesActives().stream()
+                .collect(Collectors.toMap(
+                        a -> a.getMagasin().getId(),
+                        a -> a,
+                        (a1, a2) -> a1.isEstDefaut() ? a1 : a2
+                ));
+
         return magasinRepository.findByActifTrueOrderByNomAsc().stream()
-                .map(this::toPublicResponse)
+                .map(magasin -> toPublicResponse(magasin, adresseParMagasin.get(magasin.getId())))
                 .filter(magasin -> filtre.isBlank() || match(magasin, filtre))
                 .sorted(Comparator.comparing(MagasinPublicResponse::nom, String.CASE_INSENSITIVE_ORDER))
                 .toList();
@@ -66,9 +86,118 @@ public class MagasinServiceImpl implements MagasinService {
                 .toList();
     }
 
+    // ── Administration ───────────────────────────────────────────────────────
+
+    @Override
+    public List<MagasinAdminResponse> listerTous() {
+        return magasinRepository.findAll().stream().map(this::toAdmin).toList();
+    }
+
+    @Override
+    @Transactional
+    public MagasinAdminResponse creerMagasin(CreateMagasinRequest req) {
+        Magasin m = Magasin.builder()
+                .nom(req.nom())
+                .telephone(req.telephone())
+                .email(req.email())
+                .actif(true)
+                .build();
+        return toAdmin(magasinRepository.save(m));
+    }
+
+    @Override
+    @Transactional
+    public MagasinAdminResponse modifierMagasin(Long id, UpdateMagasinRequest req) {
+        Magasin m = magasinRepository.findById(id)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Magasin introuvable : " + id));
+        if (req.nom()       != null) m.setNom(req.nom());
+        if (req.telephone() != null) m.setTelephone(req.telephone());
+        if (req.email()     != null) m.setEmail(req.email());
+        if (req.actif()     != null) m.setActif(req.actif());
+        return toAdmin(magasinRepository.save(m));
+    }
+
+    @Override
+    @Transactional
+    public void supprimerMagasin(Long id) {
+        Magasin m = magasinRepository.findById(id)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Magasin introuvable : " + id));
+        m.setActif(false);
+        magasinRepository.save(m);
+    }
+
+    // ── Horaires ─────────────────────────────────────────────────────────────
+
+    @Override
+    public List<HoraireMagasinDto> getHoraires(Long idMagasin) {
+        magasinRepository.findByIdAndActifTrue(idMagasin)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Magasin introuvable : " + idMagasin));
+        return toHoraireDtos(horaireRepository.findByMagasinIdOrderByJourSemaine(idMagasin));
+    }
+
+    @Override
+    @Transactional
+    public List<HoraireMagasinDto> setHoraires(Long idMagasin, List<HoraireMagasinRequest> horaires) {
+        Magasin magasin = magasinRepository.findById(idMagasin)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Magasin introuvable : " + idMagasin));
+        horaireRepository.deleteByMagasinId(idMagasin);
+        horaireRepository.flush();
+        List<HoraireMagasin> saved = horaireRepository.saveAll(
+                horaires.stream().map(h -> HoraireMagasin.builder()
+                        .magasin(magasin)
+                        .jourSemaine(h.jourSemaine())
+                        .heureOuverture(h.ferme() ? null : h.heureOuverture())
+                        .heureFermeture(h.ferme() ? null : h.heureFermeture())
+                        .ferme(h.ferme())
+                        .build()
+                ).toList()
+        );
+        saved.sort(java.util.Comparator.comparingInt(HoraireMagasin::getJourSemaine));
+        return toHoraireDtos(saved);
+    }
+
+    @Override
+    @Transactional
+    public HoraireMagasinDto updateHoraire(Long idMagasin, int jour, HoraireMagasinRequest req) {
+        Magasin magasin = magasinRepository.findById(idMagasin)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Magasin introuvable : " + idMagasin));
+        HoraireMagasin h = horaireRepository.findByMagasinIdAndJourSemaine(idMagasin, jour)
+                .orElseGet(() -> HoraireMagasin.builder().magasin(magasin).jourSemaine(jour).build());
+        h.setFerme(req.ferme());
+        h.setHeureOuverture(req.ferme() ? null : req.heureOuverture());
+        h.setHeureFermeture(req.ferme() ? null : req.heureFermeture());
+        return toHoraireDto(horaireRepository.save(h));
+    }
+
+    private MagasinAdminResponse toAdmin(Magasin m) {
+        return new MagasinAdminResponse(
+                m.getId(), m.getNom(), m.getTelephone(), m.getEmail(),
+                m.isActif(), m.getDateCreation(), m.getDateModification());
+    }
+
+    private List<HoraireMagasinDto> toHoraireDtos(List<HoraireMagasin> list) {
+        return list.stream().map(this::toHoraireDto).toList();
+    }
+
+    private HoraireMagasinDto toHoraireDto(HoraireMagasin h) {
+        String ouv  = h.getHeureOuverture()  != null ? h.getHeureOuverture().toString()  : null;
+        String ferm = h.getHeureFermeture()  != null ? h.getHeureFermeture().toString() : null;
+        return new HoraireMagasinDto(
+                h.getJourSemaine(),
+                JOURS_SEMAINE[h.getJourSemaine()],
+                ouv, ferm, h.isFerme()
+        );
+    }
+
+    // ── Private helpers ──────────────────────────────────────────────────────
+
     private MagasinPublicResponse toPublicResponse(Magasin magasin) {
         Adresse adresse = adresseRepository.findFirstByMagasinIdAndEstDefautTrue(magasin.getId())
                 .orElseGet(() -> adresseRepository.findByMagasinId(magasin.getId()).stream().findFirst().orElse(null));
+        return toPublicResponse(magasin, adresse);
+    }
+
+    private MagasinPublicResponse toPublicResponse(Magasin magasin, Adresse adresse) {
 
         String rue = adresse != null ? adresse.getRue() : null;
         String complement = adresse != null ? adresse.getComplement() : null;

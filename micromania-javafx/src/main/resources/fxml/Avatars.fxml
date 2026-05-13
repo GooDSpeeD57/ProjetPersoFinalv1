@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.monprojet.boutiquejeux.controller.AvatarsController"
+      spacing="14" styleClass="view-container">
+    <padding><Insets top="18" bottom="18" left="18" right="18"/></padding>
+
+    <Label text="🖼 Gestion des avatars" styleClass="page-title"/>
+    <Separator/>
+
+    <HBox spacing="14" VBox.vgrow="ALWAYS">
+
+        <!-- ══ COLONNE GAUCHE : liste ══ -->
+        <VBox spacing="10" prefWidth="480">
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Button text="🔄 Rafraîchir" onAction="#handleRefresh" styleClass="btn-secondary"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="labelCount" styleClass="field-label"/>
+                <ProgressIndicator fx:id="spinnerListe" maxWidth="22" maxHeight="22"/>
+            </HBox>
+
+            <TableView fx:id="tableAvatars" VBox.vgrow="ALWAYS" styleClass="table-dark">
+                <columns>
+                    <TableColumn fx:id="colId"    text="ID"     prefWidth="45"  minWidth="45"/>
+                    <TableColumn fx:id="colNom"   text="Nom"    prefWidth="140" minWidth="100"/>
+                    <TableColumn fx:id="colAlt"   text="Alt"    prefWidth="140" minWidth="100"/>
+                    <TableColumn fx:id="colDeco"  text="Déco"   prefWidth="45"  minWidth="45"/>
+                    <TableColumn fx:id="colActif" text="Actif"  prefWidth="50"  minWidth="50"/>
+                </columns>
+                <placeholder><Label text="Aucun avatar" styleClass="field-label"/></placeholder>
+            </TableView>
+
+            <HBox spacing="8">
+                <Button text="➕ Nouveau" onAction="#handleNouveau"
+                        styleClass="btn-primary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                <Button text="🗑 Supprimer" onAction="#handleSupprimer"
+                        styleClass="btn-danger" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+            </HBox>
+        </VBox>
+
+        <!-- ══ COLONNE DROITE : tabs ══ -->
+        <VBox HBox.hgrow="ALWAYS" spacing="8">
+
+            <Label fx:id="labelTitreForm" text="Sélectionnez un avatar ou créez-en un"
+                   styleClass="section-title"/>
+
+            <TabPane VBox.vgrow="ALWAYS" styleClass="tab-pane-dark" tabClosingPolicy="UNAVAILABLE">
+
+                <!-- ─ Tab 1 : Formulaire (créer / modifier) ─ -->
+                <Tab text="✏️  Formulaire">
+                    <ScrollPane fitToWidth="true" styleClass="scroll-dark" VBox.vgrow="ALWAYS">
+                        <VBox spacing="12">
+                            <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
+
+                            <Label text="Nom *" styleClass="field-label"/>
+                            <TextField fx:id="fieldNom" promptText="ex : avatar_ninja"
+                                       styleClass="text-field-dark"/>
+
+                            <Label text="URL de l'image *" styleClass="field-label"/>
+                            <TextField fx:id="fieldUrl"
+                                       promptText="/images/avatars/mon-avatar.png"
+                                       styleClass="text-field-dark"/>
+
+                            <Label text="Texte alternatif (alt)" styleClass="field-label"/>
+                            <TextField fx:id="fieldAlt" promptText="Avatar utilisateur"
+                                       styleClass="text-field-dark"/>
+
+                            <HBox spacing="16" alignment="CENTER_LEFT">
+                                <CheckBox fx:id="checkDecorative" text="Décoratif uniquement"
+                                          styleClass="check-dark"/>
+                                <CheckBox fx:id="checkActif" text="Actif"
+                                          styleClass="check-dark" selected="true"/>
+                            </HBox>
+
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <Button fx:id="btnSauvegarder" text="💾 Sauvegarder"
+                                        onAction="#handleSauvegarder" styleClass="btn-primary"/>
+                                <Button text="✖ Annuler" onAction="#handleAnnuler"
+                                        styleClass="btn-secondary"/>
+                                <ProgressIndicator fx:id="spinnerForm" maxWidth="22" maxHeight="22"/>
+                            </HBox>
+
+                            <Label fx:id="labelFormMsg" styleClass="info-label" wrapText="true"/>
+                        </VBox>
+                    </ScrollPane>
+                </Tab>
+
+                <!-- ─ Tab 2 : Upload simple ─ -->
+                <Tab text="📁  Upload">
+                    <ScrollPane fitToWidth="true" styleClass="scroll-dark">
+                        <VBox spacing="12">
+                            <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
+
+                            <Label text="Sélectionner un ou plusieurs fichiers images"
+                                   styleClass="field-label"/>
+                            <Label text="Les images sont enregistrées dans media/images/avatars/"
+                                   styleClass="info-label" wrapText="true"/>
+
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <Button text="📂 Choisir fichier(s)" onAction="#handleChoisirFichiers"
+                                        styleClass="btn-secondary"/>
+                                <Label fx:id="labelFichiersChoisis" text="Aucun fichier sélectionné"
+                                       styleClass="field-label" wrapText="true" HBox.hgrow="ALWAYS"/>
+                            </HBox>
+
+                            <!-- Aperçu liste fichiers sélectionnés -->
+                            <ListView fx:id="listeFichiersUpload" prefHeight="140"
+                                      styleClass="table-dark"/>
+
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <Button text="📤 Uploader" onAction="#handleUploader"
+                                        styleClass="btn-primary"/>
+                                <Button text="✖ Vider" onAction="#handleViderUpload"
+                                        styleClass="btn-secondary"/>
+                                <ProgressIndicator fx:id="spinnerUpload" maxWidth="22" maxHeight="22"/>
+                            </HBox>
+
+                            <!-- Résultats upload -->
+                            <Label text="Résultats :" styleClass="field-label"/>
+                            <TextArea fx:id="textResultatUpload" prefHeight="120"
+                                      editable="false" wrapText="true"
+                                      styleClass="text-field-dark"/>
+                        </VBox>
+                    </ScrollPane>
+                </Tab>
+
+            </TabPane>
+        </VBox>
+
+    </HBox>
+</VBox>

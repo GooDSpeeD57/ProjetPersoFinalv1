@@ -22,4 +22,17 @@ public interface GarantieRepository extends JpaRepository<Garantie, Long> {
         @Param("today") LocalDate today,
         @Param("limite") LocalDate limite
     );
+
+    /** Toutes les garanties d'un client (via vente_unite → ligne_facture → facture → client). */
+    @Query("""
+        SELECT DISTINCT g FROM Garantie g
+        LEFT JOIN FETCH g.typeGarantie tg
+        LEFT JOIN FETCH g.extensions ext
+        JOIN FETCH g.venteUnite vu
+        JOIN FETCH vu.ligneFacture lf
+        JOIN FETCH lf.variant v
+        WHERE lf.facture.client.id = :idClient
+        ORDER BY g.dateDebut DESC
+        """)
+    List<Garantie> findByClientId(@Param("idClient") Long idClient);
 }

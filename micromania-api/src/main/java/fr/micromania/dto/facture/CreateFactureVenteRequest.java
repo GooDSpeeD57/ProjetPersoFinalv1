@@ -29,5 +29,6 @@ public record CreateFactureVenteRequest(
     List<LigneFactureRequest> lignes,
 
     String codePromo,
-    Long idBonAchat
+    Long idBonAchat,
+    List<Long> idsBonAchat
 ) {}

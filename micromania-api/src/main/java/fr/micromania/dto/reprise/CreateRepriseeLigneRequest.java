@@ -3,6 +3,7 @@ package fr.micromania.dto.reprise;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Builder;
 import java.math.BigDecimal;
 
@@ -23,7 +24,4 @@ public record CreateRepriseeLigneRequest(
 
     String numeroSerie,
     String commentaires
-) {
-    @SuppressWarnings("unused")
-    private @interface Size { int max(); }
-}
+) {}

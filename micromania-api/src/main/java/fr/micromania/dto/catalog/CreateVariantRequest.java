@@ -26,8 +26,7 @@ public record CreateVariantRequest(
     @NotBlank @Size(max = 255)
     String nomCommercial,
 
-    @Size(max = 100)
-    String edition,
+    Long idEdition,
 
     @Size(max = 100)
     String couleur,
@@ -42,8 +41,14 @@ public record CreateVariantRequest(
     Long idTauxTva,
 
     @DecimalMin("0.01")
-    BigDecimal prixWeb,
+    BigDecimal prixNeuf,
 
     @DecimalMin("0.01")
-    BigDecimal prixMagasin
+    BigDecimal prixOccasion,
+
+    @DecimalMin("0.01")
+    BigDecimal prixReprise,
+
+    @DecimalMin("0.01")
+    BigDecimal prixLocation
 ) {}

@@ -5,15 +5,18 @@ import fr.micromania.service.AuthService;
 import fr.micromania.service.ClientService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
+@Validated
 public class AuthController {
 
     private final AuthService   authService;
@@ -27,7 +30,7 @@ public class AuthController {
         clientService.creerDepuisInscription(request);
         AuthResponse response = authService.loginClient(
             new LoginRequest(request.email(), request.motDePasse(), false),
-            http.getRemoteAddr(),
+            extractClientIp(http),
             http.getHeader("User-Agent")
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -39,7 +42,7 @@ public class AuthController {
             HttpServletRequest http) {
 
         return ResponseEntity.ok(authService.loginClient(
-            request, http.getRemoteAddr(), http.getHeader("User-Agent")));
+            request, extractClientIp(http), http.getHeader("User-Agent")));
     }
 
     @PostMapping("/remember-me/client")
@@ -48,7 +51,7 @@ public class AuthController {
             HttpServletRequest http) {
 
         return ResponseEntity.ok(authService.loginClientWithRememberMe(
-            request.rememberMeToken(), http.getRemoteAddr(), http.getHeader("User-Agent")));
+            request.rememberMeToken(), extractClientIp(http), http.getHeader("User-Agent")));
     }
 
     @PostMapping("/login/employe")
@@ -57,7 +60,15 @@ public class AuthController {
             HttpServletRequest http) {
 
         return ResponseEntity.ok(authService.loginEmploye(
-            request, http.getRemoteAddr(), http.getHeader("User-Agent")));
+            request, extractClientIp(http), http.getHeader("User-Agent")));
+    }
+
+    private String extractClientIp(HttpServletRequest request) {
+        String xff = request.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) {
+            return xff.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     @PostMapping("/logout")
@@ -83,7 +94,7 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<Void> forgotPassword(@RequestParam String email) {
+    public ResponseEntity<Void> forgotPassword(@Email @RequestParam String email) {
         authService.demanderResetPassword(email);
         return ResponseEntity.noContent().build();
     }

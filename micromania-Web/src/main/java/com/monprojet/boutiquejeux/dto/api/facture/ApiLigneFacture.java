@@ -11,5 +11,12 @@ public record ApiLigneFacture(
     BigDecimal tauxTvaApplique,
     BigDecimal montantLigne,
     BigDecimal montantHtLigne,
-    BigDecimal montantTvaLigne
-) {}
+    BigDecimal montantTvaLigne,
+    String garantieLabel,
+    BigDecimal garantiePrix
+) {
+    /** Prix garantie × quantité (0 si pas de garantie). */
+    public BigDecimal garantieTotale() {
+        return garantiePrix != null ? garantiePrix.multiply(BigDecimal.valueOf(quantite)) : BigDecimal.ZERO;
+    }
+}

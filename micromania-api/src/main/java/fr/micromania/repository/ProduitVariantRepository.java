@@ -2,13 +2,15 @@ package fr.micromania.repository;
 
 import fr.micromania.entity.catalog.ProduitVariant;
 import org.springframework.data.jpa.repository.*;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface ProduitVariantRepository extends JpaRepository<ProduitVariant, Long> {
+public interface ProduitVariantRepository extends JpaRepository<ProduitVariant, Long>,
+        JpaSpecificationExecutor<ProduitVariant> {
 
     Optional<ProduitVariant> findBySkuAndActifTrue(String sku);
 

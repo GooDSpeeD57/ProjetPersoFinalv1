@@ -10,5 +10,10 @@ public record LignePanierResponse(
     String imageUrl,
     int quantite,
     BigDecimal prixUnitaire,
-    BigDecimal montantLigne
+    BigDecimal montantLigne,
+    Long typeGarantieId,
+    String garantieLabel,
+    BigDecimal garantiePrix,
+    Long categorieId,
+    String statutProduit
 ) {}

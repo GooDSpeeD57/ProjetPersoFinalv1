@@ -5,12 +5,6 @@ import fr.micromania.dto.client.CreateClientRequest;
 import fr.micromania.entity.Client;
 import org.mapstruct.*;
 
-/**
- * Mapper dédié à l'authentification.
- * La conversion RegisterRequest → Client est partielle :
- * le mot de passe doit être encodé (BCrypt) AVANT d'appeler ce mapper,
- * puis injecté via @AfterMapping ou directement dans le service.
- */
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.WARN)
 public interface AuthMapper {
 

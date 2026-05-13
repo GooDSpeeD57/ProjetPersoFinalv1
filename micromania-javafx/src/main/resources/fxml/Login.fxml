@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<StackPane xmlns:fx="http://javafx.com/fxml"
+           fx:controller="com.monprojet.boutiquejeux.controller.LoginController"
+           styleClass="root-dark">
+    <VBox alignment="CENTER" spacing="24" maxWidth="380">
+        <padding><Insets top="40" bottom="40" left="40" right="40"/></padding>
+
+        <Label text="🎮 BoutiqueJeux" styleClass="title-logo"/>
+        <Label text="Espace Employé" styleClass="subtitle"/>
+
+        <VBox spacing="14">
+            <Label text="Email" styleClass="field-label"/>
+            <TextField fx:id="emailField" promptText="employe@boutique.fr" styleClass="text-field-dark"/>
+
+            <Label text="Mot de passe" styleClass="field-label"/>
+            <PasswordField fx:id="passwordField" promptText="••••••••" styleClass="text-field-dark"/>
+        </VBox>
+
+        <CheckBox fx:id="rememberMeCheck" text="Se souvenir de moi" styleClass="checkbox-dark"/>
+
+        <Label fx:id="errorLabel" styleClass="error-label" wrapText="true"/>
+
+        <StackPane>
+            <Button fx:id="loginButton" text="Se connecter" onAction="#handleLogin"
+                    styleClass="btn-primary" maxWidth="Infinity"/>
+            <ProgressIndicator fx:id="spinner" maxWidth="30" maxHeight="30" StackPane.alignment="CENTER_RIGHT">
+                <StackPane.margin><Insets right="10"/></StackPane.margin>
+            </ProgressIndicator>
+        </StackPane>
+
+        <Label text="v1.0.0 — Espace réservé au personnel" styleClass="version-label"/>
+    </VBox>
+</StackPane>

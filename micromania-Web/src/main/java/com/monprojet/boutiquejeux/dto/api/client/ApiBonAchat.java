@@ -10,6 +10,7 @@ public record ApiBonAchat(
     int pointsUtilises,
     boolean utilise,
     LocalDateTime dateCreation,
+    LocalDateTime dateExpiration,
     LocalDateTime dateUtilisation,
     Long idFacture
 ) {}

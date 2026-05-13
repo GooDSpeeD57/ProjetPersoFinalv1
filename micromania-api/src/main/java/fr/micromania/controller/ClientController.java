@@ -1,9 +1,11 @@
 package fr.micromania.controller;
 
 import fr.micromania.dto.client.*;
+import fr.micromania.dto.garantie.GarantieResponse;
 import fr.micromania.service.AdresseService;
 import fr.micromania.service.ClientService;
 import fr.micromania.service.FideliteService;
+import fr.micromania.service.GarantieService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,14 +24,33 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClientController {
 
-    private final ClientService  clientService;
-    private final AdresseService adresseService;
+    private final ClientService   clientService;
+    private final AdresseService  adresseService;
     private final FideliteService fideliteService;
+    private final GarantieService garantieService;
+
+    // ── Identification sécurisée par employé ──────────────────
+
+    @GetMapping("/identifier")
+    @PreAuthorize("hasAnyRole('VENDEUR','MANAGER','ADMIN')")
+    public ResponseEntity<ClientResponse> identifier(
+            @RequestParam String nom,
+            @RequestParam String prenom,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate dateNaissance) {
+
+        return ResponseEntity.ok(clientService.identifierParIdentite(nom, prenom, dateNaissance));
+    }
+
+    @GetMapping("/{id}/bons-achat")
+    @PreAuthorize("hasAnyRole('VENDEUR','MANAGER','ADMIN')")
+    public ResponseEntity<java.util.List<BonAchatResponse>> getBonsAchatClient(@PathVariable Long id) {
+        return ResponseEntity.ok(fideliteService.getBonsAchat(id));
+    }
 
     // ── Back-office (MANAGER / ADMIN) ─────────────────────────
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+    @PreAuthorize("hasAnyRole('VENDEUR','MANAGER','ADMIN')")
     public ResponseEntity<Page<ClientSummary>> search(
             @RequestParam(required = false) String q,
             @PageableDefault(size = 20) Pageable pageable) {
@@ -57,9 +78,7 @@ public class ClientController {
 
     @GetMapping("/me")
     @PreAuthorize("hasRole('CLIENT')")
-    public ResponseEntity<ClientResponse> getMe(
-            @AuthenticationPrincipal Long idClient) {
-
+    public ResponseEntity<ClientResponse> getMe(@AuthenticationPrincipal Long idClient) {
         return ResponseEntity.ok(clientService.getById(idClient));
     }
 
@@ -74,34 +93,26 @@ public class ClientController {
 
     @DeleteMapping("/me")
     @PreAuthorize("hasRole('CLIENT')")
-    public ResponseEntity<Void> demanderSuppression(
-            @AuthenticationPrincipal Long idClient) {
-
+    public ResponseEntity<Void> demanderSuppression(@AuthenticationPrincipal Long idClient) {
         clientService.demanderSuppression(idClient);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/me/points")
     @PreAuthorize("hasRole('CLIENT')")
-    public ResponseEntity<PointsFideliteResponse> getPoints(
-            @AuthenticationPrincipal Long idClient) {
-
+    public ResponseEntity<PointsFideliteResponse> getPoints(@AuthenticationPrincipal Long idClient) {
         return ResponseEntity.ok(clientService.getPointsFidelite(idClient));
     }
 
     @GetMapping("/me/fidelite")
     @PreAuthorize("hasRole('CLIENT')")
-    public ResponseEntity<FideliteDetailResponse> getFidelite(
-            @AuthenticationPrincipal Long idClient) {
-
+    public ResponseEntity<FideliteDetailResponse> getFidelite(@AuthenticationPrincipal Long idClient) {
         return ResponseEntity.ok(fideliteService.getDetail(idClient));
     }
 
     @GetMapping("/me/bons-achat")
     @PreAuthorize("hasRole('CLIENT')")
-    public ResponseEntity<List<BonAchatResponse>> getBonsAchat(
-            @AuthenticationPrincipal Long idClient) {
-
+    public ResponseEntity<List<BonAchatResponse>> getBonsAchat(@AuthenticationPrincipal Long idClient) {
         return ResponseEntity.ok(fideliteService.getBonsAchat(idClient));
     }
 
@@ -113,11 +124,38 @@ public class ClientController {
         return ResponseEntity.ok(fideliteService.getHistorique(idClient));
     }
 
+    @PutMapping("/me/magasin-favori/{idMagasin}")
+    @PreAuthorize("hasRole('CLIENT')")
+    public ResponseEntity<ClientResponse> setMagasinFavori(
+            @AuthenticationPrincipal Long idClient,
+            @PathVariable Long idMagasin) {
+        return ResponseEntity.ok(clientService.setMagasinFavori(idClient, idMagasin));
+    }
+
+    @DeleteMapping("/me/magasin-favori")
+    @PreAuthorize("hasRole('CLIENT')")
+    public ResponseEntity<Void> removeMagasinFavori(@AuthenticationPrincipal Long idClient) {
+        clientService.removeMagasinFavori(idClient);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/me/verifier-email")
+    @PreAuthorize("hasRole('CLIENT')")
+    public ResponseEntity<Void> simulerVerificationEmail(@AuthenticationPrincipal Long idClient) {
+        clientService.simulerVerificationEmail(idClient);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/me/verifier-telephone")
+    @PreAuthorize("hasRole('CLIENT')")
+    public ResponseEntity<Void> simulerVerificationTelephone(@AuthenticationPrincipal Long idClient) {
+        clientService.simulerVerificationTelephone(idClient);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/me/ultimate/subscribe")
     @PreAuthorize("hasRole('CLIENT')")
-    public ResponseEntity<ClientResponse> souscrireUltimate(
-            @AuthenticationPrincipal Long idClient) {
-
+    public ResponseEntity<ClientResponse> souscrireUltimate(@AuthenticationPrincipal Long idClient) {
         return ResponseEntity.ok(clientService.souscrireUltimate(idClient));
     }
 
@@ -125,9 +163,7 @@ public class ClientController {
 
     @GetMapping("/me/adresses")
     @PreAuthorize("hasRole('CLIENT')")
-    public ResponseEntity<List<AdresseResponse>> getAdresses(
-            @AuthenticationPrincipal Long idClient) {
-
+    public ResponseEntity<List<AdresseResponse>> getAdresses(@AuthenticationPrincipal Long idClient) {
         return ResponseEntity.ok(adresseService.getByClient(idClient));
     }
 
@@ -169,6 +205,18 @@ public class ClientController {
 
         adresseService.setDefaut(idAdresse, idClient);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Garanties du client connecté — UN enregistrement par produit vendu.
+     * typeItem = "LEGALE" ou "EXTENSION" selon le type de garantie.
+     */
+    @GetMapping("/me/garanties")
+    @PreAuthorize("hasRole('CLIENT')")
+    public ResponseEntity<List<GarantieResponse>> getMesGaranties(
+            @AuthenticationPrincipal Long idClient) {
+
+        return ResponseEntity.ok(garantieService.getByClientId(idClient));
     }
 
     // ── Admin uniquement ───────────────────────────────────────

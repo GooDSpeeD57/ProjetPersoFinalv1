@@ -52,6 +52,7 @@ DROP TABLE IF EXISTS produit_video;
 DROP TABLE IF EXISTS produit_image;
 DROP TABLE IF EXISTS produit_prix;
 DROP TABLE IF EXISTS produit_variant;
+DROP TABLE IF EXISTS edition_produit;
 DROP TABLE IF EXISTS produit;
 DROP TABLE IF EXISTS categorie;
 DROP TABLE IF EXISTS adresse;
@@ -398,11 +399,13 @@ CREATE TABLE client (
     demande_suppression          BOOLEAN NOT NULL DEFAULT FALSE,
     date_suppression             DATETIME NULL,
     date_derniere_connexion      DATETIME NULL,
+    id_magasin_favori            BIGINT NULL,
     date_creation                DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     date_modification            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_client_avatar            FOREIGN KEY (id_avatar)            REFERENCES avatar(id_avatar),
     CONSTRAINT fk_client_fidelite          FOREIGN KEY (id_type_fidelite)    REFERENCES type_fidelite(id_type_fidelite),
-    CONSTRAINT fk_client_employe_createur  FOREIGN KEY (id_employe_createur) REFERENCES employe(id_employe)
+    CONSTRAINT fk_client_employe_createur  FOREIGN KEY (id_employe_createur) REFERENCES employe(id_employe),
+    CONSTRAINT fk_client_magasin_favori    FOREIGN KEY (id_magasin_favori)   REFERENCES magasin(id_magasin)
 );
 
 CREATE TABLE planning_employe (
@@ -576,6 +579,15 @@ CREATE TABLE produit (
     CONSTRAINT chk_produit_niveau  CHECK (niveau_acces_min IN ('NORMAL', 'PREMIUM', 'ULTIMATE'))
 );
 
+CREATE TABLE edition_produit (
+    id_edition        BIGINT AUTO_INCREMENT PRIMARY KEY,
+    code              VARCHAR(50)  NOT NULL,
+    libelle           VARCHAR(100) NOT NULL,
+    ordre_affichage   INT          NOT NULL DEFAULT 0,
+    actif             BOOLEAN      NOT NULL DEFAULT TRUE,
+    CONSTRAINT uq_edition_code UNIQUE (code)
+);
+
 CREATE TABLE produit_variant (
     id_variant             BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_produit             BIGINT NOT NULL,
@@ -586,7 +598,7 @@ CREATE TABLE produit_variant (
     id_statut_produit      BIGINT NOT NULL,
     nom_commercial         VARCHAR(255) NOT NULL,
     reference_fournisseur  VARCHAR(100) NULL,
-    edition                VARCHAR(100) NULL,
+    id_edition             BIGINT NULL,
     couleur                VARCHAR(100) NULL,
     taille                 VARCHAR(50) NULL,
     capacite_stockage      VARCHAR(100) NULL,
@@ -606,21 +618,22 @@ CREATE TABLE produit_variant (
     CONSTRAINT fk_variant_plateforme FOREIGN KEY (id_plateforme)     REFERENCES plateforme(id_plateforme),
     CONSTRAINT fk_variant_format     FOREIGN KEY (id_format_produit) REFERENCES format_produit(id_format_produit),
     CONSTRAINT fk_variant_statut     FOREIGN KEY (id_statut_produit) REFERENCES statut_produit(id_statut_produit),
-    CONSTRAINT fk_variant_tva        FOREIGN KEY (id_taux_tva)       REFERENCES taux_tva(id_taux_tva)
+    CONSTRAINT fk_variant_tva        FOREIGN KEY (id_taux_tva)       REFERENCES taux_tva(id_taux_tva),
+    CONSTRAINT fk_variant_edition    FOREIGN KEY (id_edition)        REFERENCES edition_produit(id_edition)
 );
 
 CREATE TABLE produit_prix (
     id_prix        BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_variant     BIGINT NOT NULL,
-    id_canal_vente BIGINT NOT NULL,
-    prix           DECIMAL(10,2) NOT NULL,
-    date_debut     DATETIME NOT NULL,
+    prix_neuf      DECIMAL(10,2) NULL,
+    prix_occasion  DECIMAL(10,2) NULL,
+    prix_reprise   DECIMAL(10,2) NULL,
+    prix_location  DECIMAL(10,2) NULL,
+    date_debut     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     date_fin       DATETIME NULL,
     actif          BOOLEAN NOT NULL DEFAULT TRUE,
-    CONSTRAINT fk_produit_prix_variant FOREIGN KEY (id_variant)     REFERENCES produit_variant(id_variant) ON DELETE CASCADE,
-    CONSTRAINT fk_produit_prix_canal   FOREIGN KEY (id_canal_vente) REFERENCES canal_vente(id_canal_vente),
-    CONSTRAINT chk_prix_positif CHECK (prix > 0),
-    CONSTRAINT chk_prix_dates   CHECK (date_fin IS NULL OR date_fin > date_debut)
+    CONSTRAINT fk_produit_prix_variant FOREIGN KEY (id_variant) REFERENCES produit_variant(id_variant) ON DELETE CASCADE,
+    CONSTRAINT chk_prix_dates CHECK (date_fin IS NULL OR date_fin > date_debut)
 );
 
 CREATE TABLE produit_image (
@@ -1372,6 +1385,7 @@ CREATE INDEX idx_produit_nom                     ON produit(nom);
 CREATE INDEX idx_produit_actif                   ON produit(actif, deleted);
 CREATE INDEX idx_produit_niveau                  ON produit(niveau_acces_min);
 CREATE INDEX idx_variant_produit                 ON produit_variant(id_produit);
+CREATE INDEX idx_variant_edition                 ON produit_variant(id_edition);
 CREATE INDEX idx_variant_plateforme              ON produit_variant(id_plateforme);
 CREATE INDEX idx_variant_format                  ON produit_variant(id_format_produit);
 CREATE INDEX idx_variant_statut                  ON produit_variant(id_statut_produit);
@@ -1380,7 +1394,6 @@ CREATE INDEX idx_variant_demat                   ON produit_variant(est_demat);
 CREATE INDEX idx_variant_tcg                     ON produit_variant(est_tcg_unitaire);
 CREATE INDEX idx_variant_reprise                 ON produit_variant(est_reprise);
 CREATE INDEX idx_prix_variant                    ON produit_prix(id_variant);
-CREATE INDEX idx_prix_canal                      ON produit_prix(id_canal_vente);
 CREATE INDEX idx_prix_dates                      ON produit_prix(date_debut, date_fin);
 CREATE INDEX idx_image_produit                   ON produit_image(id_produit);
 CREATE INDEX idx_video_produit                   ON produit_video(id_produit);

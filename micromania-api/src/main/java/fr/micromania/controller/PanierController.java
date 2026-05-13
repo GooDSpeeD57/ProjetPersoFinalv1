@@ -42,6 +42,23 @@ public class PanierController {
         return ResponseEntity.ok(panierService.updateLigne(idClient, idLigne, request));
     }
 
+    @PutMapping("/lignes/{idLigne}/garantie")
+    public ResponseEntity<PanierResponse> definirGarantie(
+            @AuthenticationPrincipal Long idClient,
+            @PathVariable Long idLigne,
+            @RequestParam Long typeGarantieId) {
+
+        return ResponseEntity.ok(panierService.definirGarantie(idClient, idLigne, typeGarantieId));
+    }
+
+    @DeleteMapping("/lignes/{idLigne}/garantie")
+    public ResponseEntity<PanierResponse> retirerGarantie(
+            @AuthenticationPrincipal Long idClient,
+            @PathVariable Long idLigne) {
+
+        return ResponseEntity.ok(panierService.retirerGarantie(idClient, idLigne));
+    }
+
     @DeleteMapping("/lignes/{idLigne}")
     public ResponseEntity<PanierResponse> removeLigne(
             @AuthenticationPrincipal Long idClient,

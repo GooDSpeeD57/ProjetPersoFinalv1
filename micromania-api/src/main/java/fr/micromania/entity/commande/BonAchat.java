@@ -40,11 +40,15 @@ public class BonAchat {
     @Column(name = "date_creation", nullable = false, updatable = false)
     private LocalDateTime dateCreation;
 
+    @Column(name = "date_expiration")
+    private LocalDateTime dateExpiration;
+
     @Column(name = "date_utilisation")
     private LocalDateTime dateUtilisation;
 
     @PrePersist
     protected void onCreate() {
-        dateCreation = LocalDateTime.now();
+        dateCreation    = LocalDateTime.now();
+        dateExpiration  = dateCreation.plusMonths(6);
     }
 }

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta th:if="${_csrf}" name="_csrf_token"  th:content="${_csrf.token}"/>
+  <meta th:if="${_csrf}" name="_csrf_param"  th:content="${_csrf.parameterName}"/>
+  <link rel="stylesheet" th:href="@{/css/style.css}"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    body { margin:0; padding:0; background:var(--bg); color:var(--text); }
+    .popup-inner { padding:1rem; }
+    .store-search-form { display:flex; gap:.5rem; flex-wrap:wrap; }
+    .store-search-form input { flex:1; min-width:180px; }
+  </style>
+</head>
+<body>
+<div class="popup-inner">
+
+  <!-- Barre de recherche -->
+  <form th:action="@{/magasins}" method="get" class="store-search-form" style="margin-bottom:1rem">
+    <input type="hidden" name="popup" value="true"/>
+    <input class="form-control" type="text" name="q" th:value="${q}" placeholder="Ville, nom ou code postal…"/>
+    <button type="submit" class="btn btn-primary">Rechercher</button>
+    <a class="btn btn-secondary" th:href="@{/magasins(popup=true)}">Effacer</a>
+  </form>
+
+  <!-- Aucune recherche -->
+  <div th:if="${!hasSearch}" style="text-align:center;color:var(--text-dim);padding:2rem 0;font-size:0.9rem">
+    Lance une recherche pour afficher les boutiques.
+  </div>
+
+  <!-- Carte Leaflet -->
+  <div th:if="${hasSearch and magasins != null and !magasins.isEmpty()}" style="margin-bottom:1rem">
+    <div id="magasins-map" class="store-map"
+         style="height:240px;border-radius:6px"
+         th:attr="data-selected-store-id=${magasinFavoriId}"></div>
+  </div>
+
+  <!-- Liste -->
+  <div th:if="${hasSearch and (magasins == null or magasins.isEmpty())}"
+       style="text-align:center;color:var(--text-dim);padding:1rem 0;font-size:0.85rem">
+    Aucune boutique trouvée pour cette zone.
+  </div>
+
+  <div th:if="${hasSearch and magasins != null and !magasins.isEmpty()}"
+       style="display:flex;flex-direction:column;gap:0.6rem">
+    <div th:each="magasin : ${magasins}"
+         th:id="|store-card-${magasin.id()}|"
+         class="card store-card"
+         style="padding:0"
+         th:attr="data-store-id=${magasin.id()},
+                  data-latitude=${magasin.latitude()},
+                  data-longitude=${magasin.longitude()},
+                  data-store-name=${magasin.nom()},
+                  data-store-address=${magasin.adresseComplete()},
+                  data-store-city=${magasin.ville()},
+                  data-store-code-postal=${magasin.codePostal()}">
+      <div style="padding:0.85rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.75rem;color:var(--text-dim)"
+               th:text="${magasin.codePostal() + ' • ' + magasin.ville()}"></div>
+          <div style="font-family:var(--font-head);font-size:0.95rem;color:var(--accent)"
+               th:text="${magasin.nom()}"></div>
+          <div style="font-size:0.78rem;color:var(--text-dim);margin-top:0.15rem"
+               th:if="${magasin.adresseComplete() != null}"
+               th:text="${magasin.adresseComplete()}"></div>
+          <div style="font-size:0.78rem;color:var(--text-dim)"
+               th:if="${magasin.telephone() != null}"
+               th:text="${'📞 ' + magasin.telephone()}"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.4rem">
+          <span style="font-size:0.72rem;font-family:var(--font-head);background:var(--accent3);color:#fff;padding:0.15rem 0.5rem;border-radius:3px"
+                th:if="${magasinFavoriId != null and magasinFavoriId == magasin.id()}">⭐ Favori actuel</span>
+          <form th:action="@{/compte/magasin-favori/{id}(id=${magasin.id()})}" method="post">
+            <input type="hidden" name="popup" value="true"/>
+            <button type="submit" class="btn btn-primary btn-sm"
+                    th:text="${magasinFavoriId != null and magasinFavoriId == magasin.id() ? 'Déjà favori' : 'Choisir'}">
+              Choisir
+            </button>
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+          </form>
+          <button type="button" class="btn btn-secondary btn-sm js-store-focus"
+                  th:if="${magasin.latitude() != null and magasin.longitude() != null}"
+                  style="font-size:0.72rem">📍 Carte</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script th:src="@{/js/magasins.js}"></script>
+<script>
+  /* Force invalidateSize après rendu dans l'iframe (le conteneur peut avoir height:0 au 1er paint) */
+  window.addEventListener('load', function () {
+    setTimeout(function () {
+      var m = window._leafletMap;
+      if (m) m.invalidateSize();
+    }, 300);
+  });
+</script>
+</body>
+</html>

@@ -41,6 +41,7 @@ public class FideliteServiceImpl implements FideliteService {
     private final BonAchatRepository bonAchatRepository;
     private final HistoriquePointsRepository historiquePointsRepository;
     private final RatioPointsRepository ratioPointsRepository;
+    private final FactureRepository factureRepository;
 
     @Override
     public FideliteDetailResponse getDetail(Long idClient) {
@@ -56,11 +57,26 @@ public class FideliteServiceImpl implements FideliteService {
         int pointsAvantBon20 = pointsCycleBon20 == 0 ? SEUIL_BON_20 : SEUIL_BON_20 - pointsCycleBon20;
         int progressionBon20Percent = calculerPourcentage(pointsCycleBon20, SEUIL_BON_20);
 
+        String codeFidelite = client.getTypeFidelite().getCode();
+        BigDecimal pointsParEuroBase = client.getTypeFidelite().getPointsParEuro();
+        List<FideliteDetailResponse.RatioDetail> ratios = ratioPointsRepository
+            .findAllByTypeFideliteCode(codeFidelite)
+            .stream()
+            .map(r -> new FideliteDetailResponse.RatioDetail(
+                r.getTypeCategorie().getCode(),
+                r.getTypeCategorie().getDescription() != null
+                    ? r.getTypeCategorie().getDescription()
+                    : r.getTypeCategorie().getCode(),
+                r.getRatio()))
+            .toList();
+
         return new FideliteDetailResponse(
             points.getSoldePoints(),
             points.getTotalAchatsAnnuel(),
             points.getDateDebutPeriode(),
-            client.getTypeFidelite().getCode(),
+            codeFidelite,
+            pointsParEuroBase,
+            ratios,
             SEUIL_BON_10,
             pointsCycleBon10,
             pointsAvantBon10,
@@ -91,23 +107,25 @@ public class FideliteServiceImpl implements FideliteService {
 
     @Override
     @Transactional
-    public void traiterFideliteApresFacture(Facture facture) {
+    public int traiterFideliteApresFacture(Facture facture) {
         if (facture.getClient() == null || facture.getClient().getId() == null) {
-            return;
+            return 0;
         }
 
         Long idClient = facture.getClient().getId();
         Client client = chargerClient(idClient);
         PointsFidelite points = chargerComptePoints(idClient);
 
-        int pointsGagnes = calculerPointsFacture(facture, client);
+        Facture factureAvecLignes = factureRepository.findByIdAvecLignesEtCategories(facture.getId())
+            .orElse(facture);
+        int pointsGagnes = calculerPointsFacture(factureAvecLignes, client);
         if (pointsGagnes <= 0) {
-            return;
+            return 0;
         }
 
         points.setSoldePoints(points.getSoldePoints() + pointsGagnes);
         BigDecimal totalAchatsActuel = points.getTotalAchatsAnnuel() != null ? points.getTotalAchatsAnnuel() : BigDecimal.ZERO;
-        points.setTotalAchatsAnnuel(totalAchatsActuel.add(facture.getMontantHtTotal()));
+        points.setTotalAchatsAnnuel(totalAchatsActuel.add(facture.getMontantFinal()));
         pointsRepository.save(points);
 
         historiquePointsRepository.save(HistoriquePoints.builder()
@@ -123,6 +141,7 @@ public class FideliteServiceImpl implements FideliteService {
 
         log.info("Fidélité traitée : client={} facture={} points=+{} solde={} totalGagné={}",
             idClient, facture.getReferenceFacture(), pointsGagnes, points.getSoldePoints(), totalPointsGagnes(idClient));
+        return pointsGagnes;
     }
 
     private int calculerPointsFacture(Facture facture, Client client) {
@@ -227,6 +246,7 @@ public class FideliteServiceImpl implements FideliteService {
             bon.getPointsUtilises(),
             bon.isUtilise(),
             bon.getDateCreation(),
+            bon.getDateExpiration(),
             bon.getDateUtilisation(),
             bon.getFacture() != null ? bon.getFacture().getId() : null
         );

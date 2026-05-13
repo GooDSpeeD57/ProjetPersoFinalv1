@@ -12,6 +12,8 @@ import fr.micromania.repository.*;
 import fr.micromania.service.FactureService;
 import fr.micromania.service.FideliteService;
 import fr.micromania.service.FideliteUpgradeService;
+import fr.micromania.service.MagasinCheckoutService;
+import fr.micromania.service.VenteGarantieService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,6 +37,8 @@ public class FactureServiceImpl implements FactureService {
 
     private static final BigDecimal VALEUR_BON_10 = new BigDecimal("10.00");
     private static final BigDecimal VALEUR_BON_20 = new BigDecimal("20.00");
+    private static final int POINTS_REQUIS_BON_10 = 2000;
+    private static final int POINTS_REQUIS_BON_20 = 8000;
 
     private final FactureRepository factureRepository;
     private final CommandeRepository commandeRepository;
@@ -52,6 +56,11 @@ public class FactureServiceImpl implements FactureService {
     private final FideliteService fideliteService;
     private final ClientRepository clientRepository;
     private final EmployeRepository employeRepository;
+    private final PromotionRepository promotionRepository;
+    private final PromotionUsageRepository promotionUsageRepository;
+    private final VenteUniteRepository venteUniteRepository;
+    private final VenteGarantieService venteGarantieService;
+    private final MagasinCheckoutService magasinCheckoutService;
 
     @Override
     @Transactional
@@ -81,7 +90,7 @@ public class FactureServiceImpl implements FactureService {
         if (commande.getMagasinRetrait() != null) {
             facture.setMagasin(commande.getMagasinRetrait());
         } else if (commande.getEntrepotExpedition() != null) {
-            facture.setMagasin(resoudreMagasinPourCheckout(null));
+            facture.setMagasin(magasinCheckoutService.resoudrePourCheckout(null));
         }
 
         for (LigneCommande lc : commande.getLignes()) {
@@ -110,7 +119,8 @@ public class FactureServiceImpl implements FactureService {
             marquerBonAchatCommeUtilise(bonAchat, facture);
         }
 
-        fideliteService.traiterFideliteApresFacture(facture);
+        int pts = fideliteService.traiterFideliteApresFacture(facture);
+        log.debug("Fidélité commande {} : +{} pts", facture.getReferenceFacture(), pts);
         fideliteUpgradeService.appliquerUpgradeAutomatique(commande.getClient().getId());
         decrementerStock(facture);
 
@@ -164,6 +174,28 @@ public class FactureServiceImpl implements FactureService {
             );
         }
 
+        // ── Validation des numéros de série (avant tout write) ────────────────
+        for (LigneFactureRequest lReq : request.lignes()) {
+            ProduitVariant vCheck = variantRepository.findById(lReq.idVariant())
+                .orElseThrow(() -> new EntityNotFoundException("Variant introuvable : " + lReq.idVariant()));
+            if (vCheck.isNecessiteNumeroSerie()) {
+                if (lReq.quantite() != null && lReq.quantite() > 1) {
+                    throw new IllegalArgumentException(
+                        "Le produit « " + vCheck.getNomCommercial()
+                        + " » nécessite un numéro de série : saisir une ligne par unité (quantité = 1).");
+                }
+                if (lReq.numeroSerie() == null || lReq.numeroSerie().isBlank()) {
+                    throw new IllegalArgumentException(
+                        "Numéro de série obligatoire pour le produit « " + vCheck.getNomCommercial() + " ».");
+                }
+                String ns = lReq.numeroSerie().trim();
+                if (venteUniteRepository.findByNumeroSerie(ns).isPresent()) {
+                    throw new IllegalArgumentException(
+                        "Numéro de série déjà enregistré en base (tentative de fraude ?) : " + ns);
+                }
+            }
+        }
+
         for (LigneFactureRequest lReq : request.lignes()) {
             ProduitVariant variant = variantRepository.findById(lReq.idVariant())
                 .orElseThrow(() -> new EntityNotFoundException("Variant introuvable : " + lReq.idVariant()));
@@ -177,40 +209,64 @@ public class FactureServiceImpl implements FactureService {
             facture.getLignes().add(lf);
         }
 
-        BonAchat bonAchat = null;
-        if (request.idBonAchat() != null) {
-            if (request.idClient() == null) {
-                throw new IllegalStateException("Un bon d'achat ne peut être utilisé que pour un client identifié");
+        List<BonAchat> bonsAchat = new ArrayList<>();
+        if (request.idClient() != null) {
+            if (request.idsBonAchat() != null) {
+                for (Long idBon : request.idsBonAchat()) {
+                    bonsAchat.add(chargerBonAchatDisponible(request.idClient(), idBon));
+                }
             }
-            bonAchat = chargerBonAchatDisponible(request.idClient(), request.idBonAchat());
+            if (request.idBonAchat() != null) {
+                boolean dejaPresent = bonsAchat.stream().anyMatch(b -> b.getId().equals(request.idBonAchat()));
+                if (!dejaPresent) {
+                    bonsAchat.add(chargerBonAchatDisponible(request.idClient(), request.idBonAchat()));
+                }
+            }
+        } else if (request.idBonAchat() != null
+                || (request.idsBonAchat() != null && !request.idsBonAchat().isEmpty())) {
+            throw new IllegalStateException("Un bon d'achat ne peut être utilisé que pour un client identifié");
         }
 
         recalculerTotauxFacture(facture);
 
+        PromoResult promoResult = null;
         if (request.codePromo() != null) {
-            BigDecimal remise = calculerRemisePromo(request.codePromo(), facture.getMontantTotal());
-            facture.setMontantRemise(facture.getMontantRemise().add(remise));
+            promoResult = resoudrePromo(request.codePromo(), facture.getMontantTotal());
+            if (promoResult != null) {
+                facture.setMontantRemise(facture.getMontantRemise().add(promoResult.remise()));
+            }
         }
 
-        if (bonAchat != null) {
-            appliquerBonAchat(facture, bonAchat);
-        } else {
+        for (BonAchat bon : bonsAchat) {
+            appliquerBonAchat(facture, bon);
+        }
+        if (bonsAchat.isEmpty()) {
             facture.setMontantFinal(
                 facture.getMontantTotal().subtract(facture.getMontantRemise()).max(BigDecimal.ZERO)
             );
         }
 
         facture = factureRepository.save(facture);
-        if (bonAchat != null) {
-            marquerBonAchatCommeUtilise(bonAchat, facture);
+        for (BonAchat bon : bonsAchat) {
+            marquerBonAchatCommeUtilise(bon, facture);
+        }
+        if (promoResult != null) {
+            Client clientPromo = request.idClient() != null
+                ? clientRepository.findByIdAndDeletedFalse(request.idClient()).orElse(null)
+                : null;
+            enregistrerUsagePromo(promoResult.promotion(), facture, clientPromo, promoResult.remise());
         }
 
         if (request.idClient() != null) {
-            fideliteService.traiterFideliteApresFacture(facture);
+            int pts = fideliteService.traiterFideliteApresFacture(facture);
+            log.debug("Fidélité vente magasin {} : +{} pts", facture.getReferenceFacture(), pts);
             fideliteUpgradeService.appliquerUpgradeAutomatique(request.idClient());
         }
 
         decrementerStock(facture);
+
+        // ── Création VenteUnite + Garantie pour les produits physiques ──
+        venteGarantieService.creerDepuisVenteMagasin(facture, request.lignes());
 
         log.info("Vente magasin facturée : ref={} magasin={}", facture.getReferenceFacture(), request.idMagasin());
         return factureMapper.toResponse(facture);
@@ -232,13 +288,15 @@ public class FactureServiceImpl implements FactureService {
             throw new IllegalStateException("Ajoutez une adresse puis sélectionnez-la pour finaliser votre commande");
         }
 
-        Magasin magasinCheckout = "RETRAIT_MAGASIN".equals(modeLivraison)
-            ? chargerMagasinRetraitOuProche(idClient, request != null ? request.idMagasinRetrait() : null, adresse)
-            : resoudreMagasinPourCheckout(adresse);
+        Magasin magasinCheckout = ("RETRAIT_MAGASIN".equals(modeLivraison) || "LIVRAISON_MAGASIN".equals(modeLivraison))
+            ? magasinCheckoutService.chargerRetraitOuProche(request != null ? request.idMagasinRetrait() : null, adresse)
+            : magasinCheckoutService.resoudrePourCheckout(adresse);
 
-        BonAchat bonAchat = null;
-        if (request != null && request.idBonAchat() != null) {
-            bonAchat = chargerBonAchatDisponible(idClient, request.idBonAchat());
+        List<BonAchat> bonsAchat = new ArrayList<>();
+        if (request != null && request.idsBonAchat() != null) {
+            for (Long idBon : request.idsBonAchat()) {
+                bonsAchat.add(chargerBonAchatDisponible(idClient, idBon));
+            }
         }
 
         Facture facture = Facture.builder()
@@ -266,30 +324,50 @@ public class FactureServiceImpl implements FactureService {
                 lignePanier.getPrixUnitaire(),
                 null
             );
+            if (lignePanier.getTypeGarantie() != null) {
+                TypeGarantie tg = lignePanier.getTypeGarantie();
+                ligneFacture.setGarantieLabel(tg.getDescription() != null ? tg.getDescription() : tg.getCode());
+                ligneFacture.setGarantiePrix(tg.getPrixExtension());
+            }
             facture.getLignes().add(ligneFacture);
         }
 
         recalculerTotauxFacture(facture);
-        if (bonAchat != null) {
-            appliquerBonAchat(facture, bonAchat);
+        for (BonAchat bon : bonsAchat) {
+            appliquerBonAchat(facture, bon);
         }
 
         facture = factureRepository.save(facture);
-        if (bonAchat != null) {
-            marquerBonAchatCommeUtilise(bonAchat, facture);
+        for (BonAchat bon : bonsAchat) {
+            marquerBonAchatCommeUtilise(bon, facture);
         }
 
-        fideliteService.traiterFideliteApresFacture(facture);
+        int pointsGagnes = fideliteService.traiterFideliteApresFacture(facture);
         fideliteUpgradeService.appliquerUpgradeAutomatique(idClient);
         decrementerStock(facture);
+
+        // ── Création VenteUnite + Garantie pour les produits physiques (WEB) ──
+        // Capturer les lignes AVANT de vider le panier
+        List<LignePanier> lignesPanierSnapshot = new ArrayList<>(panier.getLignes());
+        venteGarantieService.creerDepuisCheckoutWeb(facture, lignesPanierSnapshot);
+
         viderPanier(panier);
 
-        log.info("Checkout web validé : client={} facture={} mode={} magasin={}",
+        log.info("Checkout web validé : client={} facture={} mode={} magasin={} points=+{}",
             idClient,
             facture.getReferenceFacture(),
             modeLivraison,
-            facture.getMagasin() != null ? facture.getMagasin().getId() : null);
-        return factureMapper.toResponse(facture);
+            facture.getMagasin() != null ? facture.getMagasin().getId() : null,
+            pointsGagnes);
+
+        FactureResponse base = factureMapper.toResponse(facture);
+        return new FactureResponse(
+            base.id(), base.referenceFacture(), base.statutFacture(), base.contexteVente(),
+            base.modePaiement(), base.magasin(), base.nomClientAffiche(), base.emailClientAffiche(),
+            base.montantHtTotal(), base.montantTvaTotal(), base.montantTotal(),
+            base.montantRemise(), base.montantFinal(), base.dateFacture(), base.lignes(),
+            pointsGagnes > 0 ? pointsGagnes : null
+        );
     }
 
     @Override
@@ -392,7 +470,11 @@ public class FactureServiceImpl implements FactureService {
 
     private void recalculerTotauxFacture(Facture facture) {
         BigDecimal total = facture.getLignes().stream()
-            .map(LigneFacture::getMontantLigne)
+            .map(l -> {
+                BigDecimal m = l.getMontantLigne();
+                if (l.getGarantiePrix() != null) m = m.add(l.getGarantiePrix());
+                return m;
+            })
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal totalHt = facture.getLignes().stream()
@@ -415,10 +497,10 @@ public class FactureServiceImpl implements FactureService {
                 "Bon d'achat introuvable ou déjà utilisé : " + idBonAchat
             ));
 
-        boolean bon10Valide = bonAchat.getPointsUtilises() == 2000
+        boolean bon10Valide = bonAchat.getPointsUtilises() == POINTS_REQUIS_BON_10
             && VALEUR_BON_10.compareTo(bonAchat.getValeur()) == 0;
 
-        boolean bon20Valide = bonAchat.getPointsUtilises() == 8000
+        boolean bon20Valide = bonAchat.getPointsUtilises() == POINTS_REQUIS_BON_20
             && VALEUR_BON_20.compareTo(bonAchat.getValeur()) == 0;
 
         if (!bon10Valide && !bon20Valide) {
@@ -429,7 +511,6 @@ public class FactureServiceImpl implements FactureService {
     }
 
     private void appliquerBonAchat(Facture facture, BonAchat bonAchat) {
-        facture.setBonAchat(bonAchat);
         BigDecimal remiseCalculee = facture.getMontantRemise().add(bonAchat.getValeur());
         BigDecimal remisePlafonnee = remiseCalculee.min(facture.getMontantTotal());
         facture.setMontantRemise(remisePlafonnee);
@@ -444,6 +525,9 @@ public class FactureServiceImpl implements FactureService {
     }
 
     private void decrementerStock(Facture facture) {
+        if (facture.getMagasin() == null) {
+            return;
+        }
         for (LigneFacture ligne : facture.getLignes()) {
             ProduitVariant variant = ligne.getVariant();
             if (variant.isEstDemat()) {
@@ -462,9 +546,46 @@ public class FactureServiceImpl implements FactureService {
         }
     }
 
-    private BigDecimal calculerRemisePromo(String codePromo, BigDecimal montant) {
-        return BigDecimal.ZERO;
+    private PromoResult resoudrePromo(String codePromo, BigDecimal montant) {
+        return promotionRepository.findByCodePromoAndActifTrue(codePromo)
+            .filter(promo -> {
+                LocalDateTime now = LocalDateTime.now();
+                return !now.isBefore(promo.getDateDebut()) && !now.isAfter(promo.getDateFin());
+            })
+            .map(promo -> {
+                if (promo.getMontantMinimumCommande() != null
+                        && montant.compareTo(promo.getMontantMinimumCommande()) < 0) {
+                    return null;
+                }
+                if (promo.getNbUtilisationsMax() != null
+                        && promo.getNbUtilisationsActuel() >= promo.getNbUtilisationsMax()) {
+                    return null;
+                }
+                BigDecimal remise = switch (promo.getTypeReduction().getCode()) {
+                    case "POURCENTAGE"  -> montant.multiply(promo.getValeur())
+                            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                    case "MONTANT_FIXE" -> promo.getValeur().min(montant);
+                    default             -> BigDecimal.ZERO;
+                };
+                return new PromoResult(promo, remise);
+            })
+            .orElse(null);
     }
+
+    private void enregistrerUsagePromo(Promotion promotion, Facture facture, Client client, BigDecimal remise) {
+        promotion.setNbUtilisationsActuel(promotion.getNbUtilisationsActuel() + 1);
+        promotionRepository.save(promotion);
+
+        promotionUsageRepository.save(PromotionUsage.builder()
+            .promotion(promotion)
+            .facture(facture)
+            .client(client)
+            .montantCommandeHt(facture.getMontantHtTotal())
+            .montantRemise(remise)
+            .build());
+    }
+
+    private record PromoResult(Promotion promotion, BigDecimal remise) {}
 
     private String genererReferenceFacture() {
         return "FAC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
@@ -502,83 +623,6 @@ public class FactureServiceImpl implements FactureService {
 
     private String normaliserModeLivraison(String modeLivraisonCode) {
         return (modeLivraisonCode == null || modeLivraisonCode.isBlank()) ? "DOMICILE" : modeLivraisonCode;
-    }
-
-    private Magasin chargerMagasinRetraitOuProche(Long idClient, Long idMagasinRetrait, Adresse adresse) {
-        if (adresse == null) {
-            throw new IllegalStateException("Choisissez une adresse de référence pour le retrait magasin");
-        }
-        if (idMagasinRetrait != null) {
-            return magasinRepository.findByIdAndActifTrue(idMagasinRetrait)
-                .orElseThrow(() -> new EntityNotFoundException("Magasin introuvable : " + idMagasinRetrait));
-        }
-        return resoudreMagasinPourCheckout(adresse);
-    }
-
-    private Magasin resoudreMagasinPourCheckout(Adresse adresse) {
-        if (adresse != null && adresse.getMagasin() != null) {
-            return adresse.getMagasin();
-        }
-
-        List<Adresse> adressesMagasins = adresseRepository.findAllMagasinAddressesActives();
-        if (!adressesMagasins.isEmpty()) {
-            return adressesMagasins.stream()
-                .sorted(Comparator
-                    .comparingDouble((Adresse a) -> scoreMagasin(adresse, a))
-                    .thenComparing(a -> a.getMagasin().getNom(), String.CASE_INSENSITIVE_ORDER))
-                .map(Adresse::getMagasin)
-                .findFirst()
-                .orElseGet(() -> magasinRepository.findByActifTrue().stream().findFirst().orElse(null));
-        }
-
-        return magasinRepository.findByActifTrue().stream().findFirst()
-            .orElseThrow(() -> new EntityNotFoundException(
-                "Aucun magasin actif disponible pour facturer la commande web"
-            ));
-    }
-
-    private double scoreMagasin(Adresse adresseClient, Adresse adresseMagasin) {
-        if (adresseClient == null) {
-            return 999.0;
-        }
-
-        Double distance = calculerDistanceKm(adresseClient, adresseMagasin);
-        if (distance != null) {
-            return distance;
-        }
-
-        String cpClient = adresseClient.getCodePostal() != null ? adresseClient.getCodePostal().trim() : "";
-        String cpMagasin = adresseMagasin.getCodePostal() != null ? adresseMagasin.getCodePostal().trim() : "";
-        String villeClient = adresseClient.getVille() != null ? adresseClient.getVille().trim() : "";
-        String villeMagasin = adresseMagasin.getVille() != null ? adresseMagasin.getVille().trim() : "";
-
-        if (!cpClient.isBlank() && cpClient.equalsIgnoreCase(cpMagasin)) return 0.05;
-        if (!villeClient.isBlank() && villeClient.equalsIgnoreCase(villeMagasin)) return 0.10;
-        if (cpClient.length() >= 2 && cpMagasin.length() >= 2 && cpClient.substring(0, 2).equals(cpMagasin.substring(0, 2))) {
-            return 0.20;
-        }
-        return 999.0;
-    }
-
-    private Double calculerDistanceKm(Adresse a, Adresse b) {
-        if (a == null || a.getLatitude() == null || a.getLongitude() == null || b == null || b.getLatitude() == null || b.getLongitude() == null) {
-            return null;
-        }
-
-        double lat1 = a.getLatitude().doubleValue();
-        double lon1 = a.getLongitude().doubleValue();
-        double lat2 = b.getLatitude().doubleValue();
-        double lon2 = b.getLongitude().doubleValue();
-
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
-        double originLat = Math.toRadians(lat1);
-        double targetLat = Math.toRadians(lat2);
-
-        double h = Math.pow(Math.sin(dLat / 2), 2)
-            + Math.cos(originLat) * Math.cos(targetLat) * Math.pow(Math.sin(dLon / 2), 2);
-        double c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
-        return 6371.0 * c;
     }
 
     private void viderPanier(Panier panier) {

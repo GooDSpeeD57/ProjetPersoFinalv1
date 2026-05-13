@@ -17,4 +17,8 @@ public interface PanierService {
     PanierResponse appliquerCodePromo(Long idClient, String codePromo, String canalVente);
 
     PanierResponse retirerCodePromo(Long idClient, String canalVente);
+
+    PanierResponse retirerGarantie(Long idClient, Long idLigne);
+
+    PanierResponse definirGarantie(Long idClient, Long idLigne, Long typeGarantieId);
 }

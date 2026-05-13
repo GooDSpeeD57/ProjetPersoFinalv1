@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+
 @Entity
 @Table(name = "produit_image")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -15,8 +16,8 @@ public class ProduitImage {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_produit", nullable = false)
-    private Produit produit;
+    @JoinColumn(name = "id_variant", nullable = false)
+    private ProduitVariant variant;
 
     @Column(name = "url", nullable = false, length = 255)
     private String url;

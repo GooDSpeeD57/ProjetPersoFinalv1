@@ -4,6 +4,7 @@ import fr.micromania.entity.referentiel.TypeGarantie;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Table(name = "garantie")
@@ -19,8 +20,9 @@ public class Garantie {
     @JoinColumn(name = "id_vente_unite", nullable = false, unique = true)
     private VenteUnite venteUnite;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_type_garantie", nullable = false)
+    /** Null = garantie légale de conformité générique (24 mois par défaut, aucun type spécifique en base). */
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "id_type_garantie", nullable = true)
     private TypeGarantie typeGarantie;
 
     @Column(name = "date_debut", nullable = false)
@@ -34,4 +36,7 @@ public class Garantie {
 
     @Column(name = "date_extension")
     private LocalDate dateExtension;
+
+    @OneToMany(mappedBy = "garantie", fetch = FetchType.LAZY)
+    private List<ExtensionGarantie> extensions;
 }

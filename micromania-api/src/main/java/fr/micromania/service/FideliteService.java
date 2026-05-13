@@ -15,5 +15,6 @@ public interface FideliteService {
 
     List<HistoriquePointsResponse> getHistorique(Long idClient);
 
-    void traiterFideliteApresFacture(Facture facture);
+    /** Traite la fidélité après achat. Retourne le nombre de points gagnés (0 si client anonyme). */
+    int traiterFideliteApresFacture(Facture facture);
 }

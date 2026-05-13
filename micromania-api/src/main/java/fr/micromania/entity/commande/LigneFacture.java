@@ -54,4 +54,11 @@ public class LigneFacture {
 
     @Column(name = "montant_tva_ligne", nullable = false, precision = 10, scale = 2)
     private BigDecimal montantTvaLigne = BigDecimal.ZERO;
+
+    /** Garantie optionnelle associée à cette ligne — null si aucune. */
+    @Column(name = "garantie_label", length = 200)
+    private String garantieLabel;
+
+    @Column(name = "garantie_prix", precision = 10, scale = 2)
+    private BigDecimal garantiePrix;
 }

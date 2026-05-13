@@ -16,6 +16,7 @@ public interface FactureMapper {
     @Mapping(target = "nomClientAffiche",     expression = "java(facture.getClient() != null ? facture.getClient().getNom() + ' ' + facture.getClient().getPrenom() : facture.getNomClient())")
     @Mapping(target = "emailClientAffiche",   expression = "java(facture.getClient() != null ? facture.getClient().getEmail() : facture.getEmailClient())")
     @Mapping(target = "lignes",               source = "lignes")
+    @Mapping(target = "pointsGagnes",         ignore = true)
     FactureResponse toResponse(Facture facture);
 
     @Mapping(target = "statutFacture", source = "statutFacture.code")

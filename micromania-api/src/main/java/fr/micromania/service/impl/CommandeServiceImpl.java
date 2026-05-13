@@ -136,6 +136,16 @@ public class CommandeServiceImpl implements CommandeService {
     }
 
     @Override
+    public CommandeResponse getByIdForClient(Long idClient, Long id) {
+        Commande commande = commandeRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Commande introuvable : " + id));
+        if (!commande.getClient().getId().equals(idClient)) {
+            throw new SecurityException("Commande introuvable : " + id);
+        }
+        return commandeMapper.toResponse(commande);
+    }
+
+    @Override
     public CommandeResponse getByReference(String reference) {
         return commandeMapper.toResponse(commandeRepository.findByReferenceCommande(reference)
             .orElseThrow(() -> new EntityNotFoundException("Commande introuvable : " + reference)));
@@ -205,6 +215,17 @@ public class CommandeServiceImpl implements CommandeService {
     }
 
     // ── Helpers privés ─────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public void annulerPourClient(Long idClient, Long id, String motif) {
+        Commande commande = commandeRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Commande introuvable : " + id));
+        if (!commande.getClient().getId().equals(idClient)) {
+            throw new SecurityException("Commande introuvable : " + id);
+        }
+        annuler(id, motif);
+    }
 
     private void verifierStockDisponible(ProduitVariant variant, int quantite) {
         // Pour les produits dématérialisés, pas de vérification de stock physique

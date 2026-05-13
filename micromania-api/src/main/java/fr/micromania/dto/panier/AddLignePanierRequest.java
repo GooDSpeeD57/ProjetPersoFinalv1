@@ -13,5 +13,7 @@ public record AddLignePanierRequest(
     Integer quantite,
 
     @NotNull
-    Long idCanalVente
+    Long idCanalVente,
+
+    Long idTypeGarantie   // optionnel — null si pas de garantie
 ) {}

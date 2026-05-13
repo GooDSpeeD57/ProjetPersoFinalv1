@@ -100,7 +100,7 @@ public class ApiUserDetailsService implements UserDetailsService {
             }
 
             try {
-                apiService.addLignePanier(jwt, item.getVariantId(), item.getQuantite());
+                apiService.addLignePanier(jwt, item.getVariantId(), item.getQuantite(),item.getTypeGarantieId());
             } catch (RuntimeException e) {
                 log.warn("Fusion panier ignorée pour variant {} : {}", item.getVariantId(), e.getMessage());
             }

@@ -63,6 +63,9 @@ public class Produit {
     @Column(name = "mis_en_avant", nullable = false)
     private boolean misEnAvant = false;
 
+    @Column(name = "est_pre_commande", nullable = false)
+    private boolean estPreCommande = false;
+
     @Column(name = "date_creation", nullable = false, updatable = false)
     private LocalDateTime dateCreation;
 
@@ -72,10 +75,6 @@ public class Produit {
     @OneToMany(mappedBy = "produit", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ProduitVariant> variants = new ArrayList<>();
-
-    @OneToMany(mappedBy = "produit", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<ProduitImage> images = new ArrayList<>();
 
     @OneToMany(mappedBy = "produit", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

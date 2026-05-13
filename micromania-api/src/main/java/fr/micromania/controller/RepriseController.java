@@ -49,6 +49,7 @@ public class RepriseController {
     }
 
     @PatchMapping("/{id}/lignes/valider")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     public ResponseEntity<RepriseResponse> validerLigne(
             @PathVariable Long id,
             @Valid @RequestBody ValiderRepriseLigneRequest request) {

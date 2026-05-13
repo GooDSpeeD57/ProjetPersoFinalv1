@@ -24,5 +24,8 @@ public record ApiClient(
         LocalDate ultimateDateDebut,
         LocalDate ultimateDateFin,
         boolean ultimateActif,
-        BigDecimal prixAbonnementUltimate
-) {}
+        BigDecimal prixAbonnementUltimate,
+        ApiMagasinFavori magasinFavori
+) {
+    public record ApiMagasinFavori(Long id, String nom, String telephone, String ville, String adresseComplete) {}
+}

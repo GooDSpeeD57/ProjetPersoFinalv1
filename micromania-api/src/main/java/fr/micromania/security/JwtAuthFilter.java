@@ -1,5 +1,6 @@
 package fr.micromania.security;
 
+import fr.micromania.repository.TokenBlacklistRepository;
 import fr.micromania.service.impl.AuthServiceImpl;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -25,6 +26,7 @@ import java.util.List;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final AuthServiceImpl authService;
+    private final TokenBlacklistRepository tokenBlacklistRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -38,12 +40,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             try {
                 Claims claims = authService.parserToken(token);
 
+                String jti = claims.getId();
+                if (jti != null && tokenBlacklistRepository.existsByJti(jti)) {
+                    log.debug("Token JWT révoqué (blacklist) : jti={}", jti);
+                    SecurityContextHolder.clearContext();
+                    chain.doFilter(request, response);
+                    return;
+                }
+
                 Long   userId   = Long.parseLong(claims.getSubject());
                 String userType = claims.get("userType", String.class);
                 String role     = claims.get("role",     String.class);
 
                 // Préfixe ROLE_ pour Spring Security
-                String authority = "CLIENT".equals(userType)
+                String authority = UserType.CLIENT.equals(userType)
                     ? "ROLE_CLIENT"
                     : "ROLE_" + role;       // ROLE_VENDEUR, ROLE_MANAGER, ROLE_ADMIN
 
@@ -63,6 +73,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+        return path.startsWith("/images/")
+                || path.startsWith("/css/")
+                || path.startsWith("/js/")
+                || path.startsWith("/assets/")
+                || path.startsWith("/webjars/")
+                || path.startsWith("/favicon")
+                || path.endsWith(".png")
+                || path.endsWith(".jpg")
+                || path.endsWith(".jpeg")
+                || path.endsWith(".webp")
+                || path.endsWith(".svg");
     }
 
     private String extractToken(HttpServletRequest request) {

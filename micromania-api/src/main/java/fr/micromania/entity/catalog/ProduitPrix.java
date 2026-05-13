@@ -1,6 +1,5 @@
 package fr.micromania.entity.catalog;
 
-import fr.micromania.entity.referentiel.CanalVente;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -20,12 +19,17 @@ public class ProduitPrix {
     @JoinColumn(name = "id_variant", nullable = false)
     private ProduitVariant variant;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_canal_vente", nullable = false)
-    private CanalVente canalVente;
+    @Column(name = "prix_neuf", precision = 10, scale = 2)
+    private BigDecimal prixNeuf;
 
-    @Column(name = "prix", nullable = false, precision = 10, scale = 2)
-    private BigDecimal prix;
+    @Column(name = "prix_occasion", precision = 10, scale = 2)
+    private BigDecimal prixOccasion;
+
+    @Column(name = "prix_reprise", precision = 10, scale = 2)
+    private BigDecimal prixReprise;
+
+    @Column(name = "prix_location", precision = 10, scale = 2)
+    private BigDecimal prixLocation;
 
     @Column(name = "date_debut", nullable = false)
     private LocalDateTime dateDebut;

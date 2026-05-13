@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <th:block th:replace="~{fragments/layout :: head('Calendrier des sorties')}"/>
+</head>
+<body>
+<div class="site-shell">
+<th:block th:replace="~{fragments/navbar :: navbar}"/>
+
+<main>
+  <div class="container">
+    <div class="section-label">// JEUX VIDÉO</div>
+    <div class="section-title">Calendrier des sorties</div>
+
+    <!-- ── Barre filtre année / mois ── -->
+    <div class="cal-filter-wrap">
+      <div class="cal-filter-bar">
+        <!-- Dropdown année -->
+        <select class="cal-year-select"
+                onchange="location.href='/calendrier-sorties?annee='+this.value+'&amp;mois='+document.getElementById('moisActifVal').value">
+          <option th:each="a : ${anneesDisponibles}"
+                  th:value="${a}"
+                  th:text="${a}"
+                  th:selected="${a == anneeActive}"></option>
+        </select>
+        <input type="hidden" id="moisActifVal" th:value="${moisActif}"/>
+
+        <!-- Onglets JANV → DÉC -->
+        <th:block th:each="m : ${#numbers.sequence(1, 12)}">
+          <a th:href="@{/calendrier-sorties(annee=${anneeActive},mois=${m})}"
+             th:class="${m == moisActif} ? 'cal-month-tab active' : (${moisAvecSorties.contains(m)} ? 'cal-month-tab has-sorties' : 'cal-month-tab')"
+             th:text="${#strings.toUpperCase(#temporals.format(T(java.time.LocalDate).of(anneeActive,m,1),'MMM',#locale))}">
+          </a>
+        </th:block>
+      </div>
+    </div>
+
+    <th:block th:replace="~{fragments/layout :: alerts}"/>
+
+    <!-- Titre du mois + compteur -->
+    <div class="cal-mois-header" th:if="${!#lists.isEmpty(sortiesDuMois)}">
+      <span class="section-label" style="margin:0">//</span>
+      <span class="section-label" style="margin:0;font-size:0.65rem"
+            th:text="${#strings.toUpperCase(#temporals.format(T(java.time.LocalDate).of(anneeActive,moisActif,1),'MMMM yyyy',#locale))}"></span>
+      <span class="cal-mois-count"
+            th:text="${#lists.size(sortiesDuMois) + ' titre' + (#lists.size(sortiesDuMois) > 1 ? 's' : '')}"></span>
+    </div>
+
+    <!-- ── Grille produits du mois ── -->
+    <div class="products-grid" th:if="${!#lists.isEmpty(sortiesDuMois)}">
+      <div class="product-card"
+           th:each="s : ${sortiesDuMois}"
+           th:attr="data-href=@{/catalogue/{id}(id=${s.idProduit()})}"
+           onclick="if(!event.target.closest('form,a,button'))window.location=this.dataset.href">
+
+        <!-- Badge état -->
+        <div th:if="${s.estPreCommande()}"
+             class="product-etat-banner banner-nouveau">Précommande</div>
+
+        <div class="product-img">
+          <img th:if="${s.imageUrl() != null}"
+               th:src="${#strings.replace(@environment.getProperty('api.base-url'),'/api/v1','') + s.imageUrl()}"
+               th:alt="${s.nom()}"
+               onerror="this.style.display='none'"/>
+          <span th:if="${s.imageUrl() == null}">🎮</span>
+
+          <!-- Badge date (jour + mois) sur l'image -->
+          <div class="cal-badge-date" th:if="${s.dateSortie() != null}">
+            <th:block th:text="${s.dateSortie().getDayOfMonth()}"></th:block>
+            <span th:text="${#strings.toUpperCase(#temporals.format(s.dateSortie(),'MMM',#locale))}"></span>
+          </div>
+        </div>
+
+        <div class="product-body">
+          <div class="product-platform"
+               th:text="${s.plateforme() != null ? s.plateforme() : s.categorie()}"></div>
+          <div class="product-name" th:text="${s.nom()}"></div>
+
+          <div th:if="${s.edition() != null and !s.edition().isBlank()}"
+               style="font-size:0.75rem;color:var(--text-dim);margin-bottom:0.4rem"
+               th:text="${s.edition()}"></div>
+
+          <div class="product-price">
+            <span th:if="${s.prix() != null}"
+                  th:text="${#numbers.formatDecimal(s.prix(),1,2) + ' €'}"></span>
+            <span th:if="${s.prix() == null}"
+                  style="color:var(--text-dim);font-size:.8rem;font-family:var(--font-body)">Prix à venir</span>
+          </div>
+
+          <div class="product-actions" onclick="event.stopPropagation()">
+            <form th:action="@{/panier/ajouter}" method="post">
+              <input type="hidden" name="produitId"  th:value="${s.idProduit()}"/>
+              <input type="hidden" name="produitNom" th:value="${s.nom()}"/>
+              <input type="hidden" name="idVariant"  th:value="${s.idVariant()}"/>
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+              <button type="submit" class="btn btn-sm btn-primary"
+                      th:text="${s.estPreCommande()} ? 'Précommander' : '+ Panier'"></button>
+            </form>
+            <a class="btn btn-sm btn-secondary"
+               th:href="@{/catalogue/{id}(id=${s.idProduit()})}">Détail</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pas de sorties ce mois -->
+    <div th:if="${#lists.isEmpty(sortiesDuMois) and #lists.isEmpty(precommandesSansDate)}"
+         style="text-align:center;padding:5rem 2rem">
+      <div style="font-size:4rem;margin-bottom:1.5rem;opacity:0.2">🗓</div>
+      <div class="section-label" style="justify-content:center;display:flex;margin-bottom:1.5rem">
+        Aucune sortie prévue ce mois-ci
+      </div>
+      <a class="btn btn-primary" th:href="@{/catalogue}">Voir le catalogue</a>
+    </div>
+
+    <!-- ── Précommandes sans date (affiché sur le mois courant uniquement) ── -->
+    <div class="cal-precom-section"
+         th:if="${!#lists.isEmpty(precommandesSansDate) and moisActif == aujourd_hui.monthValue and anneeActive == aujourd_hui.year}">
+      <div class="cal-precom-label">// Précommandes — date de sortie à confirmer</div>
+      <div class="products-grid">
+        <div class="product-card"
+             th:each="s : ${precommandesSansDate}"
+             th:attr="data-href=@{/catalogue/{id}(id=${s.idProduit()})}"
+             onclick="if(!event.target.closest('form,a,button'))window.location=this.dataset.href">
+
+          <div class="product-etat-banner banner-nouveau">Précommande</div>
+
+          <div class="product-img">
+            <img th:if="${s.imageUrl() != null}"
+                 th:src="${#strings.replace(@environment.getProperty('api.base-url'),'/api/v1','') + s.imageUrl()}"
+                 th:alt="${s.nom()}"
+                 onerror="this.style.display='none'"/>
+            <span th:if="${s.imageUrl() == null}">🎮</span>
+            <div class="cal-badge-date" style="background:var(--text-dim);color:var(--bg)">
+              <span style="font-size:0.55rem;letter-spacing:1px">TBD</span>
+            </div>
+          </div>
+
+          <div class="product-body">
+            <div class="product-platform"
+                 th:text="${s.plateforme() != null ? s.plateforme() : s.categorie()}"></div>
+            <div class="product-name" th:text="${s.nom()}"></div>
+            <div th:if="${s.edition() != null and !s.edition().isBlank()}"
+                 style="font-size:0.75rem;color:var(--text-dim);margin-bottom:0.4rem"
+                 th:text="${s.edition()}"></div>
+            <div class="product-price">
+              <span th:if="${s.prix() != null}"
+                    th:text="${#numbers.formatDecimal(s.prix(),1,2) + ' €'}"></span>
+              <span th:if="${s.prix() == null}"
+                    style="color:var(--text-dim);font-size:.8rem;font-family:var(--font-body)">Prix à venir</span>
+            </div>
+            <div class="product-actions" onclick="event.stopPropagation()">
+              <form th:action="@{/panier/ajouter}" method="post">
+                <input type="hidden" name="produitId"  th:value="${s.idProduit()}"/>
+                <input type="hidden" name="produitNom" th:value="${s.nom()}"/>
+                <input type="hidden" name="idVariant"  th:value="${s.idVariant()}"/>
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-sm btn-primary">Précommander</button>
+              </form>
+              <a class="btn btn-sm btn-secondary"
+                 th:href="@{/catalogue/{id}(id=${s.idProduit()})}">Détail</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<th:block th:replace="~{fragments/footer :: footer}"/>
+</div>
+</body>
+</html>

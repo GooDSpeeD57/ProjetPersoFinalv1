@@ -34,5 +34,16 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
         Pageable pageable
     );
 
+    @Query("""
+        SELECT f FROM Facture f
+        LEFT JOIN FETCH f.lignes l
+        LEFT JOIN FETCH l.variant v
+        LEFT JOIN FETCH v.produit p
+        LEFT JOIN FETCH p.categorie c
+        LEFT JOIN FETCH c.typeCategorie
+        WHERE f.id = :id
+        """)
+    Optional<Facture> findByIdAvecLignesEtCategories(@Param("id") Long id);
+
     boolean existsByCommandeId(Long idCommande);
 }

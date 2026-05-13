@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.monprojet.boutiquejeux.controller.GarantiesController"
+      spacing="12" styleClass="view-container">
+    <padding><Insets top="20" bottom="20" left="20" right="20"/></padding>
+
+    <Label text="🛡️ Garanties client" styleClass="page-title"/>
+    <Separator/>
+
+    <!-- Barre de recherche -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <TextField fx:id="rechercheClientField"
+                   promptText="Email, pseudo ou nom du client…"
+                   styleClass="text-field-dark" prefWidth="340"
+                   onAction="#handleRechercheClient"/>
+        <Button text="🔍 Rechercher" onAction="#handleRechercheClient" styleClass="btn-secondary"/>
+        <ProgressIndicator fx:id="spinner" maxWidth="26" maxHeight="26" visible="false"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="labelNbGaranties" styleClass="field-label"/>
+    </HBox>
+
+    <Label fx:id="labelClient" text="Aucun client sélectionné" styleClass="info-label"/>
+
+    <!-- Tableau des garanties -->
+    <TableView fx:id="tableGaranties" VBox.vgrow="ALWAYS" styleClass="table-dark">
+        <columns>
+            <TableColumn fx:id="colProduit"    text="Produit"           prefWidth="190" minWidth="140"/>
+            <TableColumn fx:id="colNumeroSerie" text="N° Série"         prefWidth="130" minWidth="90"/>
+            <TableColumn fx:id="colType"       text="Type de garantie"  prefWidth="160" minWidth="130"/>
+            <TableColumn fx:id="colDateAchat"  text="Date d'achat"      prefWidth="105" minWidth="90"/>
+            <TableColumn fx:id="colDuree"      text="Durée"             prefWidth="68"  minWidth="58"/>
+            <TableColumn fx:id="colDateFin"    text="Fin de garantie"   prefWidth="120" minWidth="100"/>
+            <TableColumn fx:id="colStatut"     text="Statut"            prefWidth="130" minWidth="110"/>
+        </columns>
+        <placeholder>
+            <Label text="Aucune garantie pour ce client." styleClass="field-label"/>
+        </placeholder>
+    </TableView>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Panneau de détail — masqué par défaut, visible à la sélection
+    ═══════════════════════════════════════════════════════════════════ -->
+    <VBox fx:id="panelDetail" spacing="10" styleClass="card"
+          managed="false" visible="false">
+        <padding><Insets top="12" bottom="12" left="14" right="14"/></padding>
+
+        <Label text="Détail de la garantie sélectionnée"
+               style="-fx-font-weight:bold;-fx-font-size:13;-fx-text-fill:#c8c8c8;"/>
+        <Separator/>
+
+        <GridPane hgap="20" vgap="6">
+            <columnConstraints>
+                <ColumnConstraints minWidth="130" prefWidth="140"/>
+                <ColumnConstraints hgrow="ALWAYS" minWidth="150"/>
+                <ColumnConstraints minWidth="130" prefWidth="140"/>
+                <ColumnConstraints hgrow="ALWAYS" minWidth="150"/>
+            </columnConstraints>
+
+            <!-- ligne 0 -->
+            <Label text="Produit :" styleClass="field-label"
+                   GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+            <Label fx:id="detailProduit"
+                   style="-fx-text-fill:#e0e0e0;-fx-font-size:12;"
+                   GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+            <Label text="Type :" styleClass="field-label"
+                   GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+            <Label fx:id="detailTypeGarantie"
+                   style="-fx-text-fill:#e0e0e0;-fx-font-size:12;"
+                   GridPane.columnIndex="3" GridPane.rowIndex="0"/>
+
+            <!-- ligne 1 -->
+            <Label text="Date début :" styleClass="field-label"
+                   GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+            <Label fx:id="detailDateDebut"
+                   style="-fx-text-fill:#e0e0e0;-fx-font-size:12;"
+                   GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+            <Label text="Date fin :" styleClass="field-label"
+                   GridPane.columnIndex="2" GridPane.rowIndex="1"/>
+            <Label fx:id="detailDateFin"
+                   style="-fx-text-fill:#e0e0e0;-fx-font-size:12;"
+                   GridPane.columnIndex="3" GridPane.rowIndex="1"/>
+
+            <!-- ligne 2 -->
+            <Label text="Durée :" styleClass="field-label"
+                   GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+            <Label fx:id="detailDuree"
+                   style="-fx-text-fill:#e0e0e0;-fx-font-size:12;"
+                   GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+            <Label text="Extension :" styleClass="field-label"
+                   GridPane.columnIndex="2" GridPane.rowIndex="2"/>
+            <Label fx:id="detailExtension"
+                   style="-fx-text-fill:#e0e0e0;-fx-font-size:12;"
+                   GridPane.columnIndex="3" GridPane.rowIndex="2"/>
+
+            <!-- ligne 3 -->
+            <Label text="N° Série :" styleClass="field-label"
+                   GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+            <Label fx:id="detailNumeroSerie"
+                   style="-fx-text-fill:#5dade2;-fx-font-size:12;-fx-font-weight:bold;"
+                   GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+        </GridPane>
+
+        <!-- Section ajout extension (masquée si garantie déjà étendue) -->
+        <Separator/>
+        <VBox fx:id="sectionExtension" spacing="8">
+            <Label text="➕ Ajouter une garantie additionnelle"
+                   style="-fx-font-weight:bold;-fx-font-size:12;-fx-text-fill:#f0a500;"/>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <Label text="Type :" styleClass="field-label" minWidth="45"/>
+                <ComboBox fx:id="cbTypeExtension" prefWidth="265"
+                          promptText="— Choisir le type d'extension —"/>
+                <Label text="Fin le :" styleClass="field-label" minWidth="45"/>
+                <DatePicker fx:id="dpFinExtension" prefWidth="145"/>
+                <Button text="✅ Valider l'extension"
+                        onAction="#handleAjouterExtension"
+                        styleClass="btn-success"/>
+                <ProgressIndicator fx:id="spinnerExtension"
+                                   maxWidth="20" maxHeight="20" visible="false"/>
+                <Label fx:id="labelExtensionMsg"
+                       style="-fx-font-size:12;" wrapText="false"/>
+            </HBox>
+        </VBox>
+    </VBox>
+
+</VBox>

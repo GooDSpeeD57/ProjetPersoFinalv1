@@ -1,5 +1,6 @@
 package fr.micromania.exception;
 
+import fr.micromania.service.impl.AuthServiceImpl.AccountLockedException;
 import fr.micromania.service.impl.AuthServiceImpl.BadCredentialsException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -59,12 +60,36 @@ public class GlobalExceptionHandler {
             new ErrorResponse(400, ex.getMessage(), request.getRequestURI()));
     }
 
+    // ── 429 — Compte bloqué (trop de tentatives) ─────────────
+    @ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<ErrorResponse> handleAccountLocked(
+            AccountLockedException ex,
+            HttpServletRequest request) {
+
+        return ResponseEntity.status(429).body(
+            new ErrorResponse(429, ex.getMessage(), request.getRequestURI()));
+    }
+
+    // ── 401 — Token JWT invalide / expiré ────────────────────
+    @ExceptionHandler(io.jsonwebtoken.JwtException.class)
+    public ResponseEntity<ErrorResponse> handleJwt(
+            io.jsonwebtoken.JwtException ex,
+            HttpServletRequest request) {
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+            new ErrorResponse(401, "Token invalide ou expiré", request.getRequestURI()));
+    }
+
     // ── 401 — Mauvaises credentials ───────────────────────────
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentials(
             BadCredentialsException ex,
             HttpServletRequest request) {
 
+        log.warn("401 BadCredentials — uri={} ip={} msg={}",
+            request.getRequestURI(),
+            request.getRemoteAddr(),
+            ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
             new ErrorResponse(401, ex.getMessage(), request.getRequestURI()));
     }
